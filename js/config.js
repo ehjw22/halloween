@@ -1,7 +1,6 @@
 window.HALLOWEEN_CONFIG = {
   supabaseUrl: "",
   supabaseAnonKey: "",
-  adminPasscode: "SP2026",
 };
 
 window.__CONFIG_STATUS = { ok: false, reason: "not-loaded" };

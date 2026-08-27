@@ -24,7 +24,10 @@
       <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
       <button class="nav__btn" type="button" data-nav="admin">Staff</button>
     </nav>
-    <div class="live-chip" id="liveMode">Connecting…</div>
+    <div class="header-meta">
+      <div class="session-chip" id="sessionChip" hidden></div>
+      <div class="live-chip" id="liveMode">Connecting…</div>
+    </div>
   </header>
 
   <main>
@@ -56,45 +59,72 @@
     </section>
 
     <section class="view" data-view="stamps" hidden>
-      <div class="section-head">
-        <h2>Digital Stamp Card</h2>
-        <p>Collect all six staff stamps to unlock a Digital Fast Pass.</p>
-        <div class="stamp-toolbar">
-          <span class="stamp-progress" id="stampProgress">0 / 6 stamped</span>
-          <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
+      <div id="studentAuth" class="auth-card">
+        <h2>Student sign in</h2>
+        <p>Use your student number and full name (as on your card). First visit creates your stamp card. Session lasts 1 hour.</p>
+        <form id="studentAuthForm">
+          <label>
+            Student number
+            <input id="studentNumber" name="studentNumber" type="text" autocomplete="username" required>
+          </label>
+          <label>
+            Full name
+            <input id="studentName" name="fullName" type="text" autocomplete="name" required>
+          </label>
+          <p class="form-error" id="studentAuthError" hidden></p>
+          <button class="btn" type="submit">Continue</button>
+        </form>
+      </div>
+
+      <div id="stampApp" hidden>
+        <div class="section-head">
+          <h2>Digital Stamp Card</h2>
+          <p>Collect all six staff stamps to unlock a Digital Fast Pass.</p>
+          <div class="stamp-toolbar">
+            <span class="stamp-progress" id="stampProgress">0 / 6 stamped</span>
+            <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
+          </div>
         </div>
-      </div>
 
-      <div id="stampCardPanel">
-        <div class="stamp-grid" id="stampGrid"></div>
-      </div>
+        <div id="stampCardPanel">
+          <div class="stamp-grid" id="stampGrid"></div>
+        </div>
 
-      <div id="fastPassPanel" hidden>
-        <article class="fast-pass">
-          <p class="fast-pass__kicker">Unlocked</p>
-          <h3>Digital Fast Pass</h3>
-          <p>Show this at any scare house queue. One party per pass.</p>
-          <canvas id="qrCanvas" width="196" height="196"></canvas>
-          <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
-          <ul>
-            <li>Valid tonight only</li>
-            <li>Skip the standard wait line</li>
-            <li>Still subject to house capacity</li>
-          </ul>
-        </article>
+        <div id="fastPassPanel" hidden>
+          <article class="fast-pass" id="fastPassCard">
+            <p class="fast-pass__kicker" id="passKicker">Unlocked</p>
+            <h3>Digital Fast Pass</h3>
+            <p class="fast-pass__holder" id="passHolder"></p>
+            <p>Show this at the Fast Pass queue. One party per pass.</p>
+            <canvas id="qrCanvas" width="196" height="196"></canvas>
+            <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
+            <ul>
+              <li>Valid tonight only</li>
+              <li>Skip the standard wait line</li>
+              <li>Still subject to house capacity</li>
+            </ul>
+            <button class="btn" id="redeemOpen" type="button">Facilitator: Redeem</button>
+            <p class="muted" id="redeemedNote" hidden></p>
+          </article>
+        </div>
       </div>
     </section>
 
     <section class="view" data-view="admin" hidden>
       <div id="adminGate" class="admin-gate">
-        <h2>Staff access</h2>
-        <p>Enter the event passcode to manage wait times. Default is <code>SP2026</code>.</p>
+        <h2>Staff sign in</h2>
+        <p>Separate from student accounts. Session lasts 1 hour. Passcode is set with <code>ADMIN_PASSCODE</code> (default <code>SP2026</code>).</p>
         <form id="adminPassForm">
           <label>
-            Passcode
-            <input id="adminPasscode" type="password" autocomplete="off" required>
+            Staff ID / name
+            <input id="adminStaffId" type="text" autocomplete="username" required>
           </label>
-          <button class="btn" type="submit">Unlock dashboard</button>
+          <label>
+            Staff passcode
+            <input id="adminPasscode" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="form-error" id="adminAuthError" hidden></p>
+          <button class="btn" type="submit">Sign in</button>
         </form>
       </div>
 
@@ -109,7 +139,7 @@
               Instant auto-save
             </label>
             <button class="btn" id="publishAll" type="button">Publish all</button>
-            <button class="btn btn--ghost" id="adminLock" type="button">Lock</button>
+            <button class="btn btn--ghost" id="adminLock" type="button">Sign out</button>
           </div>
         </div>
         <div class="table-wrap">
@@ -150,6 +180,27 @@
         </video>
         <p class="muted">Embed a house trailer by setting the video source, or drop in a YouTube iframe.</p>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="redeemModal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+      <h3>Redeem Fast Pass</h3>
+      <p>Facilitators only. Enter staff ID and the staff passcode to mark this pass used.</p>
+      <form id="redeemForm">
+        <label>
+          Staff ID / name
+          <input id="redeemStaffId" type="text" required>
+        </label>
+        <label>
+          Staff passcode
+          <input id="redeemPasscode" type="password" required>
+        </label>
+        <p class="form-error" id="redeemError" hidden></p>
+        <button class="btn" type="submit">Mark redeemed</button>
+      </form>
     </div>
   </div>
 

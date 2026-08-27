@@ -1,8 +1,18 @@
 import { HOUSES, STATUSES } from "./houses.js";
 import { createStore } from "./store.js";
+import {
+  adminSignIn,
+  clearAdminSession,
+  clearStudentSession,
+  fetchStamps,
+  getAdminSession,
+  getStudentSession,
+  redeemPass,
+  saveStamps,
+  studentSignIn,
+} from "./session.js";
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
-const STAMP_KEY = "sp-halloween-stamps-v1";
 const STAMP_SLOTS = [
   { id: 1, icon: "🎃", label: "Pumpkin Gate" },
   { id: 2, icon: "🦇", label: "Bat Colony" },
@@ -39,14 +49,28 @@ const els = {
   autoSave: document.getElementById("autoSave"),
   publishAll: document.getElementById("publishAll"),
   dbBanner: document.getElementById("dbBanner"),
+  studentAuth: document.getElementById("studentAuth"),
+  studentAuthForm: document.getElementById("studentAuthForm"),
+  studentAuthError: document.getElementById("studentAuthError"),
+  stampApp: document.getElementById("stampApp"),
+  sessionChip: document.getElementById("sessionChip"),
+  passHolder: document.getElementById("passHolder"),
+  passKicker: document.getElementById("passKicker"),
+  redeemOpen: document.getElementById("redeemOpen"),
+  redeemedNote: document.getElementById("redeemedNote"),
+  redeemModal: document.getElementById("redeemModal"),
+  redeemForm: document.getElementById("redeemForm"),
+  redeemError: document.getElementById("redeemError"),
+  adminAuthError: document.getElementById("adminAuthError"),
+  fastPassCard: document.getElementById("fastPassCard"),
 };
 
 let store;
 let houses = [];
 let pendingStampId = null;
 let showPass = false;
-let adminUnlocked = sessionStorage.getItem("sp-admin") === "1";
 let autoSave = true;
+let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
 
 const mapState = {
@@ -79,7 +103,10 @@ function setView(name) {
   });
   els.navButtons.forEach((btn) => btn.classList.toggle("is-active", btn.dataset.nav === name));
   if (name === "admin") renderAdmin();
-  if (name === "stamps") renderStamps();
+  if (name === "stamps") {
+    renderSessionChip();
+    renderStamps();
+  }
 }
 
 function renderDashboard() {
@@ -162,74 +189,86 @@ function openHouse(id) {
 function closeModals() {
   els.modal.hidden = true;
   els.stampModal.hidden = true;
+  if (els.redeemModal) els.redeemModal.hidden = true;
   pendingStampId = null;
 }
 
-function loadStamps() {
-  try {
-    return JSON.parse(localStorage.getItem(STAMP_KEY)) || {};
-  } catch {
-    return {};
-  }
+function isAdminUnlocked() {
+  return Boolean(getAdminSession());
 }
 
-function saveStamps(data) {
-  localStorage.setItem(STAMP_KEY, JSON.stringify(data));
-}
-
-function stampCount() {
-  return STAMP_SLOTS.filter((slot) => loadStamps()[slot.id]).length;
-}
-
-function passCode() {
-  const stamps = loadStamps();
-  const seed = STAMP_SLOTS.map((s) => stamps[s.id]?.by || "").join("|");
-  let hash = 2166136261;
-  for (const ch of seed || "SP-HALLOWEEN") {
-    hash ^= ch.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `SP-FP-${(hash >>> 0).toString(16).toUpperCase().padStart(8, "0")}`;
-}
-
-async function drawQr(text) {
-  if (!els.qrCanvas) return;
-  if (typeof QRCode !== "undefined" && QRCode.toCanvas) {
-    await QRCode.toCanvas(els.qrCanvas, text, {
-      width: 196,
-      margin: 1,
-      color: { dark: "#14080c", light: "#fff4d6" },
-    });
+function renderSessionChip() {
+  const student = getStudentSession();
+  const admin = getAdminSession();
+  if (!els.sessionChip) return;
+  if (student) {
+    els.sessionChip.hidden = false;
+    els.sessionChip.innerHTML = `<span>${student.payload.name}</span><button type="button" data-logout="student">Log out</button>`;
     return;
   }
-  const ctx = els.qrCanvas.getContext("2d");
-  const size = 196;
-  els.qrCanvas.width = size;
-  els.qrCanvas.height = size;
-  ctx.fillStyle = "#fff4d6";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#14080c";
-  let n = 0;
-  for (const ch of text) n = (n * 33 + ch.charCodeAt(0)) >>> 0;
-  const cells = 21;
-  const cell = Math.floor(size / cells);
-  for (let y = 0; y < cells; y += 1) {
-    for (let x = 0; x < cells; x += 1) {
-      const bit = ((n >> ((x * 3 + y) % 24)) ^ (x * 17 + y * 13)) & 1;
-      const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
-      if (bit || finder) ctx.fillRect(x * cell, y * cell, cell, cell);
-    }
+  if (admin) {
+    els.sessionChip.hidden = false;
+    els.sessionChip.innerHTML = `<span>Staff · ${admin.payload.staffId}</span><button type="button" data-logout="admin">Log out</button>`;
+    return;
   }
+  els.sessionChip.hidden = true;
+  els.sessionChip.innerHTML = "";
 }
 
-function renderStamps() {
-  const stamps = loadStamps();
-  const filled = stampCount();
+function stampCount(stamps = cardState.stamps) {
+  return STAMP_SLOTS.filter((slot) => stamps[slot.id]).length;
+}
+
+async function loadCardFromServer() {
+  const session = getStudentSession();
+  if (!session) {
+    cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
+    return;
+  }
+  const data = await fetchStamps();
+  cardState = {
+    stamps: data.stamps || {},
+    redeemedAt: data.redeemedAt || null,
+    redeemedBy: data.redeemedBy || null,
+    fullName: data.fullName || session.payload.name,
+    studentNumber: data.studentNumber || session.payload.studentNumber,
+    passId: data.passId || `SP-FP-${session.payload.studentNumber}`,
+  };
+}
+
+async function renderStamps() {
+  const session = getStudentSession();
+  if (!session) {
+    els.studentAuth.hidden = false;
+    els.stampApp.hidden = true;
+    renderSessionChip();
+    return;
+  }
+
+  els.studentAuth.hidden = true;
+  els.stampApp.hidden = false;
+  renderSessionChip();
+
+  try {
+    await loadCardFromServer();
+  } catch (error) {
+    els.studentAuth.hidden = false;
+    els.stampApp.hidden = true;
+    els.studentAuthError.hidden = false;
+    els.studentAuthError.textContent = error.message;
+    clearStudentSession();
+    renderSessionChip();
+    return;
+  }
+
+  const stamps = cardState.stamps;
+  const filled = stampCount(stamps);
   els.stampProgress.textContent = `${filled} / 6 stamped`;
   els.stampGrid.innerHTML = STAMP_SLOTS.map((slot) => {
     const stamped = stamps[slot.id];
+    const locked = Boolean(cardState.redeemedAt);
     return `
-      <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}">
+      <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
         <span class="stamp-slot__icon">${slot.icon}</span>
         <strong>${slot.label}</strong>
         <small>${stamped ? `Stamped by ${stamped.by}` : "Tap to stamp"}</small>
@@ -238,29 +277,42 @@ function renderStamps() {
 
   const complete = filled === 6;
   els.passToggle.hidden = !complete;
-  if (complete && showPass) {
+  if (els.passHolder) {
+    els.passHolder.textContent = `${cardState.fullName} · ${cardState.studentNumber}`;
+  }
+  if (complete && (showPass || cardState.redeemedAt)) {
+    showPass = true;
     els.stampView.hidden = true;
     els.passView.hidden = false;
     els.passToggle.textContent = "Review stamp card";
-    const code = passCode();
-    els.passId.textContent = code;
-    drawQr(code);
+    els.passId.textContent = cardState.passId;
+    await drawQr(cardState.passId);
+    const redeemed = Boolean(cardState.redeemedAt);
+    els.fastPassCard.classList.toggle("is-redeemed", redeemed);
+    els.passKicker.textContent = redeemed ? "Redeemed" : "Unlocked";
+    els.redeemOpen.hidden = redeemed;
+    els.redeemedNote.hidden = !redeemed;
+    if (redeemed) {
+      const when = new Date(cardState.redeemedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      els.redeemedNote.textContent = `Redeemed at ${when}${cardState.redeemedBy ? ` by ${cardState.redeemedBy}` : ""}.`;
+    }
   } else {
     els.stampView.hidden = false;
     els.passView.hidden = true;
     els.passToggle.textContent = "Show Fast Pass";
-    if (complete) showPass = false;
   }
 }
 
 function renderAdmin() {
-  if (!adminUnlocked) {
+  if (!isAdminUnlocked()) {
     els.adminGate.hidden = false;
     els.adminApp.hidden = true;
+    renderSessionChip();
     return;
   }
   els.adminGate.hidden = true;
   els.adminApp.hidden = false;
+  renderSessionChip();
 
   els.adminTable.innerHTML = houses
     .map((row) => {
@@ -293,6 +345,36 @@ function renderAdmin() {
         </tr>`;
     })
     .join("");
+}
+
+async function drawQr(text) {
+  if (!els.qrCanvas) return;
+  if (typeof QRCode !== "undefined" && QRCode.toCanvas) {
+    await QRCode.toCanvas(els.qrCanvas, text, {
+      width: 196,
+      margin: 1,
+      color: { dark: "#14080c", light: "#fff4d6" },
+    });
+    return;
+  }
+  const ctx = els.qrCanvas.getContext("2d");
+  const size = 196;
+  els.qrCanvas.width = size;
+  els.qrCanvas.height = size;
+  ctx.fillStyle = "#fff4d6";
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#14080c";
+  let n = 0;
+  for (const ch of text) n = (n * 33 + ch.charCodeAt(0)) >>> 0;
+  const cells = 21;
+  const cell = Math.floor(size / cells);
+  for (let y = 0; y < cells; y += 1) {
+    for (let x = 0; x < cells; x += 1) {
+      const bit = ((n >> ((x * 3 + y) % 24)) ^ (x * 17 + y * 13)) & 1;
+      const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
+      if (bit || finder) ctx.fillRect(x * cell, y * cell, cell, cell);
+    }
+  }
 }
 
 function readAdminRow(tr) {
@@ -381,27 +463,62 @@ function bindUi() {
     const stampBtn = event.target.closest("[data-stamp]");
     if (stampBtn) {
       const id = Number(stampBtn.dataset.stamp);
-      const stamps = loadStamps();
-      if (stamps[id]) return;
+      if (cardState.stamps[id] || cardState.redeemedAt) return;
       pendingStampId = id;
       els.stampBy.value = "";
       els.stampModal.hidden = false;
       els.stampBy.focus();
     }
 
+    const logout = event.target.closest("[data-logout]");
+    if (logout) {
+      if (logout.dataset.logout === "student") {
+        clearStudentSession();
+        cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
+        showPass = false;
+        renderStamps();
+      } else {
+        clearAdminSession();
+        renderAdmin();
+      }
+      renderSessionChip();
+    }
+
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
-  els.stampForm.addEventListener("submit", (event) => {
+  els.studentAuthForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    els.studentAuthError.hidden = true;
+    try {
+      await studentSignIn(
+        document.getElementById("studentNumber").value,
+        document.getElementById("studentName").value
+      );
+      cardState.studentNumber = "";
+      await renderStamps();
+    } catch (error) {
+      els.studentAuthError.hidden = false;
+      els.studentAuthError.textContent = error.message;
+    }
+  });
+
+  els.stampForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const by = els.stampBy.value.trim();
     if (!by || pendingStampId == null) return;
-    const stamps = loadStamps();
-    stamps[pendingStampId] = { by, at: Date.now() };
-    saveStamps(stamps);
-    closeModals();
-    if (stampCount() === 6) showPass = true;
-    renderStamps();
+    const stamps = { ...cardState.stamps, [pendingStampId]: { by, at: Date.now() } };
+    try {
+      await saveStamps(stamps);
+      cardState.stamps = stamps;
+      closeModals();
+      if (stampCount(stamps) === 6) showPass = true;
+      await renderStamps();
+    } catch (error) {
+      els.stampBy.setCustomValidity(error.message);
+      els.stampBy.reportValidity();
+      els.stampBy.setCustomValidity("");
+    }
   });
 
   els.passToggle.addEventListener("click", () => {
@@ -409,24 +526,48 @@ function bindUi() {
     renderStamps();
   });
 
-  els.adminForm.addEventListener("submit", (event) => {
+  els.redeemOpen.addEventListener("click", () => {
+    els.redeemError.hidden = true;
+    els.redeemModal.hidden = false;
+    document.getElementById("redeemStaffId").focus();
+  });
+
+  els.redeemForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const input = document.getElementById("adminPasscode");
-    const expected = window.HALLOWEEN_CONFIG?.adminPasscode || "SP2026";
-    if (input.value.trim() === expected) {
-      adminUnlocked = true;
-      sessionStorage.setItem("sp-admin", "1");
+    els.redeemError.hidden = true;
+    try {
+      const result = await redeemPass(
+        document.getElementById("redeemStaffId").value,
+        document.getElementById("redeemPasscode").value
+      );
+      cardState.redeemedAt = result.redeemedAt;
+      cardState.redeemedBy = result.redeemedBy;
+      closeModals();
+      showPass = true;
+      await renderStamps();
+    } catch (error) {
+      els.redeemError.hidden = false;
+      els.redeemError.textContent = error.message;
+    }
+  });
+
+  els.adminForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    els.adminAuthError.hidden = true;
+    try {
+      await adminSignIn(
+        document.getElementById("adminStaffId").value,
+        document.getElementById("adminPasscode").value
+      );
       renderAdmin();
-    } else {
-      input.setCustomValidity("Incorrect passcode");
-      input.reportValidity();
-      input.setCustomValidity("");
+    } catch (error) {
+      els.adminAuthError.hidden = false;
+      els.adminAuthError.textContent = error.message;
     }
   });
 
   document.getElementById("adminLock").addEventListener("click", () => {
-    adminUnlocked = false;
-    sessionStorage.removeItem("sp-admin");
+    clearAdminSession();
     renderAdmin();
   });
 
@@ -473,7 +614,7 @@ function onStoreChange(next) {
   houses = next;
   renderDashboard();
   renderPins();
-  if (document.querySelector('.view.is-active')?.dataset.view === "admin" && adminUnlocked) {
+  if (document.querySelector('.view.is-active')?.dataset.view === "admin" && isAdminUnlocked()) {
     const active = document.activeElement;
     if (!active?.matches("[data-wait-input], [data-status]")) renderAdmin();
   }
@@ -482,6 +623,7 @@ function onStoreChange(next) {
 async function init() {
   bindUi();
   bindMap();
+  renderSessionChip();
   renderStamps();
   renderAdmin();
 
