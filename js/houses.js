@@ -1,0 +1,175 @@
+export const STATUSES = [
+  { id: "open", label: "Open" },
+  { id: "busy", label: "Busy" },
+  { id: "closed", label: "Closed" },
+  { id: "at_capacity", label: "At Capacity" },
+];
+
+/** x/y are percentages of sp_map.png (left/top). */
+export const HOUSES = [
+  {
+    id: "dover-gate",
+    name: "Dover Gate Ghouls",
+    short: "EW22",
+    x: 46,
+    y: 7,
+    wait: 5,
+    status: "open",
+    story:
+      "The night crowd spilling off Dover MRT never quite makes it past Gate 1. Fog rolls in from the tracks, ticket gates slam by themselves, and something keeps scanning EZ-Link cards that do not exist.",
+  },
+  {
+    id: "aerohub",
+    name: "Aerohub Crypt",
+    short: "T18A",
+    x: 33,
+    y: 15,
+    wait: 20,
+    status: "busy",
+    story:
+      "Hangars should not echo like catacombs. Inside Aerohub, aircraft silhouettes twist into bone, and a hangar door opens onto a runway that ends in open sky — and then keeps going.",
+  },
+  {
+    id: "innovillage",
+    name: "Innovillage Incubus",
+    short: "IV",
+    x: 82,
+    y: 16,
+    wait: 10,
+    status: "open",
+    story:
+      "Prototype booths still glow after closing time. Each demo pod plays a pitch from a founder who graduated years ago — except they never left the village, and they want one more teammate.",
+  },
+  {
+    id: "sports-complex",
+    name: "Trackside Terror",
+    short: "SC",
+    x: 18,
+    y: 44,
+    wait: 0,
+    status: "open",
+    story:
+      "The floodlights stay on for a race nobody scheduled. Laps tick past 400m, 800m, then something on the far straight starts gaining — and it is not wearing a bib.",
+  },
+  {
+    id: "mp-field",
+    name: "Fog on the Field",
+    short: "MPF",
+    x: 24,
+    y: 32,
+    wait: 15,
+    status: "busy",
+    story:
+      "The multi-purpose field is a bowl of low fog. Whistles blow from the centre circle. When the mist parts, the players have no faces — only SP crests stitched over where mouths should be.",
+  },
+  {
+    id: "atrium",
+    name: "Atrium Abyss (T12)",
+    short: "T12",
+    x: 40,
+    y: 28,
+    wait: 25,
+    status: "busy",
+    story:
+      "Look up through T12 and the floors do not match. Stairwells loop, lecture-theatre doors open onto other years, and a PA voice keeps calling a module code that was retired a decade ago.",
+  },
+  {
+    id: "witch-labs",
+    name: "T11 Witch Labs",
+    short: "T11",
+    x: 36,
+    y: 35,
+    wait: 8,
+    status: "open",
+    story:
+      "Bunsen burners light themselves in T11. Formulas crawl off whiteboards and across the floor. The lab safety poster now lists a fourth hazard: curiosity after midnight.",
+  },
+  {
+    id: "library",
+    name: "Library of Lost Souls",
+    short: "LIB",
+    x: 49,
+    y: 41,
+    wait: 35,
+    status: "at_capacity",
+    story:
+      "Silent floor is silent for a reason. Books reshelve themselves into a Dewey system of last words. If your student card beeps at the gate, something in the stacks already knows your name.",
+  },
+  {
+    id: "admin",
+    name: "Admin Hex",
+    short: "ADM",
+    x: 54,
+    y: 37,
+    wait: 12,
+    status: "open",
+    story:
+      "Counter 3 is still open. The clerk stamps forms in red wax. Every appeal you file comes back approved — and dated the night you disappear from the attendance system.",
+  },
+  {
+    id: "plaza",
+    name: "Plaza Phantom",
+    short: "PLZ",
+    x: 47,
+    y: 48,
+    wait: 18,
+    status: "busy",
+    story:
+      "The plaza fountain runs black. Campus cats refuse to cross it. At the stroke of a fake midnight, the crowd in the open space is twice as large as the people who actually walked in.",
+  },
+  {
+    id: "arena",
+    name: "Sports Arena Haunt",
+    short: "ARN",
+    x: 59,
+    y: 33,
+    wait: 22,
+    status: "busy",
+    story:
+      "The arena scoreboard counts down from 13. Cheer squads in the dark bleachers never sit down. When the buzzer sounds, both teams are already gone — the court is waiting for you.",
+  },
+  {
+    id: "moberly",
+    name: "Moberly Manor",
+    short: "MOB",
+    x: 64,
+    y: 41,
+    wait: 6,
+    status: "open",
+    story:
+      "Moberly’s corridors remember every CCA that ever practiced after hours. Lockers tap from the inside. A PE whistle echoes from a gym that is already locked and dark.",
+  },
+  {
+    id: "west-wing",
+    name: "West Wing Wraiths",
+    short: "W1–3",
+    x: 76,
+    y: 54,
+    wait: 0,
+    status: "closed",
+    story:
+      "W1 to W3 share a ventilation shaft that whispers lab results. After lights-out, workshop machines cycle on their own, milling souvenirs from a campus that does not exist yet.",
+  },
+  {
+    id: "food-court",
+    name: "FC Cursed Kitchen",
+    short: "FC",
+    x: 43,
+    y: 58,
+    wait: 9,
+    status: "open",
+    story:
+      "The steam trays are still hot. Stall uncle smiles too wide. Your usual order arrives before you speak — and the receipt lists a table number from a food court that burned down in a story nobody admits telling.",
+  },
+  {
+    id: "wsa",
+    name: "WSA Warehouse Whispers",
+    short: "WSA",
+    x: 56,
+    y: 78,
+    wait: 40,
+    status: "at_capacity",
+    story:
+      "Pallets shift in WSA when nobody is on shift. Forklifts idle in a V formation. Follow the yellow floor tape far enough and it leads under the building — into a loading bay that only opens on Halloween.",
+  },
+];

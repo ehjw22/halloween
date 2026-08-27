@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SP Halloween Night · Campus Haunt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="fog" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand__mark">SP</span>
+      <div>
+        <p class="brand__kicker">Singapore Polytechnic</p>
+        <h1>Halloween Night</h1>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <button class="nav__btn is-active" type="button" data-nav="map">Event Map</button>
+      <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
+      <button class="nav__btn" type="button" data-nav="admin">Staff</button>
+    </nav>
+    <div class="live-chip" id="liveMode">Connecting…</div>
+  </header>
+
+  <main>
+    <section class="view is-active" data-view="map">
+      <div class="section-head">
+        <h2>Scare House Wait Times</h2>
+        <p>Fifteen haunts across campus. Times update live for every visitor.</p>
+      </div>
+      <div class="house-grid" id="houseGrid"></div>
+
+      <div class="section-head section-head--map">
+        <h2>Campus Haunt Map</h2>
+        <p>Pinch, scroll, or use the controls. Tap a pin for the storyline.</p>
+      </div>
+      <div class="map-shell">
+        <div class="map-controls" role="group" aria-label="Map zoom">
+          <button id="zoomIn" type="button">+</button>
+          <button id="zoomOut" type="button">−</button>
+          <button id="zoomReset" type="button">Reset</button>
+          <span id="zoomLabel">100%</span>
+        </div>
+        <div class="map-viewport" id="mapViewport">
+          <div class="map-world" id="mapWorld">
+            <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
+            <div class="map-pins" id="mapPins"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" data-view="stamps" hidden>
+      <div class="section-head">
+        <h2>Digital Stamp Card</h2>
+        <p>Collect all six staff stamps to unlock a Digital Fast Pass.</p>
+        <div class="stamp-toolbar">
+          <span class="stamp-progress" id="stampProgress">0 / 6 stamped</span>
+          <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
+        </div>
+      </div>
+
+      <div id="stampCardPanel">
+        <div class="stamp-grid" id="stampGrid"></div>
+      </div>
+
+      <div id="fastPassPanel" hidden>
+        <article class="fast-pass">
+          <p class="fast-pass__kicker">Unlocked</p>
+          <h3>Digital Fast Pass</h3>
+          <p>Show this at any scare house queue. One party per pass.</p>
+          <canvas id="qrCanvas" width="196" height="196"></canvas>
+          <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
+          <ul>
+            <li>Valid tonight only</li>
+            <li>Skip the standard wait line</li>
+            <li>Still subject to house capacity</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" data-view="admin" hidden>
+      <div id="adminGate" class="admin-gate">
+        <h2>Staff access</h2>
+        <p>Enter the event passcode to manage wait times. Default is <code>SP2026</code>.</p>
+        <form id="adminPassForm">
+          <label>
+            Passcode
+            <input id="adminPasscode" type="password" autocomplete="off" required>
+          </label>
+          <button class="btn" type="submit">Unlock dashboard</button>
+        </form>
+      </div>
+
+      <div id="adminApp" hidden>
+        <div class="section-head">
+          <h2>Wait-Time Control</h2>
+          <p>Edits sync to every open map when auto-save is on, or hit Publish.</p>
+          <div class="admin-toolbar">
+            <label class="toggle">
+              <input id="autoSave" type="checkbox" checked>
+              Instant auto-save
+            </label>
+            <button class="btn" id="publishAll" type="button">Publish all</button>
+            <button class="btn btn--ghost" id="adminLock" type="button">Lock</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Scare house</th>
+                <th>Wait (min)</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="adminTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="detailModal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+      <p class="modal__code" data-modal-code></p>
+      <h3 data-modal-title></h3>
+      <div class="modal__meta">
+        <span class="status-pill" data-modal-status></span>
+        <strong data-modal-wait></strong>
+      </div>
+      <p class="modal__story" data-modal-story></p>
+      <div class="trailer">
+        <div class="trailer__screen" aria-hidden="true">
+          <span class="trailer__play">▶</span>
+          <span>Story trailer</span>
+        </div>
+        <video class="trailer__video" controls preload="none" poster="">
+          <source src="" type="video/mp4">
+        </video>
+        <p class="muted">Embed a house trailer by setting the video source, or drop in a YouTube iframe.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="stampModal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+      <h3>Stamp this slot</h3>
+      <p>Staff name or ID confirms the visit.</p>
+      <form id="stampForm">
+        <label>
+          Stamped by
+          <input id="stampBy" name="stampedBy" type="text" placeholder="Name / Staff ID" required>
+        </label>
+        <button class="btn" type="submit">Confirm stamp</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="js/config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
