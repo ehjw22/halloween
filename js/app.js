@@ -492,14 +492,23 @@ async function init() {
   store = createStore(onStoreChange);
   const { mode, error } = await store.connect();
   const live = mode === "live";
+  const status = window.__CONFIG_STATUS || {};
   els.liveMode.textContent = live ? "Live · Supabase" : "Demo · local sync";
   els.liveMode.classList.toggle("is-live", live);
   if (els.dbBanner) {
     els.dbBanner.hidden = false;
     els.dbBanner.classList.toggle("is-live", live);
+    const localHint = {
+      "no-api": " /api/config is missing. Stop python -m http.server and run: python serve.py after adding a .env (see .env.example). On Vercel, add SUPABASE_URL and SUPABASE_ANON_KEY and redeploy.",
+      "api-not-json": " /api/config did not return JSON, so Vercel is not running the API function. Redeploy with the api/ folder at the project root.",
+      "empty-keys": " /api/config loaded but SUPABASE_URL / SUPABASE_ANON_KEY are empty. Set them in .env (local) or Vercel env vars, then restart/redeploy.",
+      "api-404": " /api/config was not found.",
+      "api-500": " /api/config crashed.",
+      ok: "",
+    }[status.reason] || "";
     els.dbBanner.textContent = live
       ? "Connected to Supabase. Staff edits write to the scare_houses table."
-      : `Not writing to the database. This browser only updates the Event Map locally.${error ? ` (${error})` : " Host on Vercel with SUPABASE_URL and SUPABASE_ANON_KEY, and run supabase/schema.sql."}`;
+      : `Not writing to the database.${error ? ` ${error}` : ""}${localHint}`;
   }
 }
 

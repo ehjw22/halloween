@@ -50,7 +50,10 @@ export function createStore(onChange) {
   async function connect() {
     if (!hasRemote || !window.supabase) {
       emit();
-      return { mode: "local" };
+      return {
+        mode: "local",
+        error: hasRemote ? "Supabase library failed to load." : "No Supabase keys loaded.",
+      };
     }
 
     client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
