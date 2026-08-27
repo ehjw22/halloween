@@ -38,6 +38,7 @@ const els = {
   adminTable: document.getElementById("adminTable"),
   autoSave: document.getElementById("autoSave"),
   publishAll: document.getElementById("publishAll"),
+  dbBanner: document.getElementById("dbBanner"),
 };
 
 let store;
@@ -489,9 +490,17 @@ async function init() {
   }
 
   store = createStore(onStoreChange);
-  const { mode } = await store.connect();
-  els.liveMode.textContent = mode === "live" ? "Live · Supabase" : "Demo · local sync";
-  els.liveMode.classList.toggle("is-live", mode === "live");
+  const { mode, error } = await store.connect();
+  const live = mode === "live";
+  els.liveMode.textContent = live ? "Live · Supabase" : "Demo · local sync";
+  els.liveMode.classList.toggle("is-live", live);
+  if (els.dbBanner) {
+    els.dbBanner.hidden = false;
+    els.dbBanner.classList.toggle("is-live", live);
+    els.dbBanner.textContent = live
+      ? "Connected to Supabase. Staff edits write to the scare_houses table."
+      : `Not writing to the database. This browser only updates the Event Map locally.${error ? ` (${error})` : " Host on Vercel with SUPABASE_URL and SUPABASE_ANON_KEY, and run supabase/schema.sql."}`;
+  }
 }
 
 init();
