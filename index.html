@@ -93,8 +93,10 @@
             <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
           </div>
           <div id="stampCardPanel">
-            <p class="passport__hint">A facilitator must enter their staff ID and stamp password. Each staff ID can stamp this card only once.</p>
+            <p class="passport__hint">Only staff can stamp. Enter staff ID and the stamp password. One staff member can stamp more than one checkpoint.</p>
             <div class="stamp-grid" id="stampGrid"></div>
+            <h3 class="roadmap__title">Haunt trail</h3>
+            <ol class="roadmap" id="stampRoadmap"></ol>
           </div>
         </article>
 
@@ -217,7 +219,7 @@
     <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
       <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
       <h3>Staff stamp</h3>
-      <p>Facilitators only. Staff ID can be used once on this card. Students cannot stamp themselves.</p>
+      <p>Facilitators only. Students cannot stamp this themselves. Staff may stamp more than one checkpoint.</p>
       <form id="stampForm">
         <label>
           Staff ID / admin number

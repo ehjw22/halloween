@@ -33,6 +33,7 @@ const els = {
   liveMode: document.getElementById("liveMode"),
   modal: document.getElementById("detailModal"),
   stampGrid: document.getElementById("stampGrid"),
+  stampRoadmap: document.getElementById("stampRoadmap"),
   stampModal: document.getElementById("stampModal"),
   stampForm: document.getElementById("stampForm"),
   stampBy: document.getElementById("stampBy"),
@@ -278,6 +279,24 @@ function paintStampUi() {
         <small>${stamped ? `Staff ${stamped.by}` : "Staff stamp required"}</small>
       </button>`;
   }).join("");
+
+  if (els.stampRoadmap) {
+    els.stampRoadmap.innerHTML = STAMP_SLOTS.map((slot, index) => {
+      const stamped = stamps[slot.id];
+      const locked = Boolean(cardState.redeemedAt);
+      const nextUp = !stamped && !locked && STAMP_SLOTS.slice(0, index).every((s) => stamps[s.id]);
+      const state = stamped ? "is-done" : nextUp ? "is-next" : "";
+      return `
+        <li class="roadmap__stop ${state}">
+          <button class="roadmap__node" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
+            <span class="roadmap__icon">${slot.icon}</span>
+            <span class="roadmap__num">${index + 1}</span>
+            <strong>${slot.label}</strong>
+            <small>${stamped ? `Stamped · ${stamped.by}` : "Staff stamp required"}</small>
+          </button>
+        </li>`;
+    }).join("");
+  }
 
   const complete = filled === 6;
   els.passToggle.hidden = !complete;
