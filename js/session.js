@@ -100,7 +100,7 @@ export async function fetchStamps() {
   return data;
 }
 
-export async function saveStamps(stamps) {
+export async function applyStamp(slotId, staffId, passcode) {
   const session = getStudentSession();
   if (!session) throw new Error("Sign in to save stamps.");
   const res = await fetch("/api/stamps", {
@@ -109,7 +109,7 @@ export async function saveStamps(stamps) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.token}`,
     },
-    body: JSON.stringify({ stamps }),
+    body: JSON.stringify({ slotId, staffId, passcode }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Could not save stamps.");

@@ -8,7 +8,7 @@ import {
   getAdminSession,
   getStudentSession,
   redeemPass,
-  saveStamps,
+  applyStamp,
   studentSignIn,
 } from "./session.js";
 
@@ -36,6 +36,11 @@ const els = {
   stampModal: document.getElementById("stampModal"),
   stampForm: document.getElementById("stampForm"),
   stampBy: document.getElementById("stampBy"),
+  stampPass: document.getElementById("stampPass"),
+  stampError: document.getElementById("stampError"),
+  stampHolderName: document.getElementById("stampHolderName"),
+  stampHolderId: document.getElementById("stampHolderId"),
+  stampFill: document.getElementById("stampFill"),
   stampProgress: document.getElementById("stampProgress"),
   stampView: document.getElementById("stampCardPanel"),
   passView: document.getElementById("fastPassPanel"),
@@ -253,15 +258,24 @@ function paintStampUi() {
 
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
-  els.stampProgress.textContent = `${filled} / 6 stamped`;
+  const sessionName = cardState.fullName || session.payload.name;
+  const sessionNum = cardState.studentNumber || session.payload.studentNumber;
+  if (els.stampHolderName) els.stampHolderName.textContent = sessionName || "Student";
+  if (els.stampHolderId) els.stampHolderId.textContent = sessionNum || "";
+  els.stampProgress.textContent = `${filled} / 6 checkpoints`;
+  if (els.stampFill) {
+    const offset = 100 - (filled / 6) * 100;
+    els.stampFill.style.strokeDashoffset = String(offset);
+  }
   els.stampGrid.innerHTML = STAMP_SLOTS.map((slot) => {
     const stamped = stamps[slot.id];
     const locked = Boolean(cardState.redeemedAt);
     return `
       <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
-        <span class="stamp-slot__icon">${slot.icon}</span>
+        <span class="stamp-slot__seal" aria-hidden="true">${slot.icon}</span>
+        <span class="stamp-slot__index">0${slot.id}</span>
         <strong>${slot.label}</strong>
-        <small>${stamped ? `Stamped by ${stamped.by}` : "Tap to stamp"}</small>
+        <small>${stamped ? `Staff ${stamped.by}` : "Staff stamp required"}</small>
       </button>`;
   }).join("");
 
@@ -483,6 +497,8 @@ function bindUi() {
       if (cardState.stamps[id] || cardState.redeemedAt) return;
       pendingStampId = id;
       els.stampBy.value = "";
+      if (els.stampPass) els.stampPass.value = "";
+      if (els.stampError) els.stampError.hidden = true;
       els.stampModal.hidden = false;
       els.stampBy.focus();
     }
@@ -522,19 +538,21 @@ function bindUi() {
 
   els.stampForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const by = els.stampBy.value.trim();
-    if (!by || pendingStampId == null) return;
-    const stamps = { ...cardState.stamps, [pendingStampId]: { by, at: Date.now() } };
+    const staffId = els.stampBy.value.trim();
+    const passcode = els.stampPass ? els.stampPass.value : "";
+    if (!staffId || !passcode || pendingStampId == null) return;
+    if (els.stampError) els.stampError.hidden = true;
     try {
-      await saveStamps(stamps);
-      cardState.stamps = stamps;
+      const data = await applyStamp(pendingStampId, staffId, passcode);
+      cardState.stamps = data.stamps || cardState.stamps;
       closeModals();
-      if (stampCount(stamps) === 6) showPass = true;
+      if (stampCount(cardState.stamps) === 6) showPass = true;
       paintStampUi();
     } catch (error) {
-      els.stampBy.setCustomValidity(error.message);
-      els.stampBy.reportValidity();
-      els.stampBy.setCustomValidity("");
+      if (els.stampError) {
+        els.stampError.hidden = false;
+        els.stampError.textContent = error.message;
+      }
     }
   });
 

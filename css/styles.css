@@ -156,11 +156,124 @@ body {
   color: var(--orange);
   margin: 0 0 8px;
 }
+.auth-card__kicker {
+  margin: 0 0 6px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--purple);
+}
 .form-error {
   margin: 0;
   color: var(--closed);
   font-size: 0.9rem;
 }
+
+.passport {
+  max-width: 760px;
+  margin: 0 auto 20px;
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 24, 0.08), transparent 28%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 244, 214, 0.04) 0 12px,
+      transparent 12px 24px
+    ),
+    var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.passport__id {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.passport__event {
+  margin: 0;
+  font-family: "Special Elite", ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--orange-2);
+}
+.passport__id h2 {
+  margin: 4px 0 2px;
+  font-size: 1.5rem;
+}
+.passport__idno {
+  margin: 0;
+  font-family: "Special Elite", ui-monospace, monospace;
+  color: var(--muted);
+}
+.passport__hint {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.progress-ring {
+  width: 76px;
+  height: 76px;
+  transform: rotate(-90deg);
+}
+.progress-ring__fill { transition: stroke-dashoffset 0.4s ease; }
+
+.stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 800px) {
+  .stamp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.stamp-slot {
+  min-height: 168px;
+  border-radius: 22px;
+  border: 2px dashed rgba(255, 122, 24, 0.45);
+  background: rgba(20, 8, 16, 0.7);
+  color: inherit;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.stamp-slot__index {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-family: "Special Elite", ui-monospace, monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.stamp-slot__seal {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  background: radial-gradient(circle at 30% 30%, #3a1420, #1a080e);
+  border: 2px solid rgba(255, 122, 24, 0.35);
+}
+.stamp-slot.is-stamped {
+  border-style: solid;
+  border-color: var(--orange);
+  background:
+    radial-gradient(circle at 70% 20%, rgba(255, 122, 24, 0.25), transparent 45%),
+    #1b0c12;
+}
+.stamp-slot.is-stamped .stamp-slot__seal {
+  transform: rotate(-12deg);
+  border-color: var(--orange-2);
+  box-shadow: 0 0 18px rgba(255, 122, 24, 0.45);
+}
+.stamp-slot:disabled { cursor: default; opacity: 0.95; }
+.stamp-slot small { color: var(--muted); }
 
 main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
 .view[hidden], .view:not(.is-active) { display: none; }
@@ -307,35 +420,6 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
   align-items: center;
   margin-top: 12px;
 }
-.stamp-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (min-width: 800px) {
-  .stamp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-.stamp-slot {
-  min-height: 160px;
-  border-radius: 20px;
-  border: 2px dashed rgba(255, 122, 24, 0.45);
-  background: rgba(20, 8, 16, 0.7);
-  color: inherit;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.stamp-slot.is-stamped {
-  border-style: solid;
-  border-color: var(--orange);
-  background:
-    radial-gradient(circle at 70% 20%, rgba(255, 122, 24, 0.25), transparent 45%),
-    #1b0c12;
-}
-.stamp-slot:disabled { cursor: default; opacity: 0.95; }
-.stamp-slot__icon { font-size: 2rem; }
-.stamp-slot small { color: var(--muted); }
 
 .fast-pass {
   max-width: 420px;

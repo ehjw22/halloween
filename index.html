@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SP Halloween Night · Campus Haunt</title>
+  <title>SP Scream Fest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
       <span class="brand__mark">SP</span>
       <div>
         <p class="brand__kicker">Singapore Polytechnic</p>
-        <h1>Halloween Night</h1>
+        <h1>Scream Fest</h1>
       </div>
     </div>
     <nav class="nav" aria-label="Primary">
@@ -60,8 +60,9 @@
 
     <section class="view" data-view="stamps" hidden>
       <div id="studentAuth" class="auth-card">
+        <p class="auth-card__kicker">SP Scream Fest</p>
         <h2>Student sign in</h2>
-        <p>Use your student number and full name (as on your card). First visit creates your stamp card. Session lasts 1 hour.</p>
+        <p>One stamp card per student number. Sign in with your number and full name. Session lasts 1 hour.</p>
         <form id="studentAuthForm">
           <label>
             Student number
@@ -72,28 +73,35 @@
             <input id="studentName" name="fullName" type="text" autocomplete="name" required>
           </label>
           <p class="form-error" id="studentAuthError" hidden></p>
-          <button class="btn" type="submit">Continue</button>
+          <button class="btn" type="submit">Open my card</button>
         </form>
       </div>
 
       <div id="stampApp" hidden>
-        <div class="section-head">
-          <h2>Digital Stamp Card</h2>
-          <p>Collect all six staff stamps to unlock a Digital Fast Pass.</p>
-          <div class="stamp-toolbar">
-            <span class="stamp-progress" id="stampProgress">0 / 6 stamped</span>
+        <article class="passport">
+          <div class="passport__id">
+            <svg class="progress-ring" viewBox="0 0 42 42" aria-hidden="true">
+              <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(255,122,24,.2)" stroke-width="4"></circle>
+              <circle id="stampFill" class="progress-ring__fill" cx="21" cy="21" r="16" fill="none" stroke="#ff7a18" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"></circle>
+            </svg>
+            <div>
+              <p class="passport__event">SP Scream Fest</p>
+              <h2 id="stampHolderName">Student</h2>
+              <p class="passport__idno" id="stampHolderId"></p>
+              <p class="stamp-progress" id="stampProgress">0 / 6 checkpoints</p>
+            </div>
             <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
           </div>
-        </div>
-
-        <div id="stampCardPanel">
-          <div class="stamp-grid" id="stampGrid"></div>
-        </div>
+          <div id="stampCardPanel">
+            <p class="passport__hint">A facilitator must enter their staff ID and stamp password. Each staff ID can stamp this card only once.</p>
+            <div class="stamp-grid" id="stampGrid"></div>
+          </div>
+        </article>
 
         <div id="fastPassPanel" hidden>
           <article class="fast-pass" id="fastPassCard">
             <p class="fast-pass__kicker" id="passKicker">Unlocked</p>
-            <h3>Digital Fast Pass</h3>
+            <h3>SP Scream Fest Fast Pass</h3>
             <p class="fast-pass__holder" id="passHolder"></p>
             <p>Show this at the Fast Pass queue. One party per pass.</p>
             <canvas id="qrCanvas" width="196" height="196"></canvas>
@@ -208,14 +216,19 @@
     <div class="modal__backdrop" data-close-modal></div>
     <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
       <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-      <h3>Stamp this slot</h3>
-      <p>Staff name or ID confirms the visit.</p>
+      <h3>Staff stamp</h3>
+      <p>Facilitators only. Staff ID can be used once on this card. Students cannot stamp themselves.</p>
       <form id="stampForm">
         <label>
-          Stamped by
-          <input id="stampBy" name="stampedBy" type="text" placeholder="Name / Staff ID" required>
+          Staff ID / admin number
+          <input id="stampBy" name="stampedBy" type="text" autocomplete="off" required>
         </label>
-        <button class="btn" type="submit">Confirm stamp</button>
+        <label>
+          Stamp password
+          <input id="stampPass" name="stampPass" type="password" autocomplete="off" required>
+        </label>
+        <p class="form-error" id="stampError" hidden></p>
+        <button class="btn" type="submit">Stamp checkpoint</button>
       </form>
     </div>
   </div>
