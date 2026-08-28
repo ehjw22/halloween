@@ -14,12 +14,12 @@ import {
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
 const STAMP_SLOTS = [
-  { id: 1, icon: "🎃", label: "Pumpkin Gate", map: { x: 14, y: 72 } },
-  { id: 2, icon: "🦇", label: "Bat Colony", map: { x: 32, y: 22 } },
-  { id: 3, icon: "👻", label: "Plaza Ghost", map: { x: 52, y: 48 } },
-  { id: 4, icon: "🕸️", label: "Web Lab", map: { x: 68, y: 16 } },
-  { id: 5, icon: "🍬", label: "Candy Court", map: { x: 78, y: 68 } },
-  { id: 6, icon: "💀", label: "Crypt Keep", map: { x: 90, y: 36 } },
+  { id: 1, icon: "🎃", label: "Pumpkin Gate" },
+  { id: 2, icon: "🦇", label: "Bat Colony" },
+  { id: 3, icon: "👻", label: "Plaza Ghost" },
+  { id: 4, icon: "🕸️", label: "Web Lab" },
+  { id: 5, icon: "🍬", label: "Candy Court" },
+  { id: 6, icon: "💀", label: "Crypt Keep" },
 ];
 
 const els = {
@@ -34,8 +34,6 @@ const els = {
   modal: document.getElementById("detailModal"),
   stampGrid: document.getElementById("stampGrid"),
   stampRoadmap: document.getElementById("stampRoadmap"),
-  stampMapStops: document.getElementById("stampMapStops"),
-  stampMapLines: document.getElementById("stampMapLines"),
   passBack: document.getElementById("passBack"),
   stampModal: document.getElementById("stampModal"),
   stampForm: document.getElementById("stampForm"),
@@ -276,7 +274,7 @@ function paintStampUi() {
     const locked = Boolean(cardState.redeemedAt);
     return `
       <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
-        <span class="stamp-slot__seal" aria-hidden="true">${stamped ? "😄" : "😞"}</span>
+        <span class="stamp-slot__seal" aria-hidden="true">${slot.icon}</span>
         <span class="stamp-slot__index">0${slot.id}</span>
         <strong>${slot.label}</strong>
         <small>${stamped ? `Staff ${stamped.by}` : "Staff stamp required"}</small>
@@ -292,42 +290,13 @@ function paintStampUi() {
       return `
         <li class="roadmap__stop ${state}">
           <button class="roadmap__node" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
-            <span class="roadmap__icon">${stamped ? "😄" : "😞"}</span>
+            <span class="roadmap__icon">${slot.icon}</span>
             <span class="roadmap__num">${index + 1}</span>
             <strong>${slot.label}</strong>
             <small>${stamped ? `Stamped · ${stamped.by}` : "Staff stamp required"}</small>
           </button>
         </li>`;
     }).join("");
-  }
-
-  const collected = STAMP_SLOTS
-    .filter((slot) => stamps[slot.id])
-    .sort((a, b) => (stamps[a.id].at || 0) - (stamps[b.id].at || 0));
-  const lineIndex = new Map(collected.map((slot, index) => [slot.id, index]));
-  if (els.stampMapStops) {
-    els.stampMapStops.innerHTML = STAMP_SLOTS.map((slot) => {
-      const stamped = stamps[slot.id];
-      const locked = Boolean(cardState.redeemedAt);
-      const order = lineIndex.get(slot.id);
-      const lined = order !== undefined;
-      const left = lined ? 8 + order * 16.5 : slot.map.x;
-      const top = lined ? 82 : slot.map.y;
-      return `
-        <button class="haunt-map__stop ${stamped ? "is-lined" : ""}" type="button" data-stamp="${slot.id}"
-          style="left:${left}%; top:${top}%" ${stamped || locked ? "disabled" : ""}>
-          <span class="haunt-map__pin">${stamped ? "😄" : "😞"}</span>
-          <span>${slot.label}</span>
-        </button>`;
-    }).join("");
-  }
-  if (els.stampMapLines) {
-    const points = collected
-      .map((_, index) => `${8 + index * 16.5},${82}`)
-      .join(" ");
-    els.stampMapLines.innerHTML = points
-      ? `<polyline points="${points}" fill="none" stroke="#ff7a18" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>`
-      : "";
   }
 
   const complete = filled === 6;
