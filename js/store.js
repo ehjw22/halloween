@@ -2,6 +2,7 @@ import { HOUSES } from "./houses.js";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v1";
+const POLL_MS = 4000;
 
 function cloneHouses() {
   return HOUSES.map((h) => ({
@@ -11,6 +12,10 @@ function cloneHouses() {
     status: h.status,
     updated_at: new Date().toISOString(),
   }));
+}
+
+function fingerprint(list) {
+  return list.map((row) => `${row.id}:${Number(row.wait_minutes) || 0}:${row.status}`).join("|");
 }
 
 function readLocal() {
@@ -35,17 +40,54 @@ export function createStore(onChange) {
   let rows = readLocal();
   let client = null;
   let channel = null;
+  let pollTimer = null;
 
   const emit = () => onChange(rows.map((r) => ({ ...r })));
 
-  const broadcast = new BroadcastChannel(CHANNEL);
-  broadcast.onmessage = (event) => {
+  function applyRows(next, { broadcastLocal = false } = {}) {
+    if (!next?.length) return false;
+    const byId = new Map(next.map((row) => [row.id, row]));
+    const merged = cloneHouses().map((row) => ({ ...row, ...byId.get(row.id) }));
+    if (fingerprint(merged) === fingerprint(rows)) return false;
+    rows = merged;
+    writeLocal(rows);
+    if (broadcastLocal) {
+      try {
+        tabChannel.postMessage({ type: "houses", rows });
+      } catch {
+        /* ignore */
+      }
+    }
+    emit();
+    return true;
+  }
+
+  const tabChannel = new BroadcastChannel(CHANNEL);
+  tabChannel.onmessage = (event) => {
     if (event.data?.type === "houses" && Array.isArray(event.data.rows)) {
-      rows = event.data.rows;
-      writeLocal(rows);
-      emit();
+      applyRows(event.data.rows);
     }
   };
+
+  async function refreshFromDb() {
+    if (!client) return;
+    const { data, error } = await client.from("scare_houses").select("*");
+    if (error || !data) return;
+    applyRows(data, { broadcastLocal: true });
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => {
+      if (document.hidden) return;
+      refreshFromDb();
+    }, POLL_MS);
+  }
+
+  function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+  }
 
   async function connect() {
     if (!hasRemote || !window.supabase) {
@@ -57,7 +99,7 @@ export function createStore(onChange) {
     }
 
     client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      realtime: { params: { eventsPerSecond: 10 } },
+      realtime: { params: { eventsPerSecond: 20 } },
     });
 
     const { data, error } = await client.from("scare_houses").select("*").order("name");
@@ -67,28 +109,34 @@ export function createStore(onChange) {
       return { mode: "local", error: error.message };
     }
 
-    if (data?.length) {
-      const byId = new Map(data.map((row) => [row.id, row]));
-      rows = cloneHouses().map((row) => ({ ...row, ...byId.get(row.id) }));
-      writeLocal(rows);
-    } else {
-      await client.from("scare_houses").upsert(rows);
-    }
+    if (data?.length) applyRows(data);
+    else await client.from("scare_houses").upsert(rows);
 
     channel = client
-      .channel("scare-houses-live")
+      .channel("scare-houses-live", { config: { broadcast: { ack: false } } })
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "scare_houses" },
         (payload) => {
           const next = payload.new;
           if (!next?.id) return;
-          rows = rows.map((row) => (row.id === next.id ? { ...row, ...next } : row));
-          writeLocal(rows);
-          emit();
+          applyRows(rows.map((row) => (row.id === next.id ? { ...row, ...next } : row)), {
+            broadcastLocal: true,
+          });
         }
       )
-      .subscribe();
+      .on("broadcast", { event: "wait-times" }, ({ payload }) => {
+        if (Array.isArray(payload?.rows)) applyRows(payload.rows);
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") refreshFromDb();
+      });
+
+    startPolling();
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) refreshFromDb();
+    });
+    window.addEventListener("focus", refreshFromDb);
 
     emit();
     return { mode: "live" };
@@ -96,12 +144,10 @@ export function createStore(onChange) {
 
   async function publish(id, patch, { persist = true } = {}) {
     const updated_at = new Date().toISOString();
-    rows = rows.map((row) =>
-      row.id === id ? { ...row, ...patch, updated_at } : row
+    applyRows(
+      rows.map((row) => (row.id === id ? { ...row, ...patch, updated_at } : row)),
+      { broadcastLocal: true }
     );
-    writeLocal(rows);
-    broadcast.postMessage({ type: "houses", rows });
-    emit();
 
     if (!persist || !client) return;
 
@@ -115,7 +161,18 @@ export function createStore(onChange) {
         status: row.status,
         updated_at: row.updated_at,
       });
-    if (error) console.warn("Supabase write failed.", error.message);
+    if (error) {
+      console.warn("Supabase write failed.", error.message);
+      return;
+    }
+
+    if (channel) {
+      channel.send({
+        type: "broadcast",
+        event: "wait-times",
+        payload: { rows },
+      });
+    }
   }
 
   function get() {
@@ -123,7 +180,8 @@ export function createStore(onChange) {
   }
 
   function destroy() {
-    broadcast.close();
+    stopPolling();
+    tabChannel.close();
     if (channel && client) client.removeChannel(channel);
   }
 

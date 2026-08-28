@@ -105,7 +105,7 @@ function setView(name) {
   if (name === "admin") renderAdmin();
   if (name === "stamps") {
     renderSessionChip();
-    renderStamps();
+    paintStampUi();
   }
 }
 
@@ -236,7 +236,9 @@ async function loadCardFromServer() {
   };
 }
 
-async function renderStamps() {
+let lastQr = "";
+
+function paintStampUi() {
   const session = getStudentSession();
   if (!session) {
     els.studentAuth.hidden = false;
@@ -248,18 +250,6 @@ async function renderStamps() {
   els.studentAuth.hidden = true;
   els.stampApp.hidden = false;
   renderSessionChip();
-
-  try {
-    await loadCardFromServer();
-  } catch (error) {
-    els.studentAuth.hidden = false;
-    els.stampApp.hidden = true;
-    els.studentAuthError.hidden = false;
-    els.studentAuthError.textContent = error.message;
-    clearStudentSession();
-    renderSessionChip();
-    return;
-  }
 
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
@@ -278,7 +268,7 @@ async function renderStamps() {
   const complete = filled === 6;
   els.passToggle.hidden = !complete;
   if (els.passHolder) {
-    els.passHolder.textContent = `${cardState.fullName} · ${cardState.studentNumber}`;
+    els.passHolder.textContent = `${cardState.fullName || session.payload.name} · ${cardState.studentNumber || session.payload.studentNumber}`;
   }
   if (complete && (showPass || cardState.redeemedAt)) {
     showPass = true;
@@ -286,7 +276,10 @@ async function renderStamps() {
     els.passView.hidden = false;
     els.passToggle.textContent = "Review stamp card";
     els.passId.textContent = cardState.passId;
-    await drawQr(cardState.passId);
+    if (cardState.passId && cardState.passId !== lastQr) {
+      lastQr = cardState.passId;
+      drawQr(cardState.passId);
+    }
     const redeemed = Boolean(cardState.redeemedAt);
     els.fastPassCard.classList.toggle("is-redeemed", redeemed);
     els.passKicker.textContent = redeemed ? "Redeemed" : "Unlocked";
@@ -300,6 +293,30 @@ async function renderStamps() {
     els.stampView.hidden = false;
     els.passView.hidden = true;
     els.passToggle.textContent = "Show Fast Pass";
+  }
+}
+
+async function renderStamps({ refresh = false } = {}) {
+  const session = getStudentSession();
+  if (!session) {
+    paintStampUi();
+    return;
+  }
+
+  paintStampUi();
+
+  if (!refresh && cardState.studentNumber) return;
+
+  try {
+    await loadCardFromServer();
+    paintStampUi();
+  } catch (error) {
+    els.studentAuth.hidden = false;
+    els.stampApp.hidden = true;
+    els.studentAuthError.hidden = false;
+    els.studentAuthError.textContent = error.message;
+    clearStudentSession();
+    renderSessionChip();
   }
 }
 
@@ -496,7 +513,7 @@ function bindUi() {
         document.getElementById("studentName").value
       );
       cardState.studentNumber = "";
-      await renderStamps();
+      await renderStamps({ refresh: true });
     } catch (error) {
       els.studentAuthError.hidden = false;
       els.studentAuthError.textContent = error.message;
@@ -513,7 +530,7 @@ function bindUi() {
       cardState.stamps = stamps;
       closeModals();
       if (stampCount(stamps) === 6) showPass = true;
-      await renderStamps();
+      paintStampUi();
     } catch (error) {
       els.stampBy.setCustomValidity(error.message);
       els.stampBy.reportValidity();
@@ -523,7 +540,7 @@ function bindUi() {
 
   els.passToggle.addEventListener("click", () => {
     showPass = !showPass;
-    renderStamps();
+    paintStampUi();
   });
 
   els.redeemOpen.addEventListener("click", () => {
@@ -544,7 +561,7 @@ function bindUi() {
       cardState.redeemedBy = result.redeemedBy;
       closeModals();
       showPass = true;
-      await renderStamps();
+      paintStampUi();
     } catch (error) {
       els.redeemError.hidden = false;
       els.redeemError.textContent = error.message;
@@ -641,7 +658,7 @@ async function init() {
     els.dbBanner.hidden = false;
     els.dbBanner.classList.toggle("is-live", live);
     const localHint = {
-      "no-api": " /api/config is missing. Stop python -m http.server and run: python serve.py after adding a .env (see .env.example). On Vercel, add SUPABASE_URL and SUPABASE_ANON_KEY and redeploy.",
+      "no-api": " /api/config is missing. On Vercel, add SUPABASE_URL / supabaseUrl, the anon key, JWT_SECRET, then redeploy.",
       "api-not-json": " /api/config did not return JSON, so Vercel is not running the API function. Redeploy with the api/ folder at the project root.",
       "empty-keys": " /api/config loaded but SUPABASE_URL / SUPABASE_ANON_KEY are empty. Set them in .env (local) or Vercel env vars, then restart/redeploy.",
       "api-404": " /api/config was not found.",

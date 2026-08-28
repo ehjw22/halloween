@@ -81,3 +81,13 @@ create policy "anon insert cards"
 drop policy if exists "anon update cards" on public.stamp_cards;
 create policy "anon update cards"
   on public.stamp_cards for update using (true) with check (true);
+
+alter table public.scare_houses replica identity full;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.scare_houses;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
