@@ -97,6 +97,12 @@
             <div class="stamp-grid" id="stampGrid"></div>
             <h3 class="roadmap__title">Haunt trail</h3>
             <ol class="roadmap" id="stampRoadmap"></ol>
+            <h3 class="roadmap__title">Campus map</h3>
+            <p class="passport__hint">Unstamped stops sit on the map. Each stamp slides into the line in the order you collected it.</p>
+            <div class="haunt-map" id="stampMapBoard">
+              <svg class="haunt-map__lines" id="stampMapLines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+              <div id="stampMapStops"></div>
+            </div>
           </div>
         </article>
 
@@ -113,6 +119,7 @@
               <li>Skip the standard wait line</li>
               <li>Still subject to house capacity</li>
             </ul>
+            <button class="btn btn--ghost" id="passBack" type="button">Back to stamp card</button>
             <button class="btn" id="redeemOpen" type="button">Facilitator: Redeem</button>
             <p class="muted" id="redeemedNote" hidden></p>
           </article>
