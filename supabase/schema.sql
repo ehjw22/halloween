@@ -82,7 +82,25 @@ drop policy if exists "anon update cards" on public.stamp_cards;
 create policy "anon update cards"
   on public.stamp_cards for update using (true) with check (true);
 
-alter table public.scare_houses replica identity full;
+create table if not exists public.game_scores (
+  student_number text not null references public.students (student_number) on delete cascade,
+  game_id text not null check (game_id in ('clicker', 'memory', 'catch')),
+  score integer not null default 0 check (score >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (student_number, game_id)
+);
+
+alter table public.game_scores enable row level security;
+
+drop policy if exists "anon read scores" on public.game_scores;
+create policy "anon read scores"
+  on public.game_scores for select using (true);
+drop policy if exists "anon insert scores" on public.game_scores;
+create policy "anon insert scores"
+  on public.game_scores for insert with check (true);
+drop policy if exists "anon update scores" on public.game_scores;
+create policy "anon update scores"
+  on public.game_scores for update using (true) with check (true);
 
 do $$
 begin

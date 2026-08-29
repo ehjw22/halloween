@@ -1,4 +1,4 @@
-import { HOUSES, STATUSES } from "./houses.js";
+import { initGames, setGamesVisible } from "./games.js";
 import { createStore } from "./store.js";
 import {
   adminSignIn,
@@ -109,6 +109,7 @@ function setView(name) {
     view.hidden = !active;
   });
   els.navButtons.forEach((btn) => btn.classList.toggle("is-active", btn.dataset.nav === name));
+  setGamesVisible(name === "games");
   if (name === "admin") renderAdmin();
   if (name === "stamps") {
     renderSessionChip();
@@ -684,6 +685,7 @@ function onStoreChange(next) {
 async function init() {
   bindUi();
   bindMap();
+  initGames();
   renderSessionChip();
   renderStamps();
   renderAdmin();

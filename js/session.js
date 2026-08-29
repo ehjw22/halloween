@@ -116,6 +116,32 @@ export async function applyStamp(slotId, staffId, passcode) {
   return data;
 }
 
+export async function fetchLeaderboard(gameId) {
+  const session = getStudentSession();
+  const headers = {};
+  if (session) headers.Authorization = `Bearer ${session.token}`;
+  const res = await fetch(`/api/scores?game=${encodeURIComponent(gameId)}`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not load scores.");
+  return data;
+}
+
+export async function submitScore(gameId, score) {
+  const session = getStudentSession();
+  if (!session) return null;
+  const res = await fetch("/api/scores", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify({ gameId, score }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not save score.");
+  return data;
+}
+
 export async function redeemPass(staffId, passcode) {
   const session = getStudentSession();
   if (!session) throw new Error("Student session expired.");

@@ -22,14 +22,21 @@
     <nav class="nav" aria-label="Primary">
       <button class="nav__btn is-active" type="button" data-nav="map">Event Map</button>
       <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
+      <button class="nav__btn" type="button" data-nav="games">Games</button>
+      <button class="nav__btn" type="button" data-nav="safety">Safety</button>
       <button class="nav__btn" type="button" data-nav="admin">Staff</button>
     </nav>
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.0.0</div>
+      <div class="version-chip" title="App version">v1.1.0</div>
     </div>
   </header>
+  <div class="game-subnav" id="gameSubnav" hidden>
+    <button class="nav__btn is-active" type="button" data-game="clicker">Clicker</button>
+    <button class="nav__btn" type="button" data-game="memory">Memory</button>
+    <button class="nav__btn" type="button" data-game="catch">Catch</button>
+  </div>
 
   <main>
     <section class="view is-active" data-view="map">
@@ -120,6 +127,65 @@
           </article>
         </div>
       </div>
+    </section>
+
+    <section class="view" data-view="games" hidden>
+      <article class="game-panel" data-game-panel="clicker">
+        <div class="section-head">
+          <h2>Pumpkin clicker</h2>
+          <p>Tap the pumpkin. Buy upgrades. Best is saved if you are signed in.</p>
+        </div>
+        <p class="game-meta">This run: <strong id="clickerCount">0</strong> · Best: <strong data-best="clicker">0</strong></p>
+        <button class="clicker-pumpkin" id="clickerPumpkin" type="button" aria-label="Tap pumpkin">🎃</button>
+        <div class="game-actions">
+          <button class="btn" id="clickerPower" type="button">Bigger bites</button>
+          <button class="btn btn--ghost" id="clickerAuto" type="button">Spirit helpers</button>
+        </div>
+        <h3 class="roadmap__title">Top scores</h3>
+        <ol class="scoreboard" data-scoreboard="clicker"></ol>
+      </article>
+
+      <article class="game-panel" data-game-panel="memory" hidden>
+        <div class="section-head">
+          <h2>Memory match</h2>
+          <p>Match eight Halloween pairs. Faster and fewer misses scores higher.</p>
+        </div>
+        <p class="game-meta">Best: <strong data-best="memory">0</strong></p>
+        <p id="memoryStatus" class="muted"></p>
+        <button class="btn" id="memoryStart" type="button">Start round</button>
+        <div class="memory-grid" id="memoryGrid"></div>
+        <h3 class="roadmap__title">Top scores</h3>
+        <ol class="scoreboard" data-scoreboard="memory"></ol>
+      </article>
+
+      <article class="game-panel" data-game-panel="catch" hidden>
+        <div class="section-head">
+          <h2>Catch the treats</h2>
+          <p>Drag to move the basket. Catch candy and pumpkins. Avoid bats and skulls. 45 seconds.</p>
+        </div>
+        <p class="game-meta">Best: <strong data-best="catch">0</strong></p>
+        <p id="catchStatus" class="muted">Press start, then drag on the field.</p>
+        <button class="btn" id="catchStart" type="button">Start round</button>
+        <canvas id="catchCanvas" class="catch-canvas" width="340" height="420"></canvas>
+        <h3 class="roadmap__title">Top scores</h3>
+        <ol class="scoreboard" data-scoreboard="catch"></ol>
+      </article>
+    </section>
+
+    <section class="view" data-view="safety" hidden>
+      <div class="section-head">
+        <h2>Stay safe tonight</h2>
+        <p>General notes for SP Scream Fest. Follow staff instructions on the ground.</p>
+      </div>
+      <ul class="safety-list">
+        <li>Stay with your group and agree a meetup spot if you get separated.</li>
+        <li>Watch your step in fog, cables, and low light. No running in queues.</li>
+        <li>Drink water and take a break if you feel unwell. Tell a friend or staff.</li>
+        <li>Keep bags closed and phones secure. Do not leave belongings unattended.</li>
+        <li>Respect house capacity and closed areas. Staff calls are final.</li>
+        <li>If someone is hurt or lost, find a facilitator or the help desk rather than crowding in.</li>
+        <li>Look after each other. If a scare is too much, step out — you can skip a house.</li>
+      </ul>
     </section>
 
     <section class="view" data-view="admin" hidden>
