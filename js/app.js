@@ -499,26 +499,43 @@ function renderTimeline() {
   }).join("");
 }
 
+function formatPostedAt(iso) {
+  if (!iso) return { clock: "", ago: "" };
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return { clock: "", ago: "" };
+  const clock = then.toLocaleString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "numeric",
+    month: "short",
+  });
+  const sec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
+  let ago = "just now";
+  if (sec >= 45 && sec < 90) ago = "1 min ago";
+  else if (sec < 3600) ago = `${Math.floor(sec / 60)} min ago`;
+  else if (sec < 5400) ago = "1 hour ago";
+  else if (sec < 86400) ago = `${Math.floor(sec / 3600)} hours ago`;
+  else if (sec < 172800) ago = "1 day ago";
+  else ago = `${Math.floor(sec / 86400)} days ago`;
+  return { clock, ago };
+}
+
+function announceItemHtml(row) {
+  const { clock, ago } = formatPostedAt(row.created_at);
+  const when = [clock, ago].filter(Boolean).join(" · ");
+  return `<li class="announce-item">
+    <p class="announce-item__label">Staff announcement</p>
+    <p class="announce-item__when">${escapeHtml(when)}</p>
+    <p class="announce-item__body">${escapeHtml(row.message)}</p>
+  </li>`;
+}
+
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
-  const latest = rows[0];
-  if (els.announceStrip) {
-    if (latest) {
-      els.announceStrip.hidden = false;
-      els.announceStrip.innerHTML = `<strong>Live</strong> ${escapeHtml(latest.message)}`;
-    } else {
-      els.announceStrip.hidden = true;
-      els.announceStrip.innerHTML = "";
-    }
-  }
-  if (els.announceList) {
-    els.announceList.innerHTML = rows.length
-      ? rows.map((row) => {
-        const when = row.created_at ? new Date(row.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-        return `<li><strong>${escapeHtml(when)}</strong> ${escapeHtml(row.message)}</li>`;
-      }).join("")
-      : "<li class='muted'>No announcements yet. Staff will post here if something changes.</li>";
-  }
+  const empty = "<li class='muted'>No staff announcements yet.</li>";
+  const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
+  if (els.announceStrip) els.announceStrip.innerHTML = html;
+  if (els.announceList) els.announceList.innerHTML = html;
 }
 
 async function loadAdminAnnouncements() {
@@ -527,12 +544,12 @@ async function loadAdminAnnouncements() {
     const rows = await fetchAnnouncements({ all: true });
     els.adminAnnounceList.innerHTML = rows.length
       ? rows.map((row) => {
-        const when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
-        const live = row.active !== false;
+        const { clock, ago } = formatPostedAt(row.created_at);
+        const posted = row.active !== false;
         return `<li class="feedback-item">
           <p>${escapeHtml(row.message)}</p>
-          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · ${escapeHtml(when)} · ${live ? "Live" : "Taken down"}</p>
-          ${live ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
+          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · Posted ${escapeHtml(clock)}${ago ? ` · ${escapeHtml(ago)}` : ""} · ${posted ? "Showing" : "Taken down"}</p>
+          ${posted ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
         </li>`;
       }).join("")
       : "<li class='muted'>No announcements yet.</li>";

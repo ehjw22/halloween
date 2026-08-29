@@ -876,25 +876,35 @@ input, select {
 }
 .safety-list li { margin: 0 0 10px; }
 
-.announce-strip {
-  max-width: 1100px;
-  margin: 0 auto 16px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 122, 24, 0.45);
-  background: rgba(255, 122, 24, 0.12);
-}
-.announce-strip[hidden] { display: none; }
+.announce-panel .announce-list { max-width: none; }
+.announce-board__hint { margin: -8px 0 12px; }
 .announce-list {
   list-style: none;
   padding: 0;
   margin: 0 0 8px;
   max-width: 720px;
 }
-.announce-list li {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
+.announce-item {
+  padding: 12px 14px;
+  margin: 0 0 10px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 8, 16, 0.55);
 }
+.announce-item__label {
+  margin: 0 0 4px;
+  font-family: "Special Elite", ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--orange-2);
+}
+.announce-item__when {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.announce-item__body { margin: 0; }
 .night-timeline {
   list-style: none;
   margin: 0 auto 32px;

@@ -42,7 +42,13 @@
 
   <main>
     <section class="view is-active" data-view="map">
-      <aside class="announce-strip" id="announceStrip" hidden></aside>
+      <div class="announce-panel">
+        <div class="section-head">
+          <h2>Staff announcements</h2>
+          <p>Official updates from facilitators — house closures, last entry, and stage notes.</p>
+        </div>
+        <ul class="announce-list" id="announceStrip"></ul>
+      </div>
       <div class="section-head">
         <h2>Scare House Wait Times</h2>
         <p>Fifteen haunts across campus. Times update live for every visitor.</p>
@@ -75,7 +81,8 @@
         <p id="scheduleDateLabel">Performances and house hours for the night. Times are Singapore time.</p>
       </div>
       <div class="announce-board">
-        <h3 class="roadmap__title">Live announcements</h3>
+        <h3 class="roadmap__title">Staff announcements</h3>
+        <p class="muted announce-board__hint">Official updates from facilitators. Newest first.</p>
         <ul class="announce-list" id="announceList"></ul>
       </div>
       <h3 class="roadmap__title">Night programme</h3>
@@ -349,8 +356,8 @@
 
         <div class="staff-panel" data-staff-panel="announce" hidden>
           <div class="section-head">
-            <h2>Live announcements</h2>
-            <p>Posted notes show on Tonight and as a strip on Event Map. Take down when they are no longer needed.</p>
+            <h2>Staff announcements</h2>
+            <p>Posted notes show under Staff announcements on Event Map and Tonight. Take down when they are no longer needed.</p>
           </div>
           <form class="auth-card" id="announceForm">
             <label>
