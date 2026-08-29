@@ -26,7 +26,8 @@
       <button class="nav__btn" type="button" data-nav="games">Games</button>
       <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
       <button class="nav__btn" type="button" data-nav="safety">Safety</button>
-      <button class="nav__btn" type="button" data-nav="admin">Staff</button>
+      <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
+      <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
     </nav>
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
@@ -89,11 +90,59 @@
       <ol class="night-timeline" id="nightTimeline"></ol>
     </section>
 
+    <section class="view" data-view="login" hidden>
+      <div class="login-page">
+        <div class="section-head">
+          <h2>Sign in</h2>
+          <p>Use this page to register or log in. Stamp Card still lets students sign in there if they have not yet.</p>
+        </div>
+        <article class="auth-card login-how">
+          <p class="auth-card__kicker">How it works</p>
+          <h3>Students</h3>
+          <p>Enter your student admin number and full name. The first time that number is used, a stamp card is created. Later visits with the same number and name log you back in. There is no password. Sessions last 1 hour.</p>
+          <h3>Staff</h3>
+          <p>Staff use a staff ID and the staff passcode. The Staff tab only appears after a successful staff sign-in.</p>
+        </article>
+        <div class="login-grid">
+          <form class="auth-card" id="loginStudentForm">
+            <p class="auth-card__kicker">Students</p>
+            <h2>Register / log in</h2>
+            <p>Same form for first visit and return visits.</p>
+            <label>
+              Student number
+              <input id="loginStudentNumber" name="studentNumber" type="text" autocomplete="username" required>
+            </label>
+            <label>
+              Full name
+              <input id="loginStudentName" name="fullName" type="text" autocomplete="name" required>
+            </label>
+            <p class="form-error" id="loginStudentError" hidden></p>
+            <button class="btn" type="submit">Continue</button>
+          </form>
+          <form class="auth-card" id="loginStaffForm">
+            <p class="auth-card__kicker">Staff</p>
+            <h2>Staff sign in</h2>
+            <p>Facilitators only. Not for students.</p>
+            <label>
+              Staff ID / name
+              <input id="loginStaffId" type="text" autocomplete="username" required>
+            </label>
+            <label>
+              Staff passcode
+              <input id="loginStaffPass" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" id="loginStaffError" hidden></p>
+            <button class="btn" type="submit">Staff sign in</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <section class="view" data-view="stamps" hidden>
       <div id="studentAuth" class="auth-card">
         <p class="auth-card__kicker">SP Scream Fest</p>
         <h2>Student sign in</h2>
-        <p>One stamp card per student number. Sign in with your number and full name. Session lasts 1 hour.</p>
+        <p>One stamp card per student number. First visit with your number and name creates the card; the same details log you in later. Or use the Sign in tab.</p>
         <form id="studentAuthForm">
           <label>
             Student number

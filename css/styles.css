@@ -150,6 +150,19 @@ body {
   background: transparent;
   color: var(--orange-2);
 }
+.login-page { max-width: 920px; margin: 0 auto 32px; }
+.login-page .auth-card { max-width: none; }
+.login-how h3 { margin: 14px 0 6px; font-size: 1.05rem; }
+.login-how p { color: var(--muted); margin: 0 0 8px; }
+.login-grid {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 800px) {
+  .login-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+.login-grid .auth-card { margin: 0; max-width: none; }
+.nav__btn[hidden] { display: none; }
 .auth-card {
   max-width: 440px;
   margin: 24px auto;

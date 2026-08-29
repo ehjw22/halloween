@@ -131,6 +131,11 @@ function waitLabel(minutes, status) {
 }
 
 function setView(name) {
+  const student = getStudentSession();
+  const admin = getAdminSession();
+  if (name === "admin" && !admin) name = "login";
+  if (name === "login" && admin) name = "admin";
+  else if (name === "login" && student) name = "stamps";
   els.views.forEach((view) => {
     const active = view.dataset.view === name;
     view.classList.toggle("is-active", active);
@@ -145,7 +150,7 @@ function setView(name) {
   }
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
-    renderSessionChip();
+    updateNav();
     paintStampUi();
   }
 }
@@ -263,10 +268,27 @@ function isAdminUnlocked() {
   return Boolean(getAdminSession());
 }
 
+function updateNav() {
+  const student = Boolean(getStudentSession());
+  const admin = Boolean(getAdminSession());
+  document.querySelectorAll("[data-nav]").forEach((btn) => {
+    const show = btn.dataset.navShow;
+    if (show === "guest") btn.hidden = student || admin;
+    else if (show === "admin") btn.hidden = !admin;
+    else btn.hidden = false;
+  });
+  renderSessionChip();
+}
+
 function renderSessionChip() {
   const student = getStudentSession();
   const admin = getAdminSession();
   if (!els.sessionChip) return;
+  if (student && admin) {
+    els.sessionChip.hidden = false;
+    els.sessionChip.innerHTML = `<span>${student.payload.name}</span><button type="button" data-logout="student">Log out</button><span>Staff · ${admin.payload.staffId}</span><button type="button" data-logout="admin">Staff out</button>`;
+    return;
+  }
   if (student) {
     els.sessionChip.hidden = false;
     els.sessionChip.innerHTML = `<span>${student.payload.name}</span><button type="button" data-logout="student">Log out</button>`;
@@ -309,13 +331,13 @@ function paintStampUi() {
   if (!session) {
     els.studentAuth.hidden = false;
     els.stampApp.hidden = true;
-    renderSessionChip();
+    updateNav();
     return;
   }
 
   els.studentAuth.hidden = true;
   els.stampApp.hidden = false;
-  renderSessionChip();
+  updateNav();
 
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
@@ -407,7 +429,7 @@ async function renderStamps({ refresh = false } = {}) {
     els.studentAuthError.hidden = false;
     els.studentAuthError.textContent = error.message;
     clearStudentSession();
-    renderSessionChip();
+    updateNav();
   }
 }
 
@@ -562,12 +584,12 @@ function renderAdmin() {
   if (!isAdminUnlocked()) {
     els.adminGate.hidden = false;
     els.adminApp.hidden = true;
-    renderSessionChip();
+    updateNav();
     return;
   }
   els.adminGate.hidden = true;
   els.adminApp.hidden = false;
-  renderSessionChip();
+  updateNav();
 
   els.adminTable.innerHTML = houses
     .map((row) => {
@@ -735,30 +757,70 @@ function bindUi() {
         clearStudentSession();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
         showPass = false;
+        updateNav();
         renderStamps();
       } else {
         clearAdminSession();
-        renderAdmin();
+        updateNav();
+        const onStaff = document.querySelector(".view.is-active")?.dataset.view === "admin";
+        if (onStaff) setView("login");
+        else renderAdmin();
       }
-      renderSessionChip();
     }
 
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
+  async function signInAsStudent(number, name, errorEl) {
+    if (errorEl) errorEl.hidden = true;
+    try {
+      await studentSignIn(number, name);
+      cardState.studentNumber = "";
+      updateNav();
+      await renderStamps({ refresh: true });
+      setView("stamps");
+    } catch (error) {
+      if (errorEl) {
+        errorEl.hidden = false;
+        errorEl.textContent = error.message;
+      }
+    }
+  }
+
   els.studentAuthForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    els.studentAuthError.hidden = true;
+    await signInAsStudent(
+      document.getElementById("studentNumber").value,
+      document.getElementById("studentName").value,
+      els.studentAuthError
+    );
+  });
+
+  document.getElementById("loginStudentForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await signInAsStudent(
+      document.getElementById("loginStudentNumber").value,
+      document.getElementById("loginStudentName").value,
+      document.getElementById("loginStudentError")
+    );
+  });
+
+  document.getElementById("loginStaffForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const err = document.getElementById("loginStaffError");
+    if (err) err.hidden = true;
     try {
-      await studentSignIn(
-        document.getElementById("studentNumber").value,
-        document.getElementById("studentName").value
+      await adminSignIn(
+        document.getElementById("loginStaffId").value,
+        document.getElementById("loginStaffPass").value
       );
-      cardState.studentNumber = "";
-      await renderStamps({ refresh: true });
+      updateNav();
+      setView("admin");
     } catch (error) {
-      els.studentAuthError.hidden = false;
-      els.studentAuthError.textContent = error.message;
+      if (err) {
+        err.hidden = false;
+        err.textContent = error.message;
+      }
     }
   });
 
@@ -806,7 +868,8 @@ function bindUi() {
         document.getElementById("adminStaffId").value,
         document.getElementById("adminPasscode").value
       );
-      renderAdmin();
+      updateNav();
+      setView("admin");
     } catch (error) {
       els.adminAuthError.hidden = false;
       els.adminAuthError.textContent = error.message;
@@ -815,7 +878,8 @@ function bindUi() {
 
   document.getElementById("adminLock")?.addEventListener("click", () => {
     clearAdminSession();
-    renderAdmin();
+    updateNav();
+    setView("login");
   });
 
   els.autoSave?.addEventListener("change", () => {
@@ -998,7 +1062,7 @@ async function init() {
       games.initGames();
     })
     .catch((error) => console.warn("Games failed to load", error));
-  renderSessionChip();
+  updateNav();
   renderStamps();
   renderAdmin();
   renderTimeline();
