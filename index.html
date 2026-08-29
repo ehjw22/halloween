@@ -94,67 +94,41 @@
       <div class="login-page">
         <div class="section-head">
           <h2>Sign in</h2>
-          <p>Use this page to register or log in. Stamp Card still lets students sign in there if they have not yet.</p>
+          <p>One campus login. Students and staff use the same form.</p>
         </div>
         <article class="auth-card login-how">
           <p class="auth-card__kicker">How it works</p>
-          <h3>Students</h3>
-          <p>Enter your student admin number and full name. The first time that number is used, a stamp card is created. Later visits with the same number and name log you back in. There is no password. Sessions last 1 hour.</p>
-          <h3>Staff</h3>
-          <p>Staff use a staff ID and the staff passcode. The Staff tab only appears after a successful staff sign-in.</p>
+          <p>Enter your <strong>admin number</strong> and <strong>full name</strong>, the same way you would at a campus kiosk. The first time a student number is used, a stamp card is created. Coming back with the same number and name logs you in. There is no student password. Sessions last 1 hour.</p>
+          <p>Staff enter their staff ID as the admin number, their name, and the <strong>staff password</strong>. If you leave the password blank, you will be signed in as a student. After a staff sign-in, the Staff tab appears.</p>
         </article>
-        <div class="login-grid">
-          <form class="auth-card" id="loginStudentForm">
-            <p class="auth-card__kicker">Students</p>
-            <h2>Register / log in</h2>
-            <p>Same form for first visit and return visits.</p>
-            <label>
-              Student number
-              <input id="loginStudentNumber" name="studentNumber" type="text" autocomplete="username" required>
-            </label>
-            <label>
-              Full name
-              <input id="loginStudentName" name="fullName" type="text" autocomplete="name" required>
-            </label>
-            <p class="form-error" id="loginStudentError" hidden></p>
-            <button class="btn" type="submit">Continue</button>
-          </form>
-          <form class="auth-card" id="loginStaffForm">
-            <p class="auth-card__kicker">Staff</p>
-            <h2>Staff sign in</h2>
-            <p>Facilitators only. Not for students.</p>
-            <label>
-              Staff ID / name
-              <input id="loginStaffId" type="text" autocomplete="username" required>
-            </label>
-            <label>
-              Staff passcode
-              <input id="loginStaffPass" type="password" autocomplete="current-password" required>
-            </label>
-            <p class="form-error" id="loginStaffError" hidden></p>
-            <button class="btn" type="submit">Staff sign in</button>
-          </form>
-        </div>
+        <form class="auth-card" id="loginForm">
+          <p class="auth-card__kicker">SP Scream Fest</p>
+          <h2>Sign in</h2>
+          <label>
+            Admin number
+            <input id="loginId" name="adminNumber" type="text" autocomplete="username" maxlength="20" required>
+          </label>
+          <label>
+            Full name
+            <input id="loginName" name="fullName" type="text" autocomplete="name" maxlength="80" required>
+          </label>
+          <label>
+            Password <span class="muted">(staff only — leave blank if you are a student)</span>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="80">
+          </label>
+          <p class="form-error" id="loginError" hidden></p>
+          <button class="btn" type="submit">Sign in</button>
+        </form>
       </div>
     </section>
 
     <section class="view" data-view="stamps" hidden>
       <div id="studentAuth" class="auth-card">
         <p class="auth-card__kicker">SP Scream Fest</p>
-        <h2>Student sign in</h2>
-        <p>One stamp card per student number. First visit with your number and name creates the card; the same details log you in later. Or use the Sign in tab.</p>
-        <form id="studentAuthForm">
-          <label>
-            Student number
-            <input id="studentNumber" name="studentNumber" type="text" autocomplete="username" required>
-          </label>
-          <label>
-            Full name
-            <input id="studentName" name="fullName" type="text" autocomplete="name" required>
-          </label>
-          <p class="form-error" id="studentAuthError" hidden></p>
-          <button class="btn" type="submit">Open my card</button>
-        </form>
+        <h2>Sign in to open your card</h2>
+        <p>Stamp cards are tied to your admin number. Use the same Sign in page as the rest of the night.</p>
+        <p class="form-error" id="studentAuthError" hidden></p>
+        <button class="btn" type="button" data-nav="login">Go to Sign in</button>
       </div>
 
       <div id="stampApp" hidden>
@@ -309,21 +283,11 @@
     </section>
 
     <section class="view" data-view="admin" hidden>
-      <div id="adminGate" class="admin-gate">
-        <h2>Staff sign in</h2>
-        <p>Separate from student accounts. Session lasts 1 hour. Passcode is set with <code>ADMIN_PASSCODE</code> (default <code>SP2026</code>).</p>
-        <form id="adminPassForm">
-          <label>
-            Staff ID / name
-            <input id="adminStaffId" type="text" autocomplete="username" required>
-          </label>
-          <label>
-            Staff passcode
-            <input id="adminPasscode" type="password" autocomplete="current-password" required>
-          </label>
-          <p class="form-error" id="adminAuthError" hidden></p>
-          <button class="btn" type="submit">Sign in</button>
-        </form>
+      <div id="adminGate" class="auth-card">
+        <p class="auth-card__kicker">SP Scream Fest</p>
+        <h2>Staff tools</h2>
+        <p>Use the same Sign in page as students. Enter your staff ID, name, and staff password.</p>
+        <button class="btn" type="button" data-nav="login">Go to Sign in</button>
       </div>
 
       <div id="adminApp" hidden>

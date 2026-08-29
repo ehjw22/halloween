@@ -18,15 +18,7 @@ create policy "public read scare houses"
   using (true);
 
 drop policy if exists "public upsert scare houses" on public.scare_houses;
-create policy "public upsert scare houses"
-  on public.scare_houses for insert
-  with check (true);
-
 drop policy if exists "public update scare houses" on public.scare_houses;
-create policy "public update scare houses"
-  on public.scare_houses for update
-  using (true)
-  with check (true);
 
 insert into public.scare_houses (id, name, wait_minutes, status) values
   ('dover-gate', 'Dover Gate Ghouls', 5, 'open'),
@@ -69,18 +61,19 @@ drop policy if exists "anon read students" on public.students;
 create policy "anon read students"
   on public.students for select using (true);
 drop policy if exists "anon insert students" on public.students;
-create policy "anon insert students"
-  on public.students for insert with check (true);
+drop policy if exists "anon insert cards" on public.stamp_cards;
+drop policy if exists "anon update cards" on public.stamp_cards;
+drop policy if exists "anon insert scores" on public.game_scores;
+drop policy if exists "anon update scores" on public.game_scores;
+drop policy if exists "anon insert feedback" on public.event_feedback;
+drop policy if exists "anon insert announcements" on public.announcements;
+drop policy if exists "anon update announcements" on public.announcements;
+-- Writes go through Vercel APIs with the service role (bypasses RLS).
+-- Browsers with the anon key can only read.
 
 drop policy if exists "anon read cards" on public.stamp_cards;
 create policy "anon read cards"
   on public.stamp_cards for select using (true);
-drop policy if exists "anon insert cards" on public.stamp_cards;
-create policy "anon insert cards"
-  on public.stamp_cards for insert with check (true);
-drop policy if exists "anon update cards" on public.stamp_cards;
-create policy "anon update cards"
-  on public.stamp_cards for update using (true) with check (true);
 
 create table if not exists public.game_scores (
   student_number text not null references public.students (student_number) on delete cascade,
@@ -95,12 +88,6 @@ alter table public.game_scores enable row level security;
 drop policy if exists "anon read scores" on public.game_scores;
 create policy "anon read scores"
   on public.game_scores for select using (true);
-drop policy if exists "anon insert scores" on public.game_scores;
-create policy "anon insert scores"
-  on public.game_scores for insert with check (true);
-drop policy if exists "anon update scores" on public.game_scores;
-create policy "anon update scores"
-  on public.game_scores for update using (true) with check (true);
 
 do $$
 begin
@@ -121,10 +108,6 @@ create table if not exists public.event_feedback (
 
 alter table public.event_feedback enable row level security;
 
-drop policy if exists "anon insert feedback" on public.event_feedback;
-create policy "anon insert feedback"
-  on public.event_feedback for insert with check (true);
-
 drop policy if exists "anon read feedback" on public.event_feedback;
 create policy "anon read feedback"
   on public.event_feedback for select using (true);
@@ -143,12 +126,5 @@ drop policy if exists "anon read announcements" on public.announcements;
 create policy "anon read announcements"
   on public.announcements for select using (true);
 
-drop policy if exists "anon insert announcements" on public.announcements;
-create policy "anon insert announcements"
-  on public.announcements for insert with check (true);
-
-drop policy if exists "anon update announcements" on public.announcements;
-create policy "anon update announcements"
-  on public.announcements for update using (true) with check (true);
 
 

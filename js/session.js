@@ -65,28 +65,28 @@ async function parseError(res) {
   }
 }
 
-export async function studentSignIn(studentNumber, fullName) {
-  const res = await fetch("/api/student-auth", {
+export async function signIn({ adminNumber, fullName, password }) {
+  const res = await fetch("/api/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentNumber, fullName }),
+    body: JSON.stringify({ adminNumber, fullName, password }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Sign-in failed.");
-  setStudentToken(data.token);
+  if (data.staff) {
+    setAdminToken(data.token);
+  } else {
+    setStudentToken(data.token);
+  }
   return data;
 }
 
+export async function studentSignIn(studentNumber, fullName) {
+  return signIn({ adminNumber: studentNumber, fullName, password: "" });
+}
+
 export async function adminSignIn(staffId, passcode) {
-  const res = await fetch("/api/admin-auth", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ staffId, passcode }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Staff sign-in failed.");
-  setAdminToken(data.token);
-  return data;
+  return signIn({ adminNumber: staffId, fullName: staffId, password: passcode });
 }
 
 export async function fetchStamps() {

@@ -150,18 +150,10 @@ body {
   background: transparent;
   color: var(--orange-2);
 }
-.login-page { max-width: 920px; margin: 0 auto 32px; }
+.login-page { max-width: 480px; margin: 0 auto 32px; }
 .login-page .auth-card { max-width: none; }
 .login-how h3 { margin: 14px 0 6px; font-size: 1.05rem; }
 .login-how p { color: var(--muted); margin: 0 0 8px; }
-.login-grid {
-  display: grid;
-  gap: 16px;
-}
-@media (min-width: 800px) {
-  .login-grid { grid-template-columns: 1fr 1fr; align-items: start; }
-}
-.login-grid .auth-card { margin: 0; max-width: none; }
 .nav__btn[hidden] { display: none; }
 .auth-card {
   max-width: 440px;
@@ -381,7 +373,8 @@ body {
   cursor: pointer;
 }
 .upgrade-card.is-locked { opacity: 0.55; }
-.upgrade-card small { color: var(--muted); }
+.upgrade-card small { color: var(--muted); display: block; }
+.upgrade-now { color: var(--orange-2); font-weight: 700; font-size: 0.95rem; }
 .achieve-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -393,7 +386,13 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
-.achieve-list li { color: var(--muted); }
+.achieve-list li {
+  color: var(--muted);
+  display: grid;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.achieve-list li span { font-weight: 400; font-size: 0.82rem; }
 .achieve-list li.is-done { color: var(--orange-2); }
 
 .game-panel { max-width: 880px; margin: 0 auto; text-align: center; }

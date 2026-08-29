@@ -3,7 +3,6 @@ import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
 import { createStore } from "./store.js";
 import {
-  adminSignIn,
   awardStamp,
   clearAdminSession,
   clearStudentSession,
@@ -15,7 +14,7 @@ import {
   postAnnouncement,
   redeemPass,
   setAnnouncementActive,
-  studentSignIn,
+  signIn,
   submitFeedback,
 } from "./session.js";
 
@@ -160,9 +159,9 @@ function renderDashboard() {
     .map((row) => {
       const meta = houseMeta(row.id);
       return `
-        <button class="house-card status-${row.status}" type="button" data-open-house="${row.id}">
-          <span class="house-card__short">${meta?.short || ""}</span>
-          <strong>${row.name}</strong>
+        <button class="house-card status-${row.status}" type="button" data-open-house="${escapeHtml(row.id)}">
+          <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
+          <strong>${escapeHtml(row.name)}</strong>
           <span class="status-pill">${STATUS_LABEL[row.status] || row.status}</span>
           <span class="wait">${waitLabel(row.wait_minutes, row.status)}</span>
         </button>`;
@@ -286,17 +285,17 @@ function renderSessionChip() {
   if (!els.sessionChip) return;
   if (student && admin) {
     els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>${student.payload.name}</span><button type="button" data-logout="student">Log out</button><span>Staff · ${admin.payload.staffId}</span><button type="button" data-logout="admin">Staff out</button>`;
+    els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button><span>Staff · ${escapeHtml(admin.payload.staffId)}</span><button type="button" data-logout="admin">Staff out</button>`;
     return;
   }
   if (student) {
     els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>${student.payload.name}</span><button type="button" data-logout="student">Log out</button>`;
+    els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button>`;
     return;
   }
   if (admin) {
     els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>Staff · ${admin.payload.staffId}</span><button type="button" data-logout="admin">Log out</button>`;
+    els.sessionChip.innerHTML = `<span>Staff · ${escapeHtml(admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
     return;
   }
   els.sessionChip.hidden = true;
@@ -357,7 +356,7 @@ function paintStampUi() {
         <span class="stamp-slot__seal" aria-hidden="true">${slot.icon}</span>
         <span class="stamp-slot__index">0${slot.id}</span>
         <strong>${slot.label}</strong>
-        <small>${stamped ? `Collected · ${stamped.by}` : "Tap for booth info"}</small>
+        <small>${stamped ? `Collected · ${escapeHtml(stamped.by || "")}` : "Tap for booth info"}</small>
       </button>`;
   }).join("");
 
@@ -372,7 +371,7 @@ function paintStampUi() {
             <span class="roadmap__icon">${slot.icon}</span>
             <span class="roadmap__num">${index + 1}</span>
             <strong>${slot.label}</strong>
-            <small>${stamped ? `Stamped · ${stamped.by}` : "Visit this booth"}</small>
+            <small>${stamped ? `Stamped · ${escapeHtml(stamped.by || "")}` : "Visit this booth"}</small>
           </button>
         </li>`;
     }).join("");
@@ -426,8 +425,10 @@ async function renderStamps({ refresh = false } = {}) {
   } catch (error) {
     els.studentAuth.hidden = false;
     els.stampApp.hidden = true;
-    els.studentAuthError.hidden = false;
-    els.studentAuthError.textContent = error.message;
+    if (els.studentAuthError) {
+      els.studentAuthError.hidden = false;
+      els.studentAuthError.textContent = error.message;
+    }
     clearStudentSession();
     updateNav();
   }
@@ -743,6 +744,11 @@ function bindUi() {
   });
 
   document.body.addEventListener("click", (event) => {
+    const jump = event.target.closest("button[data-nav]");
+    if (jump && !jump.closest(".nav")) {
+      setView(jump.dataset.nav);
+      return;
+    }
     const houseBtn = event.target.closest("[data-open-house]");
     if (houseBtn) openHouse(houseBtn.dataset.openHouse);
 
@@ -771,51 +777,22 @@ function bindUi() {
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
-  async function signInAsStudent(number, name, errorEl) {
-    if (errorEl) errorEl.hidden = true;
-    try {
-      await studentSignIn(number, name);
-      cardState.studentNumber = "";
-      updateNav();
-      await renderStamps({ refresh: true });
-      setView("stamps");
-    } catch (error) {
-      if (errorEl) {
-        errorEl.hidden = false;
-        errorEl.textContent = error.message;
-      }
-    }
-  }
-
-  els.studentAuthForm?.addEventListener("submit", async (event) => {
+  document.getElementById("loginForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await signInAsStudent(
-      document.getElementById("studentNumber").value,
-      document.getElementById("studentName").value,
-      els.studentAuthError
-    );
-  });
-
-  document.getElementById("loginStudentForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await signInAsStudent(
-      document.getElementById("loginStudentNumber").value,
-      document.getElementById("loginStudentName").value,
-      document.getElementById("loginStudentError")
-    );
-  });
-
-  document.getElementById("loginStaffForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const err = document.getElementById("loginStaffError");
+    const err = document.getElementById("loginError");
     if (err) err.hidden = true;
     try {
-      await adminSignIn(
-        document.getElementById("loginStaffId").value,
-        document.getElementById("loginStaffPass").value
-      );
+      const data = await signIn({
+        adminNumber: document.getElementById("loginId").value,
+        fullName: document.getElementById("loginName").value,
+        password: document.getElementById("loginPassword").value,
+      });
       updateNav();
-      setView("admin");
+      setView(data.staff ? "admin" : "stamps");
+      if (!data.staff) {
+        cardState.studentNumber = "";
+        await renderStamps({ refresh: true });
+      }
     } catch (error) {
       if (err) {
         err.hidden = false;
@@ -857,22 +834,6 @@ function bindUi() {
     } catch (error) {
       els.redeemError.hidden = false;
       els.redeemError.textContent = error.message;
-    }
-  });
-
-  els.adminForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    els.adminAuthError.hidden = true;
-    try {
-      await adminSignIn(
-        document.getElementById("adminStaffId").value,
-        document.getElementById("adminPasscode").value
-      );
-      updateNav();
-      setView("admin");
-    } catch (error) {
-      els.adminAuthError.hidden = false;
-      els.adminAuthError.textContent = error.message;
     }
   });
 

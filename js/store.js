@@ -110,7 +110,6 @@ export function createStore(onChange) {
     }
 
     if (data?.length) applyRows(data);
-    else await client.from("scare_houses").upsert(rows);
 
     channel = client
       .channel("scare-houses-live", { config: { broadcast: { ack: false } } })
@@ -149,29 +148,32 @@ export function createStore(onChange) {
       { broadcastLocal: true }
     );
 
-    if (!persist || !client) return;
+    if (!persist) return;
 
     const row = rows.find((r) => r.id === id);
-    const { error } = await client
-      .from("scare_houses")
-      .upsert({
-        id: row.id,
-        name: row.name,
-        wait_minutes: row.wait_minutes,
-        status: row.status,
-        updated_at: row.updated_at,
-      });
-    if (error) {
-      console.warn("Supabase write failed.", error.message);
-      return;
-    }
+    const token = localStorage.getItem("sp-admin-jwt");
+    if (!token || !row) return;
 
-    if (channel) {
-      channel.send({
-        type: "broadcast",
-        event: "wait-times",
-        payload: { rows },
+    try {
+      const res = await fetch("/api/wait-times", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: row.id,
+          wait_minutes: row.wait_minutes,
+          status: row.status,
+        }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.warn("Wait time save failed.", data.error || res.statusText);
+        return;
+      }
+    } catch (error) {
+      console.warn("Wait time save failed.", error.message);
     }
   }
 

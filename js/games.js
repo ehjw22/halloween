@@ -12,19 +12,27 @@ const DIFFS = {
 
 const UPGRADES = [
   { id: "bite", name: "Bigger bites", blurb: "More candy per tap.", base: 20, grow: 1.18 },
-  { id: "spirits", name: "Spirit helpers", blurb: "Candy each second.", base: 50, grow: 1.22 },
+  { id: "spirits", name: "Spirit helpers", blurb: "Candy each second while you wait.", base: 50, grow: 1.22 },
   { id: "crit", name: "Jackpot slice", blurb: "Chance of a 7× tap.", base: 120, grow: 1.25 },
   { id: "fortune", name: "Candy moon", blurb: "Boosts all candy earned.", base: 400, grow: 1.28 },
 ];
 
 const ACHIEVES = [
-  { id: "first", name: "First nibble", test: (s) => s.candy >= 1 || s.lifetime >= 1 },
-  { id: "hundred", name: "Pocket full", test: (s) => s.lifetime >= 100 },
-  { id: "helpers", name: "Haunted crew", test: (s) => s.upgrades.spirits >= 5 },
-  { id: "bites", name: "Iron jaw", test: (s) => s.upgrades.bite >= 10 },
-  { id: "prestige", name: "Cursed again", test: (s) => s.prestige >= 1 },
-  { id: "rich", name: "Treat hoard", test: (s) => s.lifetime >= 10000 },
+  { id: "first", name: "First nibble", desc: "Tap the pumpkin once.", test: (s) => s.candy >= 1 || s.lifetime >= 1 },
+  { id: "hundred", name: "Pocket full", desc: "Earn 100 candy in total.", test: (s) => s.lifetime >= 100 },
+  { id: "helpers", name: "Haunted crew", desc: "Buy Spirit helpers 5 times.", test: (s) => s.upgrades.spirits >= 5 },
+  { id: "bites", name: "Iron jaw", desc: "Raise Bigger bites to level 10.", test: (s) => s.upgrades.bite >= 10 },
+  { id: "prestige", name: "Cursed again", desc: "Prestige at least once.", test: (s) => s.prestige >= 1 },
+  { id: "rich", name: "Treat hoard", desc: "Earn 10,000 candy in total.", test: (s) => s.lifetime >= 10000 },
 ];
+
+function esc(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function localBest(id) {
   return Number(localStorage.getItem(`scream-best-${id}`)) || 0;
@@ -38,10 +46,10 @@ function setLocalBest(id, score) {
 
 function renderBoard(listEl, top, mine, signedIn) {
   if (!listEl) return;
-  const rows = (top || []).map((row, i) => `<li><span>${i + 1}. ${row.name}</span><strong>${row.score}</strong></li>`).join("");
+  const rows = (top || []).map((row, i) => `<li><span>${i + 1}. ${esc(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
   const hint = signedIn
     ? `Your saved best: ${mine ?? 0}`
-    : "Sign in on Stamp Card to save a campus best.";
+    : "Sign in to save a campus best.";
   listEl.innerHTML = `${rows || "<li class='muted'>No scores yet.</li>"}<p class="muted">${hint}</p>`;
 }
 
@@ -120,6 +128,15 @@ function autoRate(state) {
   return state.upgrades.spirits * curseMult(state.prestige) * fortuneMult(state.upgrades.fortune);
 }
 
+function upgradeNow(def, state) {
+  const level = state.upgrades[def.id] || 0;
+  if (def.id === "bite") return `${clickPower(state).toFixed(1)} candy/tap`;
+  if (def.id === "spirits") return `${autoRate(state).toFixed(1)} candy/s`;
+  if (def.id === "crit") return `${Math.round(critChance(state) * 100)}% jackpot`;
+  if (def.id === "fortune") return `${fortuneMult(level).toFixed(2)}× all candy`;
+  return "";
+}
+
 function prestigeNeed(state) {
   return Math.floor(8000 * Math.pow(1.6, state.prestige));
 }
@@ -176,6 +193,7 @@ function setupClicker() {
       const can = state.candy >= cost;
       return `<button class="upgrade-card ${can ? "" : "is-locked"}" type="button" data-upgrade="${def.id}">
         <strong>${def.name}</strong>
+        <span class="upgrade-now">${upgradeNow(def, state)}</span>
         <small>Lv ${level} · ${def.blurb}</small>
         <span>${cost} candy</span>
       </button>`;
@@ -188,7 +206,7 @@ function setupClicker() {
     if (achieveEl) {
       achieveEl.innerHTML = ACHIEVES.map((a) => {
         const on = state.achievements.includes(a.id);
-        return `<li class="${on ? "is-done" : ""}">${on ? "★" : "☆"} ${a.name}</li>`;
+        return `<li class="${on ? "is-done" : ""}"><strong>${on ? "★" : "☆"} ${a.name}</strong><span>${a.desc}</span></li>`;
       }).join("");
     }
   }
