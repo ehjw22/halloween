@@ -100,19 +100,48 @@ export async function fetchStamps() {
   return data;
 }
 
-export async function applyStamp(slotId, staffId, passcode) {
-  const session = getStudentSession();
-  if (!session) throw new Error("Sign in to save stamps.");
-  const res = await fetch("/api/stamps", {
-    method: "PUT",
+export async function awardStamp(studentNumber, boothId) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  const res = await fetch("/api/award-stamp", {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.token}`,
     },
-    body: JSON.stringify({ slotId, staffId, passcode }),
+    body: JSON.stringify({ studentNumber, boothId }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not save stamps.");
+  if (!res.ok) throw new Error(data.error || "Could not award stamp.");
+  return data;
+}
+
+export async function submitFeedback(kind, targetId, message) {
+  const session = getStudentSession();
+  const headers = { "Content-Type": "application/json" };
+  if (session) headers.Authorization = `Bearer ${session.token}`;
+  const res = await fetch("/api/feedback", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ kind, targetId, message }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not send feedback.");
+  return data;
+}
+
+export async function fetchFeedback(kind, targetId) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  const params = new URLSearchParams();
+  if (kind) params.set("kind", kind);
+  if (targetId) params.set("target", targetId);
+  const q = params.toString();
+  const res = await fetch(`/api/feedback${q ? `?${q}` : ""}`, {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not load feedback.");
   return data;
 }
 

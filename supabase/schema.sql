@@ -109,3 +109,23 @@ exception
   when duplicate_object then null;
   when undefined_object then null;
 end $$;
+
+create table if not exists public.event_feedback (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('scare_house', 'booth')),
+  target_id text not null,
+  message text not null,
+  student_number text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.event_feedback enable row level security;
+
+drop policy if exists "anon insert feedback" on public.event_feedback;
+create policy "anon insert feedback"
+  on public.event_feedback for insert with check (true);
+
+drop policy if exists "anon read feedback" on public.event_feedback;
+create policy "anon read feedback"
+  on public.event_feedback for select using (true);
+

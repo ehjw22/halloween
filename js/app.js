@@ -1,28 +1,28 @@
 import { HOUSES, STATUSES } from "./houses.js";
+import { BOOTHS, boothById } from "./booths.js";
 import { createStore } from "./store.js";
 import {
   adminSignIn,
+  awardStamp,
   clearAdminSession,
   clearStudentSession,
+  fetchFeedback,
   fetchStamps,
   getAdminSession,
   getStudentSession,
   redeemPass,
-  applyStamp,
   studentSignIn,
+  submitFeedback,
 } from "./session.js";
 
 let setGamesVisible = () => {};
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
-const STAMP_SLOTS = [
-  { id: 1, icon: "🎃", label: "Pumpkin Gate" },
-  { id: 2, icon: "🦇", label: "Bat Colony" },
-  { id: 3, icon: "👻", label: "Plaza Ghost" },
-  { id: 4, icon: "🕸️", label: "Web Lab" },
-  { id: 5, icon: "🍬", label: "Candy Court" },
-  { id: 6, icon: "💀", label: "Crypt Keep" },
-];
+const STAMP_SLOTS = BOOTHS.map((b) => ({
+  id: Number(b.id),
+  icon: b.icon,
+  label: b.name,
+}));
 
 const els = {
   views: [...document.querySelectorAll(".view")],
@@ -38,6 +38,7 @@ const els = {
   stampRoadmap: document.getElementById("stampRoadmap"),
   passBack: document.getElementById("passBack"),
   stampModal: document.getElementById("stampModal"),
+  boothModal: document.getElementById("boothModal"),
   stampForm: document.getElementById("stampForm"),
   stampBy: document.getElementById("stampBy"),
   stampPass: document.getElementById("stampPass"),
@@ -72,11 +73,26 @@ const els = {
   redeemError: document.getElementById("redeemError"),
   adminAuthError: document.getElementById("adminAuthError"),
   fastPassCard: document.getElementById("fastPassCard"),
+  feedbackForm: document.getElementById("feedbackForm"),
+  feedbackKind: document.getElementById("feedbackKind"),
+  feedbackTarget: document.getElementById("feedbackTarget"),
+  feedbackError: document.getElementById("feedbackError"),
+  feedbackOk: document.getElementById("feedbackOk"),
+  awardStampForm: document.getElementById("awardStampForm"),
+  awardBooth: document.getElementById("awardBooth"),
+  awardStampError: document.getElementById("awardStampError"),
+  awardStampOk: document.getElementById("awardStampOk"),
+  adminFeedbackList: document.getElementById("adminFeedbackList"),
+  adminFeedbackTarget: document.getElementById("adminFeedbackTarget"),
+  adminFeedbackError: document.getElementById("adminFeedbackError"),
 };
 
 let store;
 let houses = [];
 let pendingStampId = null;
+let staffTab = "waits";
+let feedbackKindFilter = "";
+let stampPoll = 0;
 let showPass = false;
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
@@ -113,6 +129,7 @@ function setView(name) {
   els.navButtons.forEach((btn) => btn.classList.toggle("is-active", btn.dataset.nav === name));
   setGamesVisible(name === "games");
   if (name === "admin") renderAdmin();
+  if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
     renderSessionChip();
     paintStampUi();
@@ -199,9 +216,31 @@ function openHouse(id) {
   els.modal.querySelector(".modal__panel").focus();
 }
 
+function openBooth(id) {
+  const booth = boothById(id);
+  const modal = els.boothModal;
+  if (!booth || !modal) return;
+  const stamped = cardState.stamps[slotKey(id)] || cardState.stamps[Number(id)];
+  modal.querySelector("[data-booth-code]").textContent = booth.short;
+  modal.querySelector("[data-booth-title]").textContent = booth.name;
+  modal.querySelector("[data-booth-place]").textContent = booth.place;
+  modal.querySelector("[data-booth-summary]").textContent = booth.summary;
+  modal.querySelector("[data-booth-about]").textContent = booth.about;
+  modal.querySelector("[data-booth-stamp]").textContent = stamped
+    ? `Collected · staff ${stamped.by}`
+    : "Not on your card yet. Staff award this after you finish the booth.";
+  modal.hidden = false;
+  modal.querySelector(".modal__panel").focus();
+}
+
+function slotKey(id) {
+  return String(id);
+}
+
 function closeModals() {
-  els.modal.hidden = true;
-  els.stampModal.hidden = true;
+  if (els.modal) els.modal.hidden = true;
+  if (els.boothModal) els.boothModal.hidden = true;
+  if (els.stampModal) els.stampModal.hidden = true;
   if (els.redeemModal) els.redeemModal.hidden = true;
   pendingStampId = null;
 }
@@ -229,7 +268,7 @@ function renderSessionChip() {
 }
 
 function stampCount(stamps = cardState.stamps) {
-  return STAMP_SLOTS.filter((slot) => stamps[slot.id]).length;
+  return STAMP_SLOTS.filter((slot) => stamps[slot.id] || stamps[String(slot.id)]).length;
 }
 
 async function loadCardFromServer() {
@@ -276,30 +315,28 @@ function paintStampUi() {
     els.stampFill.style.strokeDashoffset = String(offset);
   }
   els.stampGrid.innerHTML = STAMP_SLOTS.map((slot) => {
-    const stamped = stamps[slot.id];
-    const locked = Boolean(cardState.redeemedAt);
+    const stamped = stamps[slot.id] || stamps[String(slot.id)];
     return `
-      <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
+      <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}">
         <span class="stamp-slot__seal" aria-hidden="true">${slot.icon}</span>
         <span class="stamp-slot__index">0${slot.id}</span>
         <strong>${slot.label}</strong>
-        <small>${stamped ? `Staff ${stamped.by}` : "Staff stamp required"}</small>
+        <small>${stamped ? `Collected · ${stamped.by}` : "Tap for booth info"}</small>
       </button>`;
   }).join("");
 
   if (els.stampRoadmap) {
     els.stampRoadmap.innerHTML = STAMP_SLOTS.map((slot, index) => {
-      const stamped = stamps[slot.id];
-      const locked = Boolean(cardState.redeemedAt);
-      const nextUp = !stamped && !locked && STAMP_SLOTS.slice(0, index).every((s) => stamps[s.id]);
+      const stamped = stamps[slot.id] || stamps[String(slot.id)];
+      const nextUp = !stamped && STAMP_SLOTS.slice(0, index).every((s) => stamps[s.id] || stamps[String(s.id)]);
       const state = stamped ? "is-done" : nextUp ? "is-next" : "";
       return `
         <li class="roadmap__stop ${state}">
-          <button class="roadmap__node" type="button" data-stamp="${slot.id}" ${stamped || locked ? "disabled" : ""}>
+          <button class="roadmap__node" type="button" data-stamp="${slot.id}">
             <span class="roadmap__icon">${slot.icon}</span>
             <span class="roadmap__num">${index + 1}</span>
             <strong>${slot.label}</strong>
-            <small>${stamped ? `Stamped · ${stamped.by}` : "Staff stamp required"}</small>
+            <small>${stamped ? `Stamped · ${stamped.by}` : "Visit this booth"}</small>
           </button>
         </li>`;
     }).join("");
@@ -360,6 +397,73 @@ async function renderStamps({ refresh = false } = {}) {
   }
 }
 
+function fillFeedbackTargets(selectEl, kind) {
+  const el = selectEl || els.feedbackTarget;
+  if (!el) return;
+  const type = kind || els.feedbackKind?.value || "scare_house";
+  const options = type === "booth"
+    ? BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`)
+    : HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`);
+  const keep = el.value;
+  el.innerHTML = options.join("");
+  if ([...el.options].some((o) => o.value === keep)) el.value = keep;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function feedbackLabel(row) {
+  if (row.kind === "booth") return boothById(row.target_id)?.name || row.target_id;
+  return houseMeta(row.target_id)?.name || row.target_id;
+}
+
+async function loadAdminFeedback() {
+  if (!els.adminFeedbackList) return;
+  if (els.adminFeedbackError) els.adminFeedbackError.hidden = true;
+  try {
+    const target = els.adminFeedbackTarget?.value || "";
+    const data = await fetchFeedback(feedbackKindFilter, target);
+    const rows = data.feedback || [];
+    els.adminFeedbackList.innerHTML = rows.length
+      ? rows.map((row) => {
+        const when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
+        const who = row.student_number ? escapeHtml(row.student_number) : "Visitor";
+        return `<li class="feedback-item">
+          <p><strong>${escapeHtml(feedbackLabel(row))}</strong> · ${row.kind === "booth" ? "Booth" : "Scare house"}</p>
+          <p>${escapeHtml(row.message)}</p>
+          <p class="muted">${who} · ${escapeHtml(when)}</p>
+        </li>`;
+      }).join("")
+      : "<li class='muted'>No feedback yet.</li>";
+  } catch (error) {
+    if (els.adminFeedbackError) {
+      els.adminFeedbackError.hidden = false;
+      els.adminFeedbackError.textContent = error.message;
+    }
+  }
+}
+
+function paintAdminFeedbackTargetSelect() {
+  const wrap = document.getElementById("feedbackTargetWrap");
+  const select = els.adminFeedbackTarget;
+  if (!wrap || !select) return;
+  if (!feedbackKindFilter) {
+    wrap.hidden = true;
+    select.innerHTML = `<option value="">All in this type</option>`;
+    return;
+  }
+  wrap.hidden = false;
+  const items = feedbackKindFilter === "booth"
+    ? BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`)
+    : HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`);
+  select.innerHTML = `<option value="">All in this type</option>${items.join("")}`;
+}
+
 function renderAdmin() {
   if (!isAdminUnlocked()) {
     els.adminGate.hidden = false;
@@ -397,11 +501,19 @@ function renderAdmin() {
             <select data-status>${options}</select>
           </td>
           <td>
-            <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
-          </td>
         </tr>`;
     })
     .join("");
+  if (els.awardBooth && !els.awardBooth.dataset.filled) {
+    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
+    els.awardBooth.dataset.filled = "1";
+  }
+  document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.staffTab === staffTab);
+  });
+  document.querySelectorAll("[data-staff-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.staffPanel !== staffTab;
+  });
 }
 
 async function drawQr(text) {
@@ -520,14 +632,7 @@ function bindUi() {
 
     const stampBtn = event.target.closest("[data-stamp]");
     if (stampBtn) {
-      const id = Number(stampBtn.dataset.stamp);
-      if (cardState.stamps[id] || cardState.redeemedAt) return;
-      pendingStampId = id;
-      els.stampBy.value = "";
-      if (els.stampPass) els.stampPass.value = "";
-      if (els.stampError) els.stampError.hidden = true;
-      els.stampModal.hidden = false;
-      els.stampBy.focus();
+      openBooth(stampBtn.dataset.stamp);
     }
 
     const logout = event.target.closest("[data-logout]");
@@ -560,26 +665,6 @@ function bindUi() {
     } catch (error) {
       els.studentAuthError.hidden = false;
       els.studentAuthError.textContent = error.message;
-    }
-  });
-
-  els.stampForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const staffId = els.stampBy.value.trim();
-    const passcode = els.stampPass ? els.stampPass.value : "";
-    if (!staffId || !passcode || pendingStampId == null) return;
-    if (els.stampError) els.stampError.hidden = true;
-    try {
-      const data = await applyStamp(pendingStampId, staffId, passcode);
-      cardState.stamps = data.stamps || cardState.stamps;
-      closeModals();
-      if (stampCount(cardState.stamps) === 6) showPass = true;
-      paintStampUi();
-    } catch (error) {
-      if (els.stampError) {
-        els.stampError.hidden = false;
-        els.stampError.textContent = error.message;
-      }
     }
   });
 
@@ -672,6 +757,88 @@ function bindUi() {
       store.publish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status }, { persist: true });
     });
   });
+
+  document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      staffTab = btn.dataset.staffTab;
+      document.querySelectorAll("[data-staff-tab]").forEach((b) => {
+        b.classList.toggle("is-active", b.dataset.staffTab === staffTab);
+      });
+      document.querySelectorAll("[data-staff-panel]").forEach((panel) => {
+        panel.hidden = panel.dataset.staffPanel !== staffTab;
+      });
+      if (staffTab === "feedback") {
+        paintAdminFeedbackTargetSelect();
+        loadAdminFeedback();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-fb-kind]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      feedbackKindFilter = btn.dataset.fbKind || "";
+      document.querySelectorAll("[data-fb-kind]").forEach((b) => {
+        b.classList.toggle("is-active", b.dataset.fbKind === feedbackKindFilter);
+      });
+      paintAdminFeedbackTargetSelect();
+      loadAdminFeedback();
+    });
+  });
+
+  els.adminFeedbackTarget?.addEventListener("change", () => loadAdminFeedback());
+
+  els.awardStampForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (els.awardStampError) els.awardStampError.hidden = true;
+    if (els.awardStampOk) els.awardStampOk.hidden = true;
+    try {
+      const data = await awardStamp(
+        document.getElementById("awardStudentNumber").value,
+        els.awardBooth.value
+      );
+      if (els.awardStampOk) {
+        els.awardStampOk.hidden = false;
+        els.awardStampOk.textContent = `Awarded ${data.boothName} to ${data.fullName} (${data.studentNumber}).`;
+      }
+      if (getStudentSession()?.payload.studentNumber === data.studentNumber) {
+        await renderStamps({ refresh: true });
+      }
+    } catch (error) {
+      if (els.awardStampError) {
+        els.awardStampError.hidden = false;
+        els.awardStampError.textContent = error.message;
+      }
+    }
+  });
+
+  els.feedbackKind?.addEventListener("change", () => fillFeedbackTargets());
+  els.feedbackForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (els.feedbackError) els.feedbackError.hidden = true;
+    if (els.feedbackOk) els.feedbackOk.hidden = true;
+    try {
+      await submitFeedback(
+        els.feedbackKind.value,
+        els.feedbackTarget.value,
+        document.getElementById("feedbackMessage").value
+      );
+      document.getElementById("feedbackMessage").value = "";
+      if (els.feedbackOk) els.feedbackOk.hidden = false;
+    } catch (error) {
+      if (els.feedbackError) {
+        els.feedbackError.hidden = false;
+        els.feedbackError.textContent = error.message;
+      }
+    }
+  });
+
+  fillFeedbackTargets();
+  stampPoll = window.setInterval(() => {
+    if (document.hidden) return;
+    if (document.querySelector(".view.is-active")?.dataset.view !== "stamps") return;
+    if (!getStudentSession()) return;
+    renderStamps({ refresh: true });
+  }, 4000);
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeModals();
