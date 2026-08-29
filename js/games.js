@@ -54,6 +54,7 @@ function setupClicker() {
   const countEl = document.getElementById("clickerCount");
   const powerBtn = document.getElementById("clickerPower");
   const autoBtn = document.getElementById("clickerAuto");
+  if (!pumpkin || !countEl || !powerBtn || !autoBtn) return;
   let cookies = 0;
   let power = 1;
   let autos = 0;
@@ -107,6 +108,7 @@ function setupMemory() {
   const grid = document.getElementById("memoryGrid");
   const status = document.getElementById("memoryStatus");
   const startBtn = document.getElementById("memoryStart");
+  if (!grid || !status || !startBtn) return;
   let started = 0;
   let misses = 0;
   let flipped = [];
@@ -194,7 +196,9 @@ function setupCatch() {
   const canvas = document.getElementById("catchCanvas");
   const status = document.getElementById("catchStatus");
   const startBtn = document.getElementById("catchStart");
+  if (!canvas || !status || !startBtn) return;
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
   const W = canvas.width;
   const H = canvas.height;
   let running = false;

@@ -6,8 +6,10 @@ window.HALLOWEEN_CONFIG = {
 window.__CONFIG_STATUS = { ok: false, reason: "not-loaded" };
 
 window.loadHalloweenConfig = async function loadHalloweenConfig() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
   try {
-    const res = await fetch("/api/config", { cache: "no-store" });
+    const res = await fetch("/api/config", { cache: "no-store", signal: controller.signal });
     if (!res.ok) {
       window.__CONFIG_STATUS = { ok: false, reason: `api-${res.status}` };
       return;
@@ -27,5 +29,7 @@ window.loadHalloweenConfig = async function loadHalloweenConfig() {
     };
   } catch {
     window.__CONFIG_STATUS = { ok: false, reason: "no-api" };
+  } finally {
+    clearTimeout(timer);
   }
 };

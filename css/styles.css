@@ -605,8 +605,12 @@ input, select {
   z-index: 20;
   display: grid;
   place-items: end center;
+  pointer-events: auto;
 }
-.modal[hidden] { display: none; }
+.modal[hidden] {
+  display: none !important;
+  pointer-events: none;
+}
 .modal__backdrop {
   position: absolute;
   inset: 0;

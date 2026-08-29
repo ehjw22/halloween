@@ -1,4 +1,4 @@
-import { initGames, setGamesVisible } from "./games.js";
+import { HOUSES, STATUSES } from "./houses.js";
 import { createStore } from "./store.js";
 import {
   adminSignIn,
@@ -11,6 +11,8 @@ import {
   applyStamp,
   studentSignIn,
 } from "./session.js";
+
+let setGamesVisible = () => {};
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
 const STAMP_SLOTS = [
@@ -146,15 +148,18 @@ function renderPins() {
 }
 
 function applyMapTransform() {
+  if (!els.mapWorld) return;
   els.mapWorld.style.transform = `translate(${mapState.x}px, ${mapState.y}px) scale(${mapState.scale})`;
-  els.zoomLabel.textContent = `${Math.round(mapState.scale * 100)}%`;
+  if (els.zoomLabel) els.zoomLabel.textContent = `${Math.round(mapState.scale * 100)}%`;
 }
 
 function fitMap() {
-  const img = els.mapWorld.querySelector("img");
+  const img = els.mapWorld?.querySelector("img");
+  if (!img || !els.mapViewport) return;
   const vp = els.mapViewport.getBoundingClientRect();
   const w = img.naturalWidth || img.clientWidth || 1600;
   const h = img.naturalHeight || img.clientHeight || 900;
+  if (!vp.width || !vp.height || !w || !h) return;
   const fit = Math.min(vp.width / w, vp.height / h);
   mapState.scale = fit;
   mapState.x = (vp.width - w * fit) / 2;
@@ -444,6 +449,7 @@ function maybePublish(id, patch) {
 
 function bindMap() {
   const vp = els.mapViewport;
+  if (!vp || !els.mapWorld) return;
   vp.addEventListener("wheel", (event) => {
     event.preventDefault();
     const delta = event.deltaY > 0 ? 0.9 : 1.1;
@@ -488,19 +494,19 @@ function bindMap() {
   vp.addEventListener("pointerup", endPointer);
   vp.addEventListener("pointercancel", endPointer);
 
-  document.getElementById("zoomIn").addEventListener("click", () => {
+  document.getElementById("zoomIn")?.addEventListener("click", () => {
     const rect = vp.getBoundingClientRect();
     zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, mapState.scale * 1.2);
   });
-  document.getElementById("zoomOut").addEventListener("click", () => {
+  document.getElementById("zoomOut")?.addEventListener("click", () => {
     const rect = vp.getBoundingClientRect();
     zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, mapState.scale / 1.2);
   });
-  document.getElementById("zoomReset").addEventListener("click", resetMap);
+  document.getElementById("zoomReset")?.addEventListener("click", resetMap);
   window.addEventListener("resize", fitMap);
   const img = els.mapWorld.querySelector("img");
-  if (img.complete) fitMap();
-  else img.addEventListener("load", fitMap, { once: true });
+  if (img?.complete) fitMap();
+  else img?.addEventListener("load", fitMap, { once: true });
 }
 
 function bindUi() {
@@ -541,7 +547,7 @@ function bindUi() {
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
-  els.studentAuthForm.addEventListener("submit", async (event) => {
+  els.studentAuthForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     els.studentAuthError.hidden = true;
     try {
@@ -557,7 +563,7 @@ function bindUi() {
     }
   });
 
-  els.stampForm.addEventListener("submit", async (event) => {
+  els.stampForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const staffId = els.stampBy.value.trim();
     const passcode = els.stampPass ? els.stampPass.value : "";
@@ -577,7 +583,7 @@ function bindUi() {
     }
   });
 
-  els.passToggle.addEventListener("click", () => {
+  els.passToggle?.addEventListener("click", () => {
     showPass = !showPass;
     paintStampUi();
   });
@@ -588,13 +594,13 @@ function bindUi() {
     });
   }
 
-  els.redeemOpen.addEventListener("click", () => {
+  els.redeemOpen?.addEventListener("click", () => {
     els.redeemError.hidden = true;
     els.redeemModal.hidden = false;
     document.getElementById("redeemStaffId").focus();
   });
 
-  els.redeemForm.addEventListener("submit", async (event) => {
+  els.redeemForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     els.redeemError.hidden = true;
     try {
@@ -613,7 +619,7 @@ function bindUi() {
     }
   });
 
-  els.adminForm.addEventListener("submit", async (event) => {
+  els.adminForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     els.adminAuthError.hidden = true;
     try {
@@ -628,16 +634,16 @@ function bindUi() {
     }
   });
 
-  document.getElementById("adminLock").addEventListener("click", () => {
+  document.getElementById("adminLock")?.addEventListener("click", () => {
     clearAdminSession();
     renderAdmin();
   });
 
-  els.autoSave.addEventListener("change", () => {
+  els.autoSave?.addEventListener("change", () => {
     autoSave = els.autoSave.checked;
   });
 
-  els.adminTable.addEventListener("click", (event) => {
+  els.adminTable?.addEventListener("click", (event) => {
     const tr = event.target.closest("[data-admin-row]");
     if (!tr) return;
     const adjust = event.target.closest("[data-adjust]");
@@ -653,14 +659,14 @@ function bindUi() {
     }
   });
 
-  els.adminTable.addEventListener("change", (event) => {
+  els.adminTable?.addEventListener("change", (event) => {
     const tr = event.target.closest("[data-admin-row]");
     if (!tr) return;
     const patch = readAdminRow(tr);
     maybePublish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
   });
 
-  els.publishAll.addEventListener("click", () => {
+  els.publishAll?.addEventListener("click", () => {
     [...els.adminTable.querySelectorAll("[data-admin-row]")].forEach((tr) => {
       const patch = readAdminRow(tr);
       store.publish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status }, { persist: true });
@@ -683,19 +689,36 @@ function onStoreChange(next) {
 }
 
 async function init() {
-  bindUi();
-  bindMap();
-  initGames();
+  try {
+    bindUi();
+  } catch (error) {
+    console.warn("UI bind failed", error);
+  }
+  try {
+    bindMap();
+  } catch (error) {
+    console.warn("Map setup failed", error);
+  }
+  import("./games.js")
+    .then((games) => {
+      setGamesVisible = games.setGamesVisible;
+      games.initGames();
+    })
+    .catch((error) => console.warn("Games failed to load", error));
   renderSessionChip();
   renderStamps();
   renderAdmin();
 
-  if (typeof window.loadHalloweenConfig === "function") {
-    await window.loadHalloweenConfig();
-  }
+  const loadConfig = window.loadHalloweenConfig
+    ? window.loadHalloweenConfig()
+    : Promise.resolve();
+  const timeout = new Promise((resolve) => setTimeout(resolve, 4000));
+  await Promise.race([loadConfig, timeout]);
 
   store = createStore(onStoreChange);
-  const { mode, error } = await store.connect();
+  const connected = store.connect();
+  const connectWait = new Promise((resolve) => setTimeout(() => resolve({ mode: "local", error: "Connection timed out." }), 6000));
+  const { mode, error } = await Promise.race([connected, connectWait]);
   const live = mode === "live";
   const status = window.__CONFIG_STATUS || {};
   els.liveMode.textContent = live ? "Live · Supabase" : "Demo · local sync";
@@ -717,4 +740,10 @@ async function init() {
   }
 }
 
-init();
+init().catch((error) => {
+  console.error(error);
+  if (els.liveMode) {
+    els.liveMode.textContent = "Demo · local sync";
+    els.liveMode.classList.remove("is-live");
+  }
+});
