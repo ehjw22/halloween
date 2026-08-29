@@ -129,3 +129,26 @@ drop policy if exists "anon read feedback" on public.event_feedback;
 create policy "anon read feedback"
   on public.event_feedback for select using (true);
 
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  message text not null,
+  posted_by text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.announcements enable row level security;
+
+drop policy if exists "anon read announcements" on public.announcements;
+create policy "anon read announcements"
+  on public.announcements for select using (true);
+
+drop policy if exists "anon insert announcements" on public.announcements;
+create policy "anon insert announcements"
+  on public.announcements for insert with check (true);
+
+drop policy if exists "anon update announcements" on public.announcements;
+create policy "anon update announcements"
+  on public.announcements for update using (true) with check (true);
+
+

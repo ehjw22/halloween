@@ -145,6 +145,88 @@ export async function fetchFeedback(kind, targetId) {
   return data;
 }
 
+const LOCAL_ANNOUNCE = "scream-announcements";
+
+function readLocalAnnouncements() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_ANNOUNCE) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalAnnouncements(rows) {
+  localStorage.setItem(LOCAL_ANNOUNCE, JSON.stringify(rows.slice(0, 50)));
+}
+
+export async function fetchAnnouncements({ all = false } = {}) {
+  const session = getAdminSession();
+  const headers = {};
+  if (session) headers.Authorization = `Bearer ${session.token}`;
+  const q = all ? "?all=1" : "";
+  try {
+    const res = await fetch(`/api/announcements${q}`, { headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Could not load announcements.");
+    return data.announcements || [];
+  } catch {
+    const rows = readLocalAnnouncements();
+    return all ? rows : rows.filter((r) => r.active !== false);
+  }
+}
+
+export async function postAnnouncement(message) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  try {
+    const res = await fetch("/api/announcements", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data.announcement;
+    if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+  } catch (error) {
+    if (error.message && error.message.includes("Staff session")) throw error;
+  }
+  const row = {
+    id: `local-${Date.now()}`,
+    message,
+    posted_by: session.payload.staffId,
+    active: true,
+    created_at: new Date().toISOString(),
+  };
+  writeLocalAnnouncements([row, ...readLocalAnnouncements()]);
+  return row;
+}
+
+export async function setAnnouncementActive(id, active) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  try {
+    const res = await fetch("/api/announcements", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: JSON.stringify({ id, active }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data.announcement;
+    if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+  } catch (error) {
+    if (error.message && error.message.includes("Staff session")) throw error;
+  }
+  const next = readLocalAnnouncements().map((row) => (row.id === id ? { ...row, active } : row));
+  writeLocalAnnouncements(next);
+  return next.find((r) => r.id === id);
+}
+
 export async function fetchLeaderboard(gameId) {
   const session = getStudentSession();
   const headers = {};

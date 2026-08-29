@@ -22,6 +22,7 @@
     <nav class="nav" aria-label="Primary">
       <button class="nav__btn is-active" type="button" data-nav="map">Event Map</button>
       <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
+      <button class="nav__btn" type="button" data-nav="tonight">Tonight</button>
       <button class="nav__btn" type="button" data-nav="games">Games</button>
       <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
       <button class="nav__btn" type="button" data-nav="safety">Safety</button>
@@ -41,6 +42,7 @@
 
   <main>
     <section class="view is-active" data-view="map">
+      <aside class="announce-strip" id="announceStrip" hidden></aside>
       <div class="section-head">
         <h2>Scare House Wait Times</h2>
         <p>Fifteen haunts across campus. Times update live for every visitor.</p>
@@ -65,6 +67,19 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="view" data-view="tonight" hidden>
+      <div class="section-head">
+        <h2>Tonight at Scream Fest</h2>
+        <p id="scheduleDateLabel">Performances and house hours for the night. Times are Singapore time.</p>
+      </div>
+      <div class="announce-board">
+        <h3 class="roadmap__title">Live announcements</h3>
+        <ul class="announce-list" id="announceList"></ul>
+      </div>
+      <h3 class="roadmap__title">Night programme</h3>
+      <ol class="night-timeline" id="nightTimeline"></ol>
     </section>
 
     <section class="view" data-view="stamps" hidden>
@@ -180,10 +195,10 @@
       <article class="game-panel" data-game-panel="catch" hidden>
         <div class="section-head">
           <h2>Catch the treats</h2>
-          <p>Drag to move the pumpkin. Catch falling candy and pumpkins, avoid bats and skulls. Pause stops the timer and the items. Leaving Games also pauses automatically.</p>
+          <p>Steer the pumpkin basket. Catch falling candy and pumpkins, avoid bats and skulls. Pause stops the timer and the items. Leaving Games also pauses automatically.</p>
         </div>
         <p class="game-meta">Best: <strong data-best="catch">0</strong></p>
-        <p id="catchStatus" class="muted">Press start, then drag to move the pumpkin.</p>
+        <p id="catchStatus" class="muted">Press start, then drag to move the pumpkin basket.</p>
         <div class="game-actions">
           <button class="btn" id="catchStart" type="button">Start round</button>
           <button class="btn btn--ghost" id="catchPause" type="button" hidden>Pause</button>
@@ -261,6 +276,7 @@
           <button class="nav__btn is-active" type="button" data-staff-tab="waits">Wait times</button>
           <button class="nav__btn" type="button" data-staff-tab="stamps">Award stamps</button>
           <button class="nav__btn" type="button" data-staff-tab="feedback">Feedback</button>
+          <button class="nav__btn" type="button" data-staff-tab="announce">Announcements</button>
         </div>
 
         <div class="staff-panel" data-staff-panel="waits">
@@ -329,6 +345,22 @@
           </div>
           <p class="form-error" id="adminFeedbackError" hidden></p>
           <ul class="feedback-list" id="adminFeedbackList"></ul>
+        </div>
+
+        <div class="staff-panel" data-staff-panel="announce" hidden>
+          <div class="section-head">
+            <h2>Live announcements</h2>
+            <p>Posted notes show on Tonight and as a strip on Event Map. Take down when they are no longer needed.</p>
+          </div>
+          <form class="auth-card" id="announceForm">
+            <label>
+              Message
+              <textarea id="announceMessage" rows="3" maxlength="400" required placeholder="House T12 last entry in 10 minutes…"></textarea>
+            </label>
+            <p class="form-error" id="announceError" hidden></p>
+            <button class="btn" type="submit">Post announcement</button>
+          </form>
+          <ul class="feedback-list" id="adminAnnounceList"></ul>
         </div>
       </div>
     </section>

@@ -1,16 +1,20 @@
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
+import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
 import { createStore } from "./store.js";
 import {
   adminSignIn,
   awardStamp,
   clearAdminSession,
   clearStudentSession,
+  fetchAnnouncements,
   fetchFeedback,
   fetchStamps,
   getAdminSession,
   getStudentSession,
+  postAnnouncement,
   redeemPass,
+  setAnnouncementActive,
   studentSignIn,
   submitFeedback,
 } from "./session.js";
@@ -85,6 +89,12 @@ const els = {
   adminFeedbackList: document.getElementById("adminFeedbackList"),
   adminFeedbackTarget: document.getElementById("adminFeedbackTarget"),
   adminFeedbackError: document.getElementById("adminFeedbackError"),
+  announceStrip: document.getElementById("announceStrip"),
+  announceList: document.getElementById("announceList"),
+  nightTimeline: document.getElementById("nightTimeline"),
+  announceForm: document.getElementById("announceForm"),
+  announceError: document.getElementById("announceError"),
+  adminAnnounceList: document.getElementById("adminAnnounceList"),
 };
 
 let store;
@@ -129,6 +139,10 @@ function setView(name) {
   els.navButtons.forEach((btn) => btn.classList.toggle("is-active", btn.dataset.nav === name));
   setGamesVisible(name === "games");
   if (name === "admin") renderAdmin();
+  if (name === "tonight") {
+    renderTimeline();
+    loadPublicAnnouncements();
+  }
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
     renderSessionChip();
@@ -464,6 +478,69 @@ function paintAdminFeedbackTargetSelect() {
   select.innerHTML = `<option value="">All in this type</option>${items.join("")}`;
 }
 
+function renderTimeline() {
+  const label = document.getElementById("scheduleDateLabel");
+  if (label) {
+    label.textContent = `${EVENT_DATE_LABEL} · Singapore time. Performances and house hours.`;
+  }
+  if (!els.nightTimeline) return;
+  els.nightTimeline.innerHTML = SCHEDULE.map((item) => {
+    const state = scheduleStatus(item);
+    const tag = state === "live" ? "Now" : state === "done" ? "Done" : "Next";
+    return `<li class="night-stop is-${state}">
+      <time>${item.start}–${item.end}</time>
+      <div>
+        <p class="night-stop__kind">${item.kind === "performance" ? "Performance" : "Event"} · ${tag}</p>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.place)}</p>
+        <p class="muted">${escapeHtml(item.note)}</p>
+      </div>
+    </li>`;
+  }).join("");
+}
+
+async function loadPublicAnnouncements() {
+  const rows = await fetchAnnouncements().catch(() => []);
+  const latest = rows[0];
+  if (els.announceStrip) {
+    if (latest) {
+      els.announceStrip.hidden = false;
+      els.announceStrip.innerHTML = `<strong>Live</strong> ${escapeHtml(latest.message)}`;
+    } else {
+      els.announceStrip.hidden = true;
+      els.announceStrip.innerHTML = "";
+    }
+  }
+  if (els.announceList) {
+    els.announceList.innerHTML = rows.length
+      ? rows.map((row) => {
+        const when = row.created_at ? new Date(row.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+        return `<li><strong>${escapeHtml(when)}</strong> ${escapeHtml(row.message)}</li>`;
+      }).join("")
+      : "<li class='muted'>No announcements yet. Staff will post here if something changes.</li>";
+  }
+}
+
+async function loadAdminAnnouncements() {
+  if (!els.adminAnnounceList) return;
+  try {
+    const rows = await fetchAnnouncements({ all: true });
+    els.adminAnnounceList.innerHTML = rows.length
+      ? rows.map((row) => {
+        const when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
+        const live = row.active !== false;
+        return `<li class="feedback-item">
+          <p>${escapeHtml(row.message)}</p>
+          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · ${escapeHtml(when)} · ${live ? "Live" : "Taken down"}</p>
+          ${live ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
+        </li>`;
+      }).join("")
+      : "<li class='muted'>No announcements yet.</li>";
+  } catch (error) {
+    els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(error.message)}</li>`;
+  }
+}
+
 function renderAdmin() {
   if (!isAdminUnlocked()) {
     els.adminGate.hidden = false;
@@ -771,6 +848,7 @@ function bindUi() {
         paintAdminFeedbackTargetSelect();
         loadAdminFeedback();
       }
+      if (staffTab === "announce") loadAdminAnnouncements();
     });
   });
 
@@ -832,6 +910,37 @@ function bindUi() {
     }
   });
 
+  els.announceForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (els.announceError) els.announceError.hidden = true;
+    try {
+      await postAnnouncement(document.getElementById("announceMessage").value);
+      document.getElementById("announceMessage").value = "";
+      await loadAdminAnnouncements();
+      await loadPublicAnnouncements();
+    } catch (error) {
+      if (els.announceError) {
+        els.announceError.hidden = false;
+        els.announceError.textContent = error.message;
+      }
+    }
+  });
+
+  els.adminAnnounceList?.addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-announce-off]");
+    if (!btn) return;
+    try {
+      await setAnnouncementActive(btn.dataset.announceOff, false);
+      await loadAdminAnnouncements();
+      await loadPublicAnnouncements();
+    } catch (error) {
+      if (els.announceError) {
+        els.announceError.hidden = false;
+        els.announceError.textContent = error.message;
+      }
+    }
+  });
+
   fillFeedbackTargets();
   stampPoll = window.setInterval(() => {
     if (document.hidden) return;
@@ -875,6 +984,13 @@ async function init() {
   renderSessionChip();
   renderStamps();
   renderAdmin();
+  renderTimeline();
+  loadPublicAnnouncements();
+  window.setInterval(() => {
+    if (document.hidden) return;
+    loadPublicAnnouncements();
+    if (document.querySelector(".view.is-active")?.dataset.view === "tonight") renderTimeline();
+  }, 20000);
 
   const loadConfig = window.loadHalloweenConfig
     ? window.loadHalloweenConfig()

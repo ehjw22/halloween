@@ -350,9 +350,30 @@ function setupMemory() {
   deal();
   paintStatus();
   paintTimer();
+
+  function resetMemoryRound() {
+    clearInterval(tick);
+    tick = null;
+    started = 0;
+    done = false;
+    misses = 0;
+    flipped = [];
+    lock = false;
+    matches = 0;
+    deal();
+    paintStatus();
+    paintTimer();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) resetMemoryRound();
+  });
+
+  memoryApi.reset = resetMemoryRound;
 }
 
 let catchApi = { pause: () => {}, onLeave: () => {}, onReturn: () => {} };
+let memoryApi = { reset: () => {} };
 
 function setupCatch() {
   const canvas = document.getElementById("catchCanvas");
@@ -386,9 +407,31 @@ function setupCatch() {
     });
   }
 
-  function drawPumpkin(x, y) {
-    ctx.font = "42px serif";
-    ctx.fillText("🎃", x - 21, y);
+  function drawBasket(x, y) {
+    ctx.strokeStyle = "#6b2200";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x, y - 22, 20, Math.PI * 1.05, Math.PI * -0.05, false);
+    ctx.stroke();
+    ctx.fillStyle = "#d94b00";
+    ctx.beginPath();
+    ctx.ellipse(x, y - 2, 34, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ff8c2a";
+    ctx.beginPath();
+    ctx.ellipse(x, y - 8, 30, 12, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#9a3412";
+    ctx.lineWidth = 2;
+    for (const dx of [-16, -6, 6, 16]) {
+      ctx.beginPath();
+      ctx.ellipse(x + dx, y - 2, 4, 16, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#2d6a4f";
+    ctx.fillRect(x - 3, y - 28, 6, 8);
+    ctx.font = "16px serif";
+    ctx.fillText("🎃", x - 10, y + 6);
   }
 
   function draw() {
@@ -396,7 +439,7 @@ function setupCatch() {
     ctx.fillRect(0, 0, W, H);
     ctx.font = "28px serif";
     items.forEach((item) => ctx.fillText(item.icon, item.x - 14, item.y));
-    drawPumpkin(pumpkinX, H - 18);
+    drawBasket(pumpkinX, H - 16);
     ctx.fillStyle = "#fff4d6";
     ctx.font = "14px Outfit, sans-serif";
     const tag = mode === "paused" ? "Paused" : `${left.toFixed(1)}s`;
@@ -431,7 +474,7 @@ function setupCatch() {
       item.y += item.speed;
     });
     items = items.filter((item) => {
-      const hit = item.y > H - 48 && Math.abs(item.x - pumpkinX) < 36;
+      const hit = item.y > H - 52 && Math.abs(item.x - pumpkinX) < 42;
       if (hit) {
         score += item.good ? 12 : -18;
         if (score < 0) score = 0;
@@ -472,7 +515,7 @@ function setupCatch() {
     if (mode !== "paused") return;
     mode = "running";
     last = 0;
-    status.textContent = "Catch candy and pumpkins. Avoid bats and skulls.";
+    status.textContent = "Catch candy and pumpkins in the basket. Avoid bats and skulls.";
     if (pauseBtn) {
       pauseBtn.hidden = false;
       pauseBtn.textContent = "Pause";
@@ -491,7 +534,7 @@ function setupCatch() {
     spawn = 0;
     acc = 0;
     pumpkinX = W / 2;
-    status.textContent = "Catch candy and pumpkins. Avoid bats and skulls.";
+    status.textContent = "Catch candy and pumpkins in the basket. Avoid bats and skulls.";
     startBtn.textContent = "Restart";
     if (pauseBtn) {
       pauseBtn.hidden = false;
@@ -538,6 +581,8 @@ function setupCatch() {
 }
 
 function showGame(id) {
+  const leaving = document.querySelector("[data-game].is-active")?.dataset.game;
+  if (leaving === "memory" && id !== "memory") memoryApi.reset();
   document.querySelectorAll("[data-game-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.gamePanel !== id;
   });
@@ -568,5 +613,6 @@ export function setGamesVisible(on) {
     catchApi.onReturn();
   } else {
     catchApi.onLeave();
+    memoryApi.reset();
   }
 }
