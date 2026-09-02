@@ -1,4 +1,5 @@
 import { fetchLeaderboard, getStudentSession, submitScore } from "./session.js";
+import { setupCatchArcade } from "./catch-arcade.js";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["🎃", "🦇", "👻", "🍬", "💀", "🕸️", "🐱", "🌙", "🧛", "🧪", "🕯️", "🦉"];
@@ -10,20 +11,23 @@ const DIFFS = {
   hard: { pairs: 12, cols: 6, label: "Difficult" },
 };
 
+const REDUCE_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const UPGRADES = [
-  { id: "bite", name: "Bigger bites", blurb: "More candy per tap.", base: 20, grow: 1.18 },
-  { id: "spirits", name: "Spirit helpers", blurb: "Candy each second while you wait.", base: 50, grow: 1.22 },
-  { id: "crit", name: "Jackpot slice", blurb: "Chance of a 7× tap.", base: 120, grow: 1.25 },
-  { id: "fortune", name: "Candy moon", blurb: "Boosts all candy earned.", base: 400, grow: 1.28 },
+  { id: "bite", name: "Bigger bites", icon: "⚡", blurb: "Raises candy per tap.", base: 20, grow: 1.18, unlock: 0 },
+  { id: "spirits", name: "Spirit helpers", icon: "👻", blurb: "Passive candy while you wait.", base: 50, grow: 1.22, unlock: 0 },
+  { id: "relay", name: "Night relay", icon: "📡", blurb: "Extra idle nodes on the grid.", base: 90, grow: 1.2, unlock: 120 },
+  { id: "crit", name: "Jackpot slice", icon: "✦", blurb: "Chance of a 7× tap.", base: 120, grow: 1.25, unlock: 40 },
+  { id: "fortune", name: "Candy moon", icon: "🌙", blurb: "Multiplies all candy earned.", base: 400, grow: 1.28, unlock: 250 },
 ];
 
 const ACHIEVES = [
-  { id: "first", name: "First nibble", desc: "Tap the pumpkin once.", test: (s) => s.candy >= 1 || s.lifetime >= 1 },
-  { id: "hundred", name: "Pocket full", desc: "Earn 100 candy in total.", test: (s) => s.lifetime >= 100 },
-  { id: "helpers", name: "Haunted crew", desc: "Buy Spirit helpers 5 times.", test: (s) => s.upgrades.spirits >= 5 },
-  { id: "bites", name: "Iron jaw", desc: "Raise Bigger bites to level 10.", test: (s) => s.upgrades.bite >= 10 },
-  { id: "prestige", name: "Cursed again", desc: "Prestige at least once.", test: (s) => s.prestige >= 1 },
-  { id: "rich", name: "Treat hoard", desc: "Earn 10,000 candy in total.", test: (s) => s.lifetime >= 10000 },
+  { id: "first", name: "First nibble", desc: "Tap the pumpkin once.", test: (s) => s.candy >= 1 || s.lifetime >= 1, goal: (s) => Math.min(1, (s.lifetime || s.candy) / 1) },
+  { id: "hundred", name: "Pocket full", desc: "Earn 100 candy in total.", test: (s) => s.lifetime >= 100, goal: (s) => Math.min(1, s.lifetime / 100) },
+  { id: "helpers", name: "Haunted crew", desc: "Buy Spirit helpers 5 times.", test: (s) => s.upgrades.spirits >= 5, goal: (s) => Math.min(1, s.upgrades.spirits / 5) },
+  { id: "bites", name: "Iron jaw", desc: "Raise Bigger bites to level 10.", test: (s) => s.upgrades.bite >= 10, goal: (s) => Math.min(1, s.upgrades.bite / 10) },
+  { id: "prestige", name: "Cursed again", desc: "Prestige at least once.", test: (s) => s.prestige >= 1, goal: (s) => Math.min(1, s.prestige / 1) },
+  { id: "rich", name: "Treat hoard", desc: "Earn 10,000 candy in total.", test: (s) => s.lifetime >= 10000, goal: (s) => Math.min(1, s.lifetime / 10000) },
 ];
 
 function esc(value) {
@@ -85,7 +89,7 @@ function defaultClicker() {
     candy: 0,
     lifetime: 0,
     prestige: 0,
-    upgrades: { bite: 0, spirits: 0, crit: 0, fortune: 0 },
+    upgrades: { bite: 0, spirits: 0, relay: 0, crit: 0, fortune: 0 },
     achievements: [],
   };
 }
@@ -125,13 +129,26 @@ function critChance(state) {
 }
 
 function autoRate(state) {
-  return state.upgrades.spirits * curseMult(state.prestige) * fortuneMult(state.upgrades.fortune);
+  const nodes = state.upgrades.spirits + state.upgrades.relay * 0.6;
+  return nodes * curseMult(state.prestige) * fortuneMult(state.upgrades.fortune);
+}
+
+function comboMult(combo) {
+  return 1 + Math.min(1, combo * 0.05);
+}
+
+function clickerTier(lifetime) {
+  if (lifetime >= 10000) return 5;
+  if (lifetime >= 1000) return 4;
+  if (lifetime >= 250) return 3;
+  if (lifetime >= 40) return 2;
+  return 1;
 }
 
 function upgradeNow(def, state) {
   const level = state.upgrades[def.id] || 0;
   if (def.id === "bite") return `${clickPower(state).toFixed(1)} candy/tap`;
-  if (def.id === "spirits") return `${autoRate(state).toFixed(1)} candy/s`;
+  if (def.id === "spirits" || def.id === "relay") return `${autoRate(state).toFixed(1)} candy/s`;
   if (def.id === "crit") return `${Math.round(critChance(state) * 100)}% jackpot`;
   if (def.id === "fortune") return `${fortuneMult(level).toFixed(2)}× all candy`;
   return "";
@@ -156,9 +173,32 @@ function setupClicker() {
   const prestigeBtn = document.getElementById("clickerPrestigeBtn");
   const flavor = document.getElementById("clickerFlavor");
   const achieveEl = document.getElementById("clickerAchievements");
+  const comboEl = document.getElementById("clickerCombo");
+  const toastEl = document.getElementById("clickerToast");
+  const fx = document.getElementById("clickerFx");
+  const floats = document.getElementById("clickerFloats");
+  const frenzyBox = document.getElementById("clickerFrenzy");
+  const frenzyFill = document.getElementById("clickerFrenzyFill");
+  const progressFill = document.getElementById("clickerProgressFill");
+  const progressLabel = document.getElementById("clickerProgressLabel");
+  const tierEl = document.getElementById("clickerTier");
   if (!pumpkin || !shop) return;
+
   let state = loadClicker();
   let saveTimer = 0;
+  let idleAcc = 0;
+  let combo = 0;
+  let lastTap = 0;
+  let frenzyUntil = 0;
+  let frenzyReady = 0;
+  let toastTimer = 0;
+  let shopSig = "";
+  let achieveSig = "";
+  const seenUnlock = new Set(UPGRADES.filter((u) => state.lifetime >= u.unlock).map((u) => u.id));
+  const fxCtx = fx?.getContext?.("2d") || null;
+  const sparks = [];
+  const floatPool = [];
+  let fxRaf = 0;
 
   function persist() {
     saveClicker(state);
@@ -172,65 +212,258 @@ function setupClicker() {
     state.lifetime += n;
   }
 
+  function toast(message) {
+    if (!toastEl) return;
+    toastEl.hidden = false;
+    toastEl.textContent = message;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.hidden = true;
+    }, 2200);
+  }
+
   function unlockAchieves() {
     ACHIEVES.forEach((a) => {
-      if (!state.achievements.includes(a.id) && a.test(state)) state.achievements.push(a.id);
+      if (!state.achievements.includes(a.id) && a.test(state)) {
+        state.achievements.push(a.id);
+        toast(`Milestone · ${a.name}`);
+      }
+    });
+    UPGRADES.forEach((def) => {
+      if (!def.unlock || state.lifetime < def.unlock || seenUnlock.has(def.id)) return;
+      seenUnlock.add(def.id);
+      toast(`System online · ${def.name}`);
     });
   }
 
-  function paint() {
-    if (countEl) countEl.textContent = String(Math.floor(state.candy));
-    if (prestigeEl) prestigeEl.textContent = String(state.prestige);
-    if (rateEl) rateEl.textContent = `${autoRate(state).toFixed(1)} /s · ${clickPower(state).toFixed(1)} /tap`;
-    if (flavor) {
-      flavor.textContent = state.prestige
-        ? `Curses multiply everything by ${curseMult(state.prestige).toFixed(2)}×.`
-        : "Buy upgrades, then prestige for a permanent curse.";
+  function sizeFx() {
+    if (!fx || !fxCtx) return;
+    const box = pumpkin.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(box.width));
+    const h = Math.max(1, Math.round(box.height));
+    if (fx.width !== Math.round(w * dpr) || fx.height !== Math.round(h * dpr)) {
+      fx.width = Math.round(w * dpr);
+      fx.height = Math.round(h * dpr);
+      fx.style.width = `${w}px`;
+      fx.style.height = `${h}px`;
+      fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    shop.innerHTML = UPGRADES.map((def) => {
+  }
+
+  function burst(crit) {
+    if (REDUCE_MOTION || !fxCtx) return;
+    sizeFx();
+    const w = fx.getBoundingClientRect().width;
+    const h = fx.getBoundingClientRect().height;
+    const n = crit ? 14 : 8;
+    for (let i = 0; i < n && sparks.length < 28; i += 1) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 40 + Math.random() * 90;
+      sparks.push({
+        x: w / 2,
+        y: h / 2,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        life: 1,
+        crit,
+      });
+    }
+    if (!fxRaf) fxRaf = requestAnimationFrame(tickFx);
+  }
+
+  function tickFx(ts) {
+    fxRaf = 0;
+    if (!fxCtx || !fx) return;
+    const w = fx.getBoundingClientRect().width;
+    const h = fx.getBoundingClientRect().height;
+    fxCtx.clearRect(0, 0, w, h);
+    const dt = 0.016;
+    for (let i = sparks.length - 1; i >= 0; i -= 1) {
+      const p = sparks[i];
+      p.life -= dt * 1.8;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 40 * dt;
+      if (p.life <= 0) {
+        sparks.splice(i, 1);
+        continue;
+      }
+      fxCtx.globalAlpha = Math.max(0, p.life);
+      fxCtx.fillStyle = p.crit ? "#fff4d6" : "#ff8a1a";
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.crit ? 3.2 : 2.2, 0, Math.PI * 2);
+      fxCtx.fill();
+    }
+    fxCtx.globalAlpha = 1;
+    if (sparks.length) fxRaf = requestAnimationFrame(tickFx);
+  }
+
+  function floatPlus(amount, crit) {
+    if (!floats) return;
+    let node = floatPool.find((el) => el.hidden);
+    if (!node) {
+      if (floatPool.length >= 8) node = floatPool[0];
+      else {
+        node = document.createElement("span");
+        node.className = "clicker-float";
+        floats.appendChild(node);
+        floatPool.push(node);
+      }
+    }
+    const dx = Math.round((Math.random() - 0.5) * 70);
+    node.hidden = false;
+    node.classList.toggle("is-crit", crit);
+    node.style.setProperty("--dx", `${dx}px`);
+    node.style.left = `${50 + (Math.random() - 0.5) * 18}%`;
+    node.textContent = `+${amount >= 10 ? Math.floor(amount) : amount.toFixed(1)}`;
+    node.style.animation = "none";
+    void node.offsetWidth;
+    node.style.animation = "";
+    setTimeout(() => {
+      node.hidden = true;
+    }, 700);
+  }
+
+  function shopMarkup() {
+    return UPGRADES.map((def) => {
+      const gated = state.lifetime < def.unlock;
       const level = state.upgrades[def.id] || 0;
       const cost = upgradeCost(def, level);
-      const can = state.candy >= cost;
-      return `<button class="upgrade-card ${can ? "" : "is-locked"}" type="button" data-upgrade="${def.id}">
-        <strong>${def.name}</strong>
-        <span class="upgrade-now">${upgradeNow(def, state)}</span>
-        <small>Lv ${level} · ${def.blurb}</small>
-        <span>${cost} candy</span>
+      const can = !gated && state.candy >= cost;
+      const cls = [
+        "upgrade-card",
+        gated ? "is-gated" : "",
+        can ? "is-buy" : "is-locked",
+        level > 0 ? "is-bought" : "",
+      ].filter(Boolean).join(" ");
+      return `<button class="${cls}" type="button" data-upgrade="${def.id}" ${gated ? "disabled" : ""}>
+        <span class="upgrade-card__icon">${def.icon}</span>
+        <span class="upgrade-card__body">
+          <span class="upgrade-card__top"><strong>${def.name}</strong><span class="upgrade-card__lv">Lv ${level}</span></span>
+          <small class="upgrade-card__desc">${gated ? `Unlocks at ${def.unlock} lifetime candy` : def.blurb}</small>
+          <span class="upgrade-card__effect">${gated ? "Offline" : upgradeNow(def, state)}</span>
+          <span class="upgrade-card__foot">
+            <span class="upgrade-card__cost">${gated ? "—" : `${cost} candy`}</span>
+            <span class="upgrade-card__buy">${gated ? "Locked" : can ? "Install" : "Need more"}</span>
+          </span>
+        </span>
       </button>`;
     }).join("");
+  }
+
+  function paintShop() {
+    const next = shopMarkup();
+    if (next !== shopSig) {
+      shopSig = next;
+      shop.innerHTML = next;
+    }
+  }
+
+  function paintAchieves() {
+    if (!achieveEl) return;
+    const next = state.achievements.join(",");
+    if (next === achieveSig && achieveEl.childElementCount) return;
+    achieveSig = next;
+    achieveEl.innerHTML = ACHIEVES.map((a) => {
+      const on = state.achievements.includes(a.id);
+      return `<li class="${on ? "is-done" : ""}"><strong>${on ? "★" : "☆"} ${a.name}</strong><span>${a.desc}</span></li>`;
+    }).join("");
+  }
+
+  function paintHud() {
+    const now = Date.now();
+    const frenzyOn = now < frenzyUntil;
+    const comboX = comboMult(combo) * (frenzyOn ? 2 : 1);
+    if (countEl) countEl.textContent = String(Math.floor(state.candy));
+    if (prestigeEl) prestigeEl.textContent = String(state.prestige);
+    if (rateEl) rateEl.textContent = `${autoRate(state).toFixed(1)}/s`;
+    if (comboEl) comboEl.textContent = `x${comboX.toFixed(2)}`;
+    if (tierEl) tierEl.textContent = `Tier ${clickerTier(state.lifetime)}`;
+    if (flavor) {
+      flavor.textContent = frenzyOn
+        ? "Frenzy live — taps are doubled."
+        : state.prestige
+          ? `Curses multiply everything by ${curseMult(state.prestige).toFixed(2)}×.`
+          : "Keep tapping to build combo. Install systems for idle candy.";
+    }
+    const next = ACHIEVES.find((a) => !state.achievements.includes(a.id));
+    if (progressLabel && progressFill) {
+      if (!next) {
+        progressLabel.textContent = "All milestones cleared";
+        progressFill.style.width = "100%";
+      } else {
+        const pct = Math.round((next.goal(state) || 0) * 100);
+        progressLabel.textContent = next.name;
+        progressFill.style.width = `${pct}%`;
+      }
+    }
+    if (frenzyBox && frenzyFill) {
+      if (frenzyOn) {
+        frenzyBox.hidden = false;
+        frenzyFill.style.width = `${Math.max(0, ((frenzyUntil - now) / 6000) * 100)}%`;
+      } else {
+        frenzyBox.hidden = true;
+      }
+    }
+    pumpkin.classList.toggle("is-frenzy", frenzyOn);
     if (prestigeBtn) {
       const need = prestigeNeed(state);
       prestigeBtn.textContent = `Prestige (${need} candy)`;
       prestigeBtn.disabled = state.candy < need;
     }
-    if (achieveEl) {
-      achieveEl.innerHTML = ACHIEVES.map((a) => {
-        const on = state.achievements.includes(a.id);
-        return `<li class="${on ? "is-done" : ""}"><strong>${on ? "★" : "☆"} ${a.name}</strong><span>${a.desc}</span></li>`;
-      }).join("");
-    }
   }
 
-  pumpkin.addEventListener("click", () => {
-    let n = clickPower(state);
-    if (Math.random() < critChance(state)) n *= 7;
+  function paintAll() {
+    paintHud();
+    paintShop();
+    paintAchieves();
+  }
+
+  pumpkin.addEventListener("pointerdown", () => {
+    pumpkin.classList.add("is-press");
+  });
+  pumpkin.addEventListener("pointerup", () => pumpkin.classList.remove("is-press"));
+  pumpkin.addEventListener("pointerleave", () => pumpkin.classList.remove("is-press"));
+
+  pumpkin.addEventListener("click", (event) => {
+    const now = Date.now();
+    combo = now - lastTap < 900 ? combo + 1 : 1;
+    lastTap = now;
+    if (combo >= 8 && now > frenzyReady) {
+      frenzyUntil = now + 6000;
+      frenzyReady = now + 18000;
+      toast("Frenzy · 6s double taps");
+    }
+    const crit = Math.random() < critChance(state);
+    let n = clickPower(state) * comboMult(combo);
+    if (now < frenzyUntil) n *= 2;
+    if (crit) {
+      n *= 7;
+      pumpkin.classList.add("is-crit");
+      setTimeout(() => pumpkin.classList.remove("is-crit"), 180);
+    }
     grant(n);
+    burst(crit);
+    floatPlus(n, crit);
     unlockAchieves();
-    paint();
+    paintAll();
     persist();
   });
 
   shop.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-upgrade]");
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     const def = UPGRADES.find((u) => u.id === btn.dataset.upgrade);
-    if (!def) return;
+    if (!def || state.lifetime < def.unlock) return;
     const cost = upgradeCost(def, state.upgrades[def.id] || 0);
     if (state.candy < cost) return;
     state.candy -= cost;
     state.upgrades[def.id] += 1;
+    btn.classList.add("is-flash");
     unlockAchieves();
-    paint();
+    shopSig = "";
+    paintAll();
     persist();
   });
 
@@ -240,22 +473,38 @@ function setupClicker() {
     state.prestige += 1;
     state.candy = 0;
     state.upgrades = defaultClicker().upgrades;
+    combo = 0;
+    shopSig = "";
+    achieveSig = "";
     unlockAchieves();
-    paint();
+    toast("Curse deepened. Systems reset.");
+    paintAll();
     persist();
   });
 
+  let lastIdle = performance.now();
   setInterval(() => {
-    if (document.hidden) return;
+    if (document.hidden) {
+      lastIdle = performance.now();
+      return;
+    }
+    const now = performance.now();
+    const dt = Math.min(2, (now - lastIdle) / 1000);
+    lastIdle = now;
     const rate = autoRate(state);
-    if (rate < 0.01) return;
-    grant(rate);
-    unlockAchieves();
-    paint();
-    persist();
-  }, 1000);
+    idleAcc += rate * dt;
+    if (idleAcc >= 0.2) {
+      grant(idleAcc);
+      idleAcc = 0;
+      unlockAchieves();
+      persist();
+    }
+    if (Date.now() - lastTap > 900) combo = 0;
+    paintHud();
+    if (Math.floor(state.candy / 8) !== Math.floor((state.candy - rate * dt) / 8)) paintShop();
+  }, 200);
 
-  paint();
+  paintAll();
 }
 
 function setupMemory() {
@@ -394,6 +643,15 @@ let catchApi = { pause: () => {}, onLeave: () => {}, onReturn: () => {} };
 let memoryApi = { reset: () => {} };
 
 function setupCatch() {
+  setupCatchArcade({
+    formatTime,
+    recordScore,
+    REDUCE_MOTION,
+    setCatchApi: (api) => {
+      catchApi = api;
+    },
+  });
+  return;
   const canvas = document.getElementById("catchCanvas");
   const status = document.getElementById("catchStatus");
   const startBtn = document.getElementById("catchStart");
@@ -601,6 +859,7 @@ function setupCatch() {
 function showGame(id) {
   const leaving = document.querySelector("[data-game].is-active")?.dataset.game;
   if (leaving === "memory" && id !== "memory") memoryApi.reset();
+  if (leaving === "catch" && id !== "catch") catchApi.onLeave();
   document.querySelectorAll("[data-game-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.gamePanel !== id;
   });
@@ -610,6 +869,7 @@ function showGame(id) {
   const bar = document.getElementById("gameSubnav");
   if (bar) bar.hidden = false;
   refreshScores(id);
+  if (id === "catch") catchApi.onReturn();
 }
 
 export function initGames() {

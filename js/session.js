@@ -65,14 +65,35 @@ async function parseError(res) {
   }
 }
 
+export function normalizeAdminNumber(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+export function isAdminNumber(value) {
+  return /^P[0-9]{7}$/.test(normalizeAdminNumber(value));
+}
+
 export async function signIn({ adminNumber, fullName, password }) {
+  const id = normalizeAdminNumber(adminNumber);
+  if (!isAdminNumber(id)) {
+    throw new Error("Enter your admin number as P followed by 7 digits, for example P1234567.");
+  }
+  if (!String(fullName || "").trim() || String(fullName).trim().length < 2) {
+    throw new Error("Enter your full name.");
+  }
   const res = await fetch("/api/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminNumber, fullName, password }),
+    body: JSON.stringify({ adminNumber: id, fullName: String(fullName).trim(), password: password || "" }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Sign-in failed.");
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Sign-in is not available on this server. Use the deployed event site.");
+    throw new Error(data.error || "Sign-in failed.");
+  }
   if (data.staff) {
     setAdminToken(data.token);
   } else {

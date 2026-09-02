@@ -98,19 +98,22 @@
         </div>
         <article class="auth-card login-how">
           <p class="auth-card__kicker">How it works</p>
-          <p>Enter your <strong>admin number</strong> and <strong>full name</strong>, the same way you would at a campus kiosk. The first time a student number is used, a stamp card is created. Coming back with the same number and name logs you in. There is no student password. Sessions last 1 hour.</p>
-          <p>Staff enter their staff ID as the admin number, their name, and the <strong>staff password</strong>. If you leave the password blank, you will be signed in as a student. After a staff sign-in, the Staff tab appears.</p>
+          <p>Students and staff use this same form.</p>
+          <p>Enter your <strong>admin number</strong> as <strong>P</strong> followed by seven digits, for example <strong>P1234567</strong>, then your <strong>full name</strong>.</p>
+          <p><strong>Students:</strong> leave the password blank. The first time you sign in, a stamp card is created. Use the same admin number and name to come back. There is no student password. Sessions last 1 hour.</p>
+          <p><strong>Staff:</strong> use the same admin number and full name, then enter the <strong>staff password</strong>. After that, the Staff tab appears. If you leave the password blank, you will be signed in as a student.</p>
         </article>
         <form class="auth-card" id="loginForm">
           <p class="auth-card__kicker">SP Scream Fest</p>
           <h2>Sign in</h2>
           <label>
             Admin number
-            <input id="loginId" name="adminNumber" type="text" autocomplete="username" maxlength="20" required>
+            <input id="loginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
+            <span class="field-hint">Must be P followed by 7 numbers, e.g. P1234567</span>
           </label>
           <label>
             Full name
-            <input id="loginName" name="fullName" type="text" autocomplete="name" maxlength="80" required>
+            <input id="loginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Full name on your card" required>
           </label>
           <label>
             Password <span class="muted">(staff only — leave blank if you are a student)</span>
@@ -126,7 +129,7 @@
       <div id="studentAuth" class="auth-card">
         <p class="auth-card__kicker">SP Scream Fest</p>
         <h2>Sign in to open your card</h2>
-        <p>Stamp cards are tied to your admin number. Use the same Sign in page as the rest of the night.</p>
+        <p>Stamp cards are tied to your admin number (P followed by 7 digits). Use the same Sign in page as the rest of the night.</p>
         <p class="form-error" id="studentAuthError" hidden></p>
         <button class="btn" type="button" data-nav="login">Go to Sign in</button>
       </div>
@@ -176,23 +179,66 @@
     </section>
 
     <section class="view" data-view="games" hidden>
-      <article class="game-panel" data-game-panel="clicker">
+      <article class="game-panel game-panel--arcade" data-game-panel="clicker">
         <div class="section-head">
           <h2>Pumpkin clicker</h2>
-          <p>Tap the pumpkin for candy. Spend candy on upgrades to click harder and earn while idle. Prestige to reset for a permanent curse bonus.</p>
+          <p>Tap the core for candy. Install systems for idle production, chain taps for combos, and prestige for a lasting curse multiplier.</p>
         </div>
         <div class="clicker-layout">
           <div class="clicker-core">
-            <p class="game-meta">Candy: <strong id="clickerCount">0</strong> · Best: <strong data-best="clicker">0</strong></p>
-            <p class="game-meta">Curses: <strong id="clickerPrestige">0</strong> · <span id="clickerRate">0 /s</span></p>
-            <button class="clicker-pumpkin" id="clickerPumpkin" type="button" aria-label="Tap pumpkin">🎃</button>
-            <p class="muted" id="clickerFlavor">Tap the pumpkin. Buy upgrades. Keep going.</p>
+            <div class="arcade-hud arcade-hud--clicker" aria-live="polite">
+              <div class="arcade-stat">
+                <span>Candy</span>
+                <strong id="clickerCount">0</strong>
+              </div>
+              <div class="arcade-stat">
+                <span>Output</span>
+                <strong id="clickerRate">0/s</strong>
+              </div>
+              <div class="arcade-stat">
+                <span>Curses</span>
+                <strong id="clickerPrestige">0</strong>
+              </div>
+              <div class="arcade-stat">
+                <span>Best</span>
+                <strong data-best="clicker">0</strong>
+              </div>
+              <div class="arcade-stat arcade-stat--combo">
+                <span>Combo</span>
+                <strong id="clickerCombo">x1</strong>
+              </div>
+            </div>
+            <div class="orb-stage">
+              <canvas id="clickerFx" class="clicker-fx" width="280" height="280" aria-hidden="true"></canvas>
+              <button class="clicker-orb" id="clickerPumpkin" type="button" aria-label="Tap pumpkin">
+                <span class="clicker-orb__halo" aria-hidden="true"></span>
+                <span class="clicker-orb__ring" aria-hidden="true"></span>
+                <span class="clicker-orb__core" aria-hidden="true">🎃</span>
+              </button>
+              <div id="clickerFloats" class="clicker-floats" aria-hidden="true"></div>
+            </div>
+            <div class="clicker-frenzy" id="clickerFrenzy" hidden>
+              <span>Frenzy</span>
+              <div class="clicker-frenzy__bar"><i id="clickerFrenzyFill"></i></div>
+            </div>
+            <div class="clicker-progress">
+              <div class="clicker-progress__meta">
+                <span id="clickerProgressLabel">Next milestone</span>
+                <span id="clickerTier">Tier 1</span>
+              </div>
+              <div class="clicker-progress__track"><i id="clickerProgressFill"></i></div>
+            </div>
+            <p class="muted clicker-flavor" id="clickerFlavor">Tap the core. Buy systems. Keep the streak alive.</p>
             <div class="game-actions clicker-core-actions">
               <button class="btn" id="clickerPrestigeBtn" type="button">Prestige</button>
             </div>
           </div>
-          <div class="clicker-shop" id="clickerShop"></div>
+          <div class="clicker-shop-wrap">
+            <h3 class="roadmap__title">Systems</h3>
+            <div class="clicker-shop" id="clickerShop"></div>
+          </div>
         </div>
+        <p class="game-toast" id="clickerToast" hidden></p>
         <h3 class="roadmap__title">Milestones</h3>
         <ul class="achieve-list" id="clickerAchievements"></ul>
         <h3 class="roadmap__title">Top scores</h3>
@@ -222,18 +268,53 @@
         <ol class="scoreboard" data-scoreboard="memory"></ol>
       </article>
 
-      <article class="game-panel" data-game-panel="catch" hidden>
+      <article class="game-panel game-panel--arcade" data-game-panel="catch" hidden>
         <div class="section-head">
           <h2>Catch the treats</h2>
-          <p>Steer the pumpkin basket. Catch falling candy and pumpkins, avoid bats and skulls. Pause stops the timer and the items. Leaving Games also pauses automatically.</p>
+          <p>Steer the catcher. Treats score, rares pay more, cores start a bonus window. Hazards cut your combo. Pause freezes the round; leaving Games pauses automatically.</p>
         </div>
-        <p class="game-meta">Best: <strong data-best="catch">0</strong></p>
-        <p id="catchStatus" class="muted">Press start, then drag to move the pumpkin basket.</p>
-        <div class="game-actions">
-          <button class="btn" id="catchStart" type="button">Start round</button>
-          <button class="btn btn--ghost" id="catchPause" type="button" hidden>Pause</button>
+        <div class="catch-stage">
+          <div class="arcade-hud arcade-hud--catch" aria-live="polite">
+            <div class="arcade-stat">
+              <span>Score</span>
+              <strong id="catchScore">0</strong>
+            </div>
+            <div class="arcade-stat">
+              <span>Best</span>
+              <strong data-best="catch">0</strong>
+            </div>
+            <div class="arcade-stat arcade-stat--combo">
+              <span>Combo</span>
+              <strong id="catchCombo">x1</strong>
+            </div>
+            <div class="arcade-stat">
+              <span>Mult</span>
+              <strong id="catchMult">x1</strong>
+            </div>
+            <div class="arcade-stat">
+              <span>Wave</span>
+              <strong id="catchLevel">1</strong>
+            </div>
+            <div class="arcade-stat">
+              <span>Time</span>
+              <strong id="catchTime">0:45</strong>
+            </div>
+          </div>
+          <p id="catchStatus" class="catch-status">Press start, then drag or use the arrow keys.</p>
+          <div class="game-actions catch-actions">
+            <button class="btn" id="catchStart" type="button">Start round</button>
+            <button class="btn btn--ghost" id="catchPause" type="button" hidden>Pause</button>
+          </div>
+          <div class="catch-frame">
+            <canvas id="catchCanvas" class="catch-canvas" width="360" height="480"></canvas>
+          </div>
+          <ul class="catch-legend">
+            <li><span>🍬</span> Treat</li>
+            <li><span>🎃</span> Rare</li>
+            <li><span>✦</span> Bonus</li>
+            <li><span>💀</span> Hazard</li>
+          </ul>
         </div>
-        <canvas id="catchCanvas" class="catch-canvas" width="340" height="420"></canvas>
         <h3 class="roadmap__title">Top scores</h3>
         <ol class="scoreboard" data-scoreboard="catch"></ol>
       </article>
@@ -286,7 +367,7 @@
       <div id="adminGate" class="auth-card">
         <p class="auth-card__kicker">SP Scream Fest</p>
         <h2>Staff tools</h2>
-        <p>Use the same Sign in page as students. Enter your staff ID, name, and staff password.</p>
+        <p>Use the same Sign in page as students. Enter your admin number (P plus 7 digits), full name, and staff password.</p>
         <button class="btn" type="button" data-nav="login">Go to Sign in</button>
       </div>
 
@@ -334,8 +415,9 @@
           </div>
           <form class="auth-card" id="awardStampForm">
             <label>
-              Student admin number
-              <input id="awardStudentNumber" type="text" autocomplete="off" required>
+              Admin number
+              <input id="awardStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
+              <span class="field-hint">P followed by 7 digits</span>
             </label>
             <label>
               Booth

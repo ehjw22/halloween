@@ -16,6 +16,7 @@ import {
   setAnnouncementActive,
   signIn,
   submitFeedback,
+  normalizeAdminNumber,
 } from "./session.js";
 
 let setGamesVisible = () => {};
@@ -295,7 +296,7 @@ function renderSessionChip() {
   }
   if (admin) {
     els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>Staff · ${escapeHtml(admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
+    els.sessionChip.innerHTML = `<span>Staff · ${escapeHtml(admin.payload.name || admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
     return;
   }
   els.sessionChip.hidden = true;
@@ -775,6 +776,13 @@ function bindUi() {
     }
 
     if (event.target.closest("[data-close-modal]")) closeModals();
+  });
+
+  document.getElementById("loginId")?.addEventListener("blur", (event) => {
+    event.target.value = normalizeAdminNumber(event.target.value);
+  });
+  document.getElementById("awardStudentNumber")?.addEventListener("blur", (event) => {
+    event.target.value = normalizeAdminNumber(event.target.value);
   });
 
   document.getElementById("loginForm")?.addEventListener("submit", async (event) => {
