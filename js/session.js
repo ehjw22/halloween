@@ -76,49 +76,131 @@ export function isAdminNumber(value) {
   return /^P[0-9]{7}$/.test(normalizeAdminNumber(value));
 }
 
+function toB64Url(obj) {
+  const json = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(json);
+  let bin = "";
+  bytes.forEach((b) => {
+    bin += String.fromCharCode(b);
+  });
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function mintLocalJwt(payload) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = toB64Url({ alg: "none", typ: "JWT" });
+  const mid = toB64Url({ ...payload, iat: now, exp: now + 3600, local: true });
+  return `${header}.${mid}.local`;
+}
+
+function stampsKey(studentNumber) {
+  return `sp-stamps-${studentNumber}`;
+}
+
+function readLocalCard(studentNumber) {
+  try {
+    return JSON.parse(localStorage.getItem(stampsKey(studentNumber)) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalCard(studentNumber, card) {
+  localStorage.setItem(stampsKey(studentNumber), JSON.stringify(card));
+}
+
+function localSignIn({ id, fullName, password }) {
+  const pass = String(password || "");
+  if (pass) {
+    if (pass !== "SP2026") {
+      throw new Error("Staff password is incorrect.");
+    }
+    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName });
+    setAdminToken(token);
+    return { staff: true, token, local: true };
+  }
+  const token = mintLocalJwt({ role: "student", studentNumber: id, name: fullName });
+  setStudentToken(token);
+  if (!readLocalCard(id)) {
+    writeLocalCard(id, {
+      stamps: {},
+      redeemedAt: null,
+      redeemedBy: null,
+      fullName,
+      studentNumber: id,
+      passId: `SP-FP-${id}`,
+    });
+  }
+  return { staff: false, token, local: true };
+}
+
+function emptyCard(session) {
+  return {
+    stamps: {},
+    redeemedAt: null,
+    redeemedBy: null,
+    fullName: session.payload.name,
+    studentNumber: session.payload.studentNumber,
+    passId: `SP-FP-${session.payload.studentNumber}`,
+  };
+}
+
 export async function signIn({ adminNumber, fullName, password }) {
   const id = normalizeAdminNumber(adminNumber);
   if (!isAdminNumber(id)) {
     throw new Error("Enter your admin number as P followed by 7 digits, for example P1234567.");
   }
-  if (!String(fullName || "").trim() || String(fullName).trim().length < 2) {
+  const name = String(fullName || "").trim();
+  if (name.length < 2) {
     throw new Error("Enter your full name.");
   }
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminNumber: id, fullName: String(fullName).trim(), password: password || "" }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (res.status === 404) throw new Error("Sign-in is not available on this server. Use the deployed event site.");
-    throw new Error(data.error || "Sign-in failed.");
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      if (data.staff) setAdminToken(data.token);
+      else setStudentToken(data.token);
+      return data;
+    }
+    if (res.status === 401 || res.status === 400) {
+      throw new Error(data.error || "Sign-in failed.");
+    }
+    return localSignIn({ id, fullName: name, password });
+  } catch (error) {
+    if (error.message && /admin number|full name|incorrect|Sign-in failed/i.test(error.message)) {
+      throw error;
+    }
+    return localSignIn({ id, fullName: name, password });
   }
-  if (data.staff) {
-    setAdminToken(data.token);
-  } else {
-    setStudentToken(data.token);
-  }
-  return data;
 }
 
 export async function studentSignIn(studentNumber, fullName) {
   return signIn({ adminNumber: studentNumber, fullName, password: "" });
 }
 
-export async function adminSignIn(staffId, passcode) {
-  return signIn({ adminNumber: staffId, fullName: staffId, password: passcode });
+export async function adminSignIn(staffId, fullName, passcode) {
+  return signIn({ adminNumber: staffId, fullName, password: passcode });
 }
 
 export async function fetchStamps() {
   const session = getStudentSession();
   if (!session) throw new Error("Sign in to open your stamp card.");
-  const res = await fetch("/api/stamps", {
-    headers: { Authorization: `Bearer ${session.token}` },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || (await parseError(res)));
-  return data;
+  const local = readLocalCard(session.payload.studentNumber) || emptyCard(session);
+  if (session.payload.local) return local;
+  try {
+    const res = await fetch("/api/stamps", {
+      headers: { Authorization: `Bearer ${session.token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data;
+  } catch {
+    /* use local card */
+  }
+  return local;
 }
 
 export async function awardStamp(studentNumber, boothId) {

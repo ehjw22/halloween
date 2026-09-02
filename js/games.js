@@ -197,7 +197,6 @@ function setupClicker() {
   const seenUnlock = new Set(UPGRADES.filter((u) => state.lifetime >= u.unlock).map((u) => u.id));
   const fxCtx = fx?.getContext?.("2d") || null;
   const sparks = [];
-  const floatPool = [];
   let fxRaf = 0;
 
   function persist() {
@@ -299,30 +298,23 @@ function setupClicker() {
     if (sparks.length) fxRaf = requestAnimationFrame(tickFx);
   }
 
-  function floatPlus(amount, crit) {
+  function floatPlus(amount, crit, event) {
     if (!floats) return;
-    let node = floatPool.find((el) => el.hidden);
-    if (!node) {
-      if (floatPool.length >= 8) node = floatPool[0];
-      else {
-        node = document.createElement("span");
-        node.className = "clicker-float";
-        floats.appendChild(node);
-        floatPool.push(node);
-      }
-    }
-    const dx = Math.round((Math.random() - 0.5) * 70);
-    node.hidden = false;
-    node.classList.toggle("is-crit", crit);
+    const node = document.createElement("span");
+    node.className = `clicker-float${crit ? " is-crit" : ""}`;
+    const shown = Number.isInteger(amount) || amount >= 10 ? Math.round(amount) : Math.round(amount * 10) / 10;
+    node.textContent = `+${shown}`;
+    const dx = Math.round((Math.random() - 0.5) * 56);
     node.style.setProperty("--dx", `${dx}px`);
-    node.style.left = `${50 + (Math.random() - 0.5) * 18}%`;
-    node.textContent = `+${amount >= 10 ? Math.floor(amount) : amount.toFixed(1)}`;
-    node.style.animation = "none";
-    void node.offsetWidth;
-    node.style.animation = "";
-    setTimeout(() => {
-      node.hidden = true;
-    }, 700);
+    const stage = pumpkin.parentElement;
+    const rect = stage.getBoundingClientRect();
+    const x = event ? event.clientX - rect.left : rect.width / 2;
+    const y = event ? event.clientY - rect.top : rect.height * 0.42;
+    node.style.left = `${x}px`;
+    node.style.top = `${y}px`;
+    floats.appendChild(node);
+    node.addEventListener("animationend", () => node.remove(), { once: true });
+    setTimeout(() => node.remove(), 900);
   }
 
   function shopMarkup() {
@@ -445,7 +437,7 @@ function setupClicker() {
     }
     grant(n);
     burst(crit);
-    floatPlus(n, crit);
+    floatPlus(n, crit, event);
     unlockAchieves();
     paintAll();
     persist();

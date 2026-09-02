@@ -94,34 +94,45 @@
       <div class="login-page">
         <div class="section-head">
           <h2>Sign in</h2>
-          <p>One campus login. Students and staff use the same form.</p>
+          <p>Pick the form that matches you. Admin number is <strong>P</strong> plus seven digits, for example <strong>P1234567</strong>.</p>
         </div>
-        <article class="auth-card login-how">
-          <p class="auth-card__kicker">How it works</p>
-          <p>Students and staff use this same form.</p>
-          <p>Enter your <strong>admin number</strong> as <strong>P</strong> followed by seven digits, for example <strong>P1234567</strong>, then your <strong>full name</strong>.</p>
-          <p><strong>Students:</strong> leave the password blank. The first time you sign in, a stamp card is created. Use the same admin number and name to come back. There is no student password. Sessions last 1 hour.</p>
-          <p><strong>Staff:</strong> use the same admin number and full name, then enter the <strong>staff password</strong>. After that, the Staff tab appears. If you leave the password blank, you will be signed in as a student.</p>
-        </article>
-        <form class="auth-card" id="loginForm">
-          <p class="auth-card__kicker">SP Scream Fest</p>
-          <h2>Sign in</h2>
-          <label>
-            Admin number
-            <input id="loginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-            <span class="field-hint">Must be P followed by 7 numbers, e.g. P1234567</span>
-          </label>
-          <label>
-            Full name
-            <input id="loginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Full name on your card" required>
-          </label>
-          <label>
-            Password <span class="muted">(staff only — leave blank if you are a student)</span>
-            <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="80">
-          </label>
-          <p class="form-error" id="loginError" hidden></p>
-          <button class="btn" type="submit">Sign in</button>
-        </form>
+        <div class="login-split">
+          <form class="auth-card" id="studentLoginForm">
+            <p class="auth-card__kicker">Students</p>
+            <h2>Open your stamp card</h2>
+            <p class="muted">No student password. First visit creates your card. Come back with the same admin number and name.</p>
+            <label>
+              Admin number
+              <input id="studentLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
+              <span class="field-hint">P followed by 7 numbers</span>
+            </label>
+            <label>
+              Full name
+              <input id="studentLoginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Full name on your card" required>
+            </label>
+            <p class="form-error" id="studentLoginError" hidden></p>
+            <button class="btn" type="submit">Register / sign in</button>
+          </form>
+          <form class="auth-card" id="staffLoginForm">
+            <p class="auth-card__kicker">Staff</p>
+            <h2>Facilitator access</h2>
+            <p class="muted">Same admin number format, plus the staff password. The Staff tab unlocks after this.</p>
+            <label>
+              Admin number
+              <input id="staffLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
+            </label>
+            <label>
+              Full name
+              <input id="staffLoginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required>
+            </label>
+            <label>
+              Staff password
+              <input id="staffLoginPassword" name="password" type="password" autocomplete="current-password" maxlength="80" required>
+            </label>
+            <p class="form-error" id="staffLoginError" hidden></p>
+            <button class="btn" type="submit">Staff sign in</button>
+          </form>
+        </div>
       </div>
     </section>
 

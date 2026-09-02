@@ -98,7 +98,12 @@ const els = {
 };
 
 let store;
-let houses = [];
+let houses = HOUSES.map((h) => ({
+  id: h.id,
+  name: h.name,
+  wait_minutes: h.wait,
+  status: h.status,
+}));
 let pendingStampId = null;
 let staffTab = "waits";
 let feedbackKindFilter = "";
@@ -153,6 +158,9 @@ function setView(name) {
     updateNav();
     paintStampUi();
   }
+  if (name === "map") {
+    requestAnimationFrame(() => fitMap());
+  }
 }
 
 function renderDashboard() {
@@ -171,6 +179,7 @@ function renderDashboard() {
 }
 
 function renderPins() {
+  if (!els.mapPins) return;
   els.mapPins.innerHTML = HOUSES.map((house) => {
     const row = houses.find((h) => h.id === house.id) || house;
     const status = row.status || house.status;
@@ -178,7 +187,7 @@ function renderPins() {
       <button class="map-pin status-${status}" type="button" style="left:${house.x}%; top:${house.y}%"
         data-open-house="${house.id}" aria-label="${house.name}">
         <span class="map-pin__dot"></span>
-        <span class="map-pin__label">${house.short}</span>
+        <span class="map-pin__name">${house.short}</span>
       </button>`;
   }).join("");
 }
@@ -186,22 +195,31 @@ function renderPins() {
 function applyMapTransform() {
   if (!els.mapWorld) return;
   els.mapWorld.style.transform = `translate(${mapState.x}px, ${mapState.y}px) scale(${mapState.scale})`;
+  els.mapWorld.style.setProperty("--map-scale", String(mapState.scale || 1));
   if (els.zoomLabel) els.zoomLabel.textContent = `${Math.round(mapState.scale * 100)}%`;
+}
+
+function sizeMapWorld() {
+  const img = els.mapWorld?.querySelector("img");
+  if (!img?.naturalWidth || !els.mapWorld) return;
+  els.mapWorld.style.width = `${img.naturalWidth}px`;
+  els.mapWorld.style.height = `${img.naturalHeight}px`;
 }
 
 function fitMap() {
   const img = els.mapWorld?.querySelector("img");
   if (!img || !els.mapViewport) return;
+  sizeMapWorld();
   const vp = els.mapViewport.getBoundingClientRect();
   const w = img.naturalWidth || img.clientWidth || 1600;
   const h = img.naturalHeight || img.clientHeight || 900;
   if (!vp.width || !vp.height || !w || !h) return;
   const fit = Math.min(vp.width / w, vp.height / h);
-  mapState.scale = fit;
-  mapState.x = (vp.width - w * fit) / 2;
-  mapState.y = (vp.height - h * fit) / 2;
-  mapState.min = fit * 0.7;
-  mapState.max = fit * 4.5;
+  mapState.min = fit * 0.85;
+  mapState.max = Math.max(2.4, fit * 6);
+  mapState.scale = Math.min(mapState.max, Math.max(fit * 1.75, fit * 1.2));
+  mapState.x = (vp.width - w * mapState.scale) / 2;
+  mapState.y = (vp.height - h * mapState.scale) / 2;
   applyMapTransform();
 }
 
@@ -424,14 +442,18 @@ async function renderStamps({ refresh = false } = {}) {
     await loadCardFromServer();
     paintStampUi();
   } catch (error) {
-    els.studentAuth.hidden = false;
-    els.stampApp.hidden = true;
-    if (els.studentAuthError) {
-      els.studentAuthError.hidden = false;
-      els.studentAuthError.textContent = error.message;
+    if (!cardState.studentNumber && session) {
+      cardState = {
+        stamps: {},
+        redeemedAt: null,
+        redeemedBy: null,
+        fullName: session.payload.name || "",
+        studentNumber: session.payload.studentNumber || "",
+        passId: `SP-FP-${session.payload.studentNumber || ""}`,
+      };
     }
-    clearStudentSession();
-    updateNav();
+    paintStampUi();
+    console.warn("Stamp card sync failed", error);
   }
 }
 
@@ -688,6 +710,7 @@ function bindMap() {
 
   vp.addEventListener("pointerdown", (event) => {
     if (event.target.closest(".map-pin")) return;
+    event.preventDefault();
     vp.setPointerCapture(event.pointerId);
     mapState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (mapState.pointers.size === 1) mapState.dragging = true;
@@ -710,6 +733,7 @@ function bindMap() {
     }
 
     if (mapState.dragging) {
+      event.preventDefault();
       mapState.x += event.clientX - prev.x;
       mapState.y += event.clientY - prev.y;
       applyMapTransform();
@@ -778,23 +802,28 @@ function bindUi() {
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
-  document.getElementById("loginId")?.addEventListener("blur", (event) => {
-    event.target.value = normalizeAdminNumber(event.target.value);
-  });
-  document.getElementById("awardStudentNumber")?.addEventListener("blur", (event) => {
-    event.target.value = normalizeAdminNumber(event.target.value);
+  ["studentLoginId", "staffLoginId", "awardStudentNumber"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("blur", (event) => {
+      event.target.value = normalizeAdminNumber(event.target.value);
+    });
   });
 
-  document.getElementById("loginForm")?.addEventListener("submit", async (event) => {
+  async function handleAuthSubmit(event, { staff }) {
     event.preventDefault();
-    const err = document.getElementById("loginError");
+    const err = document.getElementById(staff ? "staffLoginError" : "studentLoginError");
     if (err) err.hidden = true;
     try {
       const data = await signIn({
-        adminNumber: document.getElementById("loginId").value,
-        fullName: document.getElementById("loginName").value,
-        password: document.getElementById("loginPassword").value,
+        adminNumber: document.getElementById(staff ? "staffLoginId" : "studentLoginId").value,
+        fullName: document.getElementById(staff ? "staffLoginName" : "studentLoginName").value,
+        password: staff ? document.getElementById("staffLoginPassword").value : "",
       });
+      if (staff && !data.staff) {
+        throw new Error("Staff password is required for this form.");
+      }
+      if (!staff && data.staff) {
+        throw new Error("Use the staff form for facilitator sign-in.");
+      }
       updateNav();
       setView(data.staff ? "admin" : "stamps");
       if (!data.staff) {
@@ -807,7 +836,10 @@ function bindUi() {
         err.textContent = error.message;
       }
     }
-  });
+  }
+
+  document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: false }));
+  document.getElementById("staffLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: true }));
 
   els.passToggle?.addEventListener("click", () => {
     showPass = !showPass;
@@ -1022,6 +1054,8 @@ async function init() {
   }
   try {
     bindMap();
+    renderDashboard();
+    renderPins();
   } catch (error) {
     console.warn("Map setup failed", error);
   }
