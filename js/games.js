@@ -1,9 +1,15 @@
-import { fetchLeaderboard, getStudentSession, submitScore } from "./session.js";
+import { fetchLeaderboard, getAdminSession, getStudentSession, submitScore } from "./session.js";
 import { setupCatchArcade } from "./catch-arcade.js";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["🎃", "🦇", "👻", "🍬", "💀", "🕸️", "🐱", "🌙", "🧛", "🧪", "🕯️", "🦉"];
-const CLICKER_KEY = "scream-clicker-v2";
+
+try {
+  localStorage.removeItem("scream-clicker-v2");
+  GAMES.forEach((id) => localStorage.removeItem(`scream-best-${id}`));
+} catch {
+  /* ignore */
+}
 
 const DIFFS = {
   easy: { pairs: 6, cols: 4, label: "Easy" },
@@ -38,13 +44,31 @@ function esc(value) {
     .replace(/"/g, "&quot;");
 }
 
+function accountKey() {
+  const student = getStudentSession();
+  if (student?.payload?.studentNumber) return `student:${student.payload.studentNumber}`;
+  const admin = getAdminSession();
+  if (admin?.payload?.staffId) return `staff:${admin.payload.staffId}`;
+  return null;
+}
+
+let guestBests = { clicker: 0, memory: 0, catch: 0 };
+let guestClicker = null;
+
 function localBest(id) {
-  return Number(localStorage.getItem(`scream-best-${id}`)) || 0;
+  const key = accountKey();
+  if (!key) return Number(guestBests[id]) || 0;
+  return Number(localStorage.getItem(`scream-best:${key}:${id}`)) || 0;
 }
 
 function setLocalBest(id, score) {
-  const next = Math.max(localBest(id), score);
-  localStorage.setItem(`scream-best-${id}`, String(next));
+  const next = Math.max(localBest(id), Number(score) || 0);
+  const key = accountKey();
+  if (!key) {
+    guestBests[id] = next;
+    return next;
+  }
+  localStorage.setItem(`scream-best:${key}:${id}`, String(next));
   return next;
 }
 
@@ -62,10 +86,10 @@ async function refreshScores(gameId) {
   const bestEl = document.querySelector(`[data-best="${gameId}"]`);
   try {
     const data = await fetchLeaderboard(gameId);
-    const local = localBest(gameId);
-    const best = Math.max(local, data.mine ?? 0);
+    if (getStudentSession() && data.mine != null) setLocalBest(gameId, data.mine);
+    const best = localBest(gameId);
     if (bestEl) bestEl.textContent = String(best);
-    renderBoard(board, data.top, data.mine, Boolean(getStudentSession()));
+    renderBoard(board, data.top, getStudentSession() ? (data.mine ?? best) : null, Boolean(getStudentSession()));
   } catch {
     if (bestEl) bestEl.textContent = String(localBest(gameId));
     renderBoard(board, [], localBest(gameId), Boolean(getStudentSession()));
@@ -94,18 +118,28 @@ function defaultClicker() {
   };
 }
 
+function hydrateClicker(raw) {
+  if (!raw) return defaultClicker();
+  return { ...defaultClicker(), ...raw, upgrades: { ...defaultClicker().upgrades, ...(raw.upgrades || {}) } };
+}
+
 function loadClicker() {
+  const key = accountKey();
+  if (!key) return hydrateClicker(guestClicker);
   try {
-    const raw = JSON.parse(localStorage.getItem(CLICKER_KEY) || "null");
-    if (!raw) return defaultClicker();
-    return { ...defaultClicker(), ...raw, upgrades: { ...defaultClicker().upgrades, ...(raw.upgrades || {}) } };
+    return hydrateClicker(JSON.parse(localStorage.getItem(`scream-clicker:${key}`) || "null"));
   } catch {
     return defaultClicker();
   }
 }
 
 function saveClicker(state) {
-  localStorage.setItem(CLICKER_KEY, JSON.stringify(state));
+  const key = accountKey();
+  if (!key) {
+    guestClicker = { ...state, upgrades: { ...state.upgrades } };
+    return;
+  }
+  localStorage.setItem(`scream-clicker:${key}`, JSON.stringify(state));
 }
 
 function upgradeCost(def, level) {
@@ -194,7 +228,7 @@ function setupClicker() {
   let toastTimer = 0;
   let shopSig = "";
   let achieveSig = "";
-  const seenUnlock = new Set(UPGRADES.filter((u) => state.lifetime >= u.unlock).map((u) => u.id));
+  let seenUnlock = new Set(UPGRADES.filter((u) => state.lifetime >= u.unlock).map((u) => u.id));
   const fxCtx = fx?.getContext?.("2d") || null;
   const sparks = [];
   let fxRaf = 0;
@@ -412,6 +446,19 @@ function setupClicker() {
     paintAchieves();
   }
 
+  function applyLoaded(next) {
+    state = hydrateClicker(next);
+    combo = 0;
+    lastTap = 0;
+    frenzyUntil = 0;
+    frenzyReady = 0;
+    idleAcc = 0;
+    shopSig = "";
+    achieveSig = "";
+    seenUnlock = new Set(UPGRADES.filter((u) => state.lifetime >= u.unlock).map((u) => u.id));
+    paintAll();
+  }
+
   pumpkin.addEventListener("pointerdown", () => {
     pumpkin.classList.add("is-press");
   });
@@ -497,6 +544,10 @@ function setupClicker() {
   }, 200);
 
   paintAll();
+  clickerApi = {
+    flush: () => saveClicker(state),
+    reload: () => applyLoaded(loadClicker()),
+  };
 }
 
 function setupMemory() {
@@ -631,8 +682,9 @@ function setupMemory() {
   memoryApi.reset = resetMemoryRound;
 }
 
-let catchApi = { pause: () => {}, onLeave: () => {}, onReturn: () => {} };
+let catchApi = { pause: () => {}, onLeave: () => {}, onReturn: () => {}, reset: () => {} };
 let memoryApi = { reset: () => {} };
+let clickerApi = { flush: () => {}, reload: () => {} };
 
 function setupCatch() {
   setupCatchArcade({
@@ -862,6 +914,25 @@ function showGame(id) {
   if (bar) bar.hidden = false;
   refreshScores(id);
   if (id === "catch") catchApi.onReturn();
+}
+
+export function flushGameProgress() {
+  clickerApi.flush();
+}
+
+export function applyGameAccount() {
+  if (!accountKey()) {
+    guestClicker = null;
+    guestBests = { clicker: 0, memory: 0, catch: 0 };
+  }
+  clickerApi.reload();
+  memoryApi.reset();
+  catchApi.reset?.();
+  GAMES.forEach((id) => {
+    const bestEl = document.querySelector(`[data-best="${id}"]`);
+    if (bestEl) bestEl.textContent = String(localBest(id));
+    refreshScores(id);
+  });
 }
 
 export function initGames() {

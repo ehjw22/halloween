@@ -20,6 +20,8 @@ import {
 } from "./session.js";
 
 let setGamesVisible = () => {};
+let flushGameProgress = () => {};
+let applyGameAccount = () => {};
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
 const STAMP_SLOTS = BOOTHS.map((b) => ({
@@ -785,13 +787,17 @@ function bindUi() {
     const logout = event.target.closest("[data-logout]");
     if (logout) {
       if (logout.dataset.logout === "student") {
+        flushGameProgress();
         clearStudentSession();
+        applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
         showPass = false;
         updateNav();
         renderStamps();
       } else {
+        flushGameProgress();
         clearAdminSession();
+        applyGameAccount();
         updateNav();
         const onStaff = document.querySelector(".view.is-active")?.dataset.view === "admin";
         if (onStaff) setView("login");
@@ -813,6 +819,7 @@ function bindUi() {
     const err = document.getElementById(staff ? "staffLoginError" : "studentLoginError");
     if (err) err.hidden = true;
     try {
+      flushGameProgress();
       const data = await signIn({
         adminNumber: document.getElementById(staff ? "staffLoginId" : "studentLoginId").value,
         fullName: document.getElementById(staff ? "staffLoginName" : "studentLoginName").value,
@@ -824,6 +831,7 @@ function bindUi() {
       if (!staff && data.staff) {
         throw new Error("Use the staff form for facilitator sign-in.");
       }
+      applyGameAccount();
       updateNav();
       setView(data.staff ? "admin" : "stamps");
       if (!data.staff) {
@@ -1062,6 +1070,8 @@ async function init() {
   import("./games.js")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
+      flushGameProgress = games.flushGameProgress;
+      applyGameAccount = games.applyGameAccount;
       games.initGames();
     })
     .catch((error) => console.warn("Games failed to load", error));

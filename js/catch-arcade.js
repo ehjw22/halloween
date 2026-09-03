@@ -386,6 +386,34 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     raf = requestAnimationFrame(step);
   }
 
+  function hardReset() {
+    stopLoop();
+    mode = "idle";
+    items = [];
+    fx = [];
+    pops = [];
+    score = 0;
+    combo = 0;
+    left = 45;
+    last = 0;
+    spawnT = 0;
+    acc = 0;
+    bonusUntil = 0;
+    hitFlash = 0;
+    shake = 0;
+    paddleX = W / 2;
+    paddleV = 0;
+    keys.clear();
+    status.textContent = "Catch treats. Chain combos. Avoid hazards.";
+    startBtn.textContent = "Start round";
+    if (pauseBtn) {
+      pauseBtn.hidden = true;
+      pauseBtn.textContent = "Pause";
+    }
+    paintHud();
+    draw();
+  }
+
   function start() {
     stopLoop();
     fit();
@@ -461,6 +489,7 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
   setCatchApi({
     pause: () => pause("leave"),
     onLeave: () => pause("leave"),
+    reset: hardReset,
     onReturn: () => {
       fit();
       draw();
