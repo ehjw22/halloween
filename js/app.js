@@ -1,6 +1,7 @@
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
+import { SAFETY } from "./safety.js";
 import { createStore } from "./store.js";
 import {
   awardStamp,
@@ -8,9 +9,11 @@ import {
   clearStudentSession,
   fetchAnnouncements,
   fetchFeedback,
+  fetchOps,
   fetchStamps,
   getAdminSession,
   getStudentSession,
+  lookupStudent,
   postAnnouncement,
   redeemPass,
   setAnnouncementActive,
@@ -34,6 +37,7 @@ const els = {
   views: [...document.querySelectorAll(".view")],
   navButtons: [...document.querySelectorAll("[data-nav]")],
   houseGrid: document.getElementById("houseGrid"),
+  shortWaits: document.getElementById("shortWaits"),
   mapWorld: document.getElementById("mapWorld"),
   mapViewport: document.getElementById("mapViewport"),
   mapPins: document.getElementById("mapPins"),
@@ -137,19 +141,107 @@ function waitLabel(minutes, status) {
   return `${minutes} min`;
 }
 
-function setView(name) {
+function waitRank(row) {
+  const status = row.status || "open";
+  const band = status === "closed" ? 2 : status === "at_capacity" ? 1 : 0;
+  return band * 1000 + (Number(row.wait_minutes) || 0);
+}
+
+function sortedHouses(list = houses) {
+  return [...list].sort((a, b) => waitRank(a) - waitRank(b) || a.name.localeCompare(b.name));
+}
+
+function freshnessLabel(iso) {
+  if (!iso) return "Not updated";
+  const { ago } = formatPostedAt(iso);
+  return ago ? `Updated ${ago}` : "Not updated";
+}
+
+function tagChips(meta) {
+  return (meta?.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+}
+
+function staffScope() {
+  return getAdminSession()?.payload?.staffScope || "admin";
+}
+
+function canStaff(tab) {
+  const scope = staffScope();
+  if (scope === "admin") return true;
+  if (tab === "waits") return scope === "waits";
+  if (tab === "stamps") return scope === "stamps";
+  return false;
+}
+
+function nightStorageKey() {
+  const student = getStudentSession();
+  if (student?.payload?.studentNumber) return `scream-night:${student.payload.studentNumber}`;
+  return "";
+}
+
+function readNight() {
+  try {
+    const key = nightStorageKey();
+    const raw = key ? localStorage.getItem(key) : sessionStorage.getItem("scream-night-guest");
+    return JSON.parse(raw || "null") || { houses: [], watch: [] };
+  } catch {
+    return { houses: [], watch: [] };
+  }
+}
+
+function writeNight(data) {
+  const payload = JSON.stringify({
+    houses: [...new Set(data.houses || [])],
+    watch: [...new Set(data.watch || [])],
+  });
+  const key = nightStorageKey();
+  if (key) localStorage.setItem(key, payload);
+  else sessionStorage.setItem("scream-night-guest", payload);
+}
+
+let watchSnapshot = new Map();
+let openHouseId = "";
+let boardTimer = 0;
+
+function hashToView() {
+  const raw = (location.hash || "#map").replace(/^#/, "");
+  const [view, extra] = raw.split("/");
+  return { view: view || "map", extra: extra || "" };
+}
+
+function setHash(view, extra) {
+  const next = extra ? `#${view}/${extra}` : `#${view}`;
+  if (location.hash !== next) history.replaceState(null, "", next);
+}
+
+function setView(name, extra) {
   const student = getStudentSession();
   const admin = getAdminSession();
   if (name === "admin" && !admin) name = "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
+  if (name === "house") {
+    name = "map";
+    if (extra) openHouse(extra);
+  } else {
+    closeModals();
+  }
   els.views.forEach((view) => {
     const active = view.dataset.view === name;
     view.classList.toggle("is-active", active);
     view.hidden = !active;
   });
-  els.navButtons.forEach((btn) => btn.classList.toggle("is-active", btn.dataset.nav === name));
+  document.body.classList.toggle("is-board", name === "board");
+  document.querySelectorAll(".nav [data-nav]").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.nav === name);
+  });
   setGamesVisible(name === "games");
+  if (!setView.skipHash) {
+    if (name === "map" && extra) setHash("house", extra);
+    else if (name === "map") setHash("map");
+    else setHash(name);
+  }
+  setView.skipHash = false;
   if (name === "admin") renderAdmin();
   if (name === "tonight") {
     renderTimeline();
@@ -161,12 +253,28 @@ function setView(name) {
     paintStampUi();
   }
   if (name === "map") {
+    renderMyNight();
     requestAnimationFrame(() => fitMap());
   }
+  if (name === "board") startBoard();
+  else stopBoard();
+  const more = document.getElementById("navMoreMenu");
+  if (more) more.hidden = true;
 }
 
 function renderDashboard() {
-  els.houseGrid.innerHTML = houses
+  const list = sortedHouses();
+  if (els.shortWaits) {
+    const shortest = list.filter((row) => row.status === "open" || row.status === "busy").slice(0, 3);
+    els.shortWaits.innerHTML = shortest.length
+      ? `<p class="short-waits__label">Shortest waits</p><div class="short-waits__row">${shortest.map((row) => {
+        const meta = houseMeta(row.id);
+        return `<button type="button" class="short-wait" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button>`;
+      }).join("")}</div>`
+      : "";
+  }
+  if (!els.houseGrid) return;
+  els.houseGrid.innerHTML = list
     .map((row) => {
       const meta = houseMeta(row.id);
       return `
@@ -175,9 +283,107 @@ function renderDashboard() {
           <strong>${escapeHtml(row.name)}</strong>
           <span class="status-pill">${STATUS_LABEL[row.status] || row.status}</span>
           <span class="wait">${waitLabel(row.wait_minutes, row.status)}</span>
+          <span class="fresh muted">${escapeHtml(freshnessLabel(row.updated_at))}</span>
+          <span class="house-tags">${tagChips(meta)}</span>
         </button>`;
     })
     .join("");
+  renderMyNight();
+}
+
+function renderMyNight() {
+  const panel = document.getElementById("myNightPanel");
+  const list = document.getElementById("myNightList");
+  if (!panel || !list) return;
+  const night = readNight();
+  const rows = sortedHouses(night.houses.map((id) => houses.find((h) => h.id === id)).filter(Boolean));
+  panel.hidden = !rows.length;
+  list.innerHTML = rows.map((row) => {
+    const meta = houseMeta(row.id);
+    return `<li><button type="button" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || "")} · ${escapeHtml(row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button></li>`;
+  }).join("");
+}
+
+function notifyWatches(nextHouses) {
+  const night = readNight();
+  if (!night.watch.length) {
+    watchSnapshot = new Map(nextHouses.map((h) => [h.id, `${h.wait_minutes}:${h.status}`]));
+    return;
+  }
+  const banner = document.getElementById("watchBanner");
+  const notes = [];
+  nextHouses.forEach((row) => {
+    if (!night.watch.includes(row.id)) return;
+    const prev = watchSnapshot.get(row.id);
+    const key = `${row.wait_minutes}:${row.status}`;
+    if (prev && prev !== key) {
+      const meta = houseMeta(row.id);
+      notes.push(`${meta?.short || row.name}: ${waitLabel(row.wait_minutes, row.status)} (${STATUS_LABEL[row.status] || row.status})`);
+    }
+  });
+  watchSnapshot = new Map(nextHouses.map((h) => [h.id, `${h.wait_minutes}:${h.status}`]));
+  if (!banner) return;
+  if (!notes.length) return;
+  banner.hidden = false;
+  banner.textContent = notes.join(" · ");
+  clearTimeout(notifyWatches.timer);
+  notifyWatches.timer = setTimeout(() => {
+    banner.hidden = true;
+  }, 8000);
+}
+
+function paintSafety() {
+  const list = document.getElementById("safetyList");
+  if (!list) return;
+  list.innerHTML = [
+    SAFETY.helpDesk,
+    SAFETY.meetup,
+    SAFETY.firstAid,
+    SAFETY.skipHouse,
+    SAFETY.intensity,
+    "Stay with your group. Watch your step in fog, cables, and low light. No running in queues.",
+    "Drink water and take a break if you feel unwell.",
+    "Keep bags closed. Respect capacity and closed areas. Staff calls are final.",
+  ].map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+}
+
+async function startBoard() {
+  const grid = document.getElementById("boardGrid");
+  if (!grid) return;
+  async function paint() {
+    const games = ["clicker", "memory", "catch"];
+    const blocks = await Promise.all(games.map(async (id) => {
+      try {
+        const res = await fetch(`/api/scores?game=${id}`);
+        const data = await res.json().catch(() => ({}));
+        const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
+        return `<article class="board-card"><h3>${id}</h3><ol>${rows || "<li>No scores yet</li>"}</ol></article>`;
+      } catch {
+        return `<article class="board-card"><h3>${id}</h3><p class="muted">Scores unavailable</p></article>`;
+      }
+    }));
+    grid.innerHTML = blocks.join("");
+  }
+  paint();
+  clearInterval(boardTimer);
+  boardTimer = setInterval(paint, 12000);
+}
+
+function stopBoard() {
+  clearInterval(boardTimer);
+  boardTimer = 0;
+}
+  if (!els.mapPins) return;
+  els.mapPins.innerHTML = HOUSES.map((house) => {
+    const row = houses.find((h) => h.id === house.id) || house;
+    const status = row.status || house.status;
+    return `
+      <button class="map-pin status-${status}" type="button" style="left:${house.x}%; top:${house.y}%"
+        data-open-house="${house.id}" aria-label="${house.name}">
+        <span class="map-pin__dot"></span>
+        <span class="map-pin__name">${house.short}</span>
+      </button>`;
+  }).join("");
 }
 
 function renderPins() {
@@ -244,15 +450,26 @@ function resetMap() {
 function openHouse(id) {
   const meta = houseMeta(id);
   const row = houses.find((h) => h.id === id);
-  if (!meta || !row) return;
+  if (!meta || !row || !els.modal) return;
+  openHouseId = id;
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
   els.modal.querySelector("[data-modal-wait]").textContent = waitLabel(row.wait_minutes, row.status);
   els.modal.querySelector("[data-modal-status]").textContent = STATUS_LABEL[row.status];
   els.modal.querySelector("[data-modal-status]").className = `status-pill status-${row.status}`;
   els.modal.querySelector("[data-modal-story]").textContent = meta.story;
   els.modal.querySelector("[data-modal-code]").textContent = meta.short;
+  const tagsEl = els.modal.querySelector("[data-modal-tags]");
+  if (tagsEl) tagsEl.innerHTML = tagChips(meta) || "";
+  const upd = els.modal.querySelector("[data-modal-updated]");
+  if (upd) upd.textContent = freshnessLabel(row.updated_at);
+  const night = readNight();
+  const addBtn = document.getElementById("modalAddNight");
+  const watchBtn = document.getElementById("modalWatch");
+  if (addBtn) addBtn.textContent = night.houses.includes(id) ? "Remove from my night" : "Add to my night";
+  if (watchBtn) watchBtn.textContent = night.watch.includes(id) ? "Stop watching" : "Watch wait";
   els.modal.hidden = false;
   els.modal.querySelector(".modal__panel").focus();
+  setHash("house", id);
 }
 
 function openBooth(id) {
@@ -491,17 +708,21 @@ async function loadAdminFeedback() {
     const target = els.adminFeedbackTarget?.value || "";
     const data = await fetchFeedback(feedbackKindFilter, target);
     const rows = data.feedback || [];
-    els.adminFeedbackList.innerHTML = rows.length
+    const withRating = rows.filter((r) => r.rating);
+    const avg = withRating.length
+      ? (withRating.reduce((n, r) => n + Number(r.rating), 0) / withRating.length).toFixed(1)
+      : null;
+    els.adminFeedbackList.innerHTML = (avg ? `<li class="muted">Average rating ${avg} / 5 (${withRating.length} rated)</li>` : "") + (rows.length
       ? rows.map((row) => {
         const when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
         const who = row.student_number ? escapeHtml(row.student_number) : "Visitor";
         return `<li class="feedback-item">
           <p><strong>${escapeHtml(feedbackLabel(row))}</strong> · ${row.kind === "booth" ? "Booth" : "Scare house"}</p>
           <p>${escapeHtml(row.message)}</p>
-          <p class="muted">${who} · ${escapeHtml(when)}</p>
+          <p class="muted">${who} · ${escapeHtml(when)}${row.rating ? ` · ${row.rating}/5` : ""}</p>
         </li>`;
       }).join("")
-      : "<li class='muted'>No feedback yet.</li>";
+      : "<li class='muted'>No feedback yet.</li>");
   } catch (error) {
     if (els.adminFeedbackError) {
       els.adminFeedbackError.hidden = false;
@@ -571,8 +792,10 @@ function formatPostedAt(iso) {
 function announceItemHtml(row) {
   const { clock, ago } = formatPostedAt(row.created_at);
   const when = [clock, ago].filter(Boolean).join(" · ");
+  const audience = row.audience && row.audience !== "all" ? row.audience : "";
+  const house = row.house_id ? houseMeta(row.house_id)?.short : "";
   return `<li class="announce-item">
-    <p class="announce-item__label">Staff announcement</p>
+    <p class="announce-item__label">Staff announcement${audience ? ` · ${escapeHtml(audience)}${house ? ` ${escapeHtml(house)}` : ""}` : ""}</p>
     <p class="announce-item__when">${escapeHtml(when)}</p>
     <p class="announce-item__body">${escapeHtml(row.message)}</p>
   </li>`;
@@ -596,13 +819,37 @@ async function loadAdminAnnouncements() {
         const posted = row.active !== false;
         return `<li class="feedback-item">
           <p>${escapeHtml(row.message)}</p>
-          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · Posted ${escapeHtml(clock)}${ago ? ` · ${escapeHtml(ago)}` : ""} · ${posted ? "Showing" : "Taken down"}</p>
+          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · ${escapeHtml(row.audience || "all")}${row.house_id ? ` · ${escapeHtml(row.house_id)}` : ""}${row.expires_at ? ` · expires ${escapeHtml(formatPostedAt(row.expires_at).clock)}` : ""} · Posted ${escapeHtml(clock)}${ago ? ` · ${escapeHtml(ago)}` : ""} · ${posted ? "Showing" : "Taken down"}</p>
           ${posted ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
         </li>`;
       }).join("")
       : "<li class='muted'>No announcements yet.</li>";
   } catch (error) {
     els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(error.message)}</li>`;
+  }
+}
+
+async function loadOps() {
+  const grid = document.getElementById("opsGrid");
+  const audit = document.getElementById("opsAudit");
+  if (!grid) return;
+  try {
+    const data = await fetchOps();
+    const boothBits = BOOTHS.map((b) => `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${data.stampsPerBooth?.[b.id] || 0}</strong></div>`).join("");
+    grid.innerHTML = `
+      <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
+      <div class="ops-card"><span>Fast Pass unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
+      <div class="ops-card"><span>Houses at capacity</span><strong>${data.housesAtCapacity || 0}</strong></div>
+      <div class="ops-card"><span>Feedback (6h)</span><strong>${data.recentFeedback || 0}</strong></div>
+      ${boothBits}`;
+    if (audit) {
+      const rows = data.audit || [];
+      audit.innerHTML = rows.length
+        ? rows.map((row) => `<li class="feedback-item"><p>${escapeHtml(row.action)} · ${escapeHtml(row.target || "")}</p><p class="muted">${escapeHtml(row.staff_id)} · ${escapeHtml(row.at || "")}</p></li>`).join("")
+        : "<li class='muted'>No audit rows yet.</li>";
+    }
+  } catch (error) {
+    grid.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -647,8 +894,23 @@ function renderAdmin() {
     })
     .join("");
   if (els.awardBooth && !els.awardBooth.dataset.filled) {
-    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
+    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.name} (${b.code})</option>`).join("");
     els.awardBooth.dataset.filled = "1";
+  }
+  const houseSel = document.getElementById("announceHouse");
+  if (houseSel && !houseSel.dataset.filled) {
+    houseSel.innerHTML = HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`).join("");
+    houseSel.dataset.filled = "1";
+  }
+  const scope = staffScope();
+  const allowed = [...document.querySelectorAll("[data-staff-tab]")].filter((btn) => {
+    const need = btn.dataset.staffScope || "admin";
+    const ok = scope === "admin" || need === scope;
+    btn.hidden = !ok;
+    return ok;
+  });
+  if (!allowed.some((btn) => btn.dataset.staffTab === staffTab)) {
+    staffTab = allowed[0]?.dataset.staffTab || "waits";
   }
   document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
     btn.classList.toggle("is-active", btn.dataset.staffTab === staffTab);
@@ -656,6 +918,7 @@ function renderAdmin() {
   document.querySelectorAll("[data-staff-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.staffPanel !== staffTab;
   });
+  if (staffTab === "ops") loadOps();
 }
 
 async function drawQr(text) {
@@ -766,8 +1029,44 @@ function bindMap() {
 }
 
 function bindUi() {
+  document.getElementById("navMore")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const menu = document.getElementById("navMoreMenu");
+    if (!menu) return;
+    menu.hidden = !menu.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!menu.hidden));
+  });
   els.navButtons.forEach((btn) => {
+    if (btn.id === "navMore") return;
     btn.addEventListener("click", () => setView(btn.dataset.nav));
+  });
+  window.addEventListener("hashchange", () => {
+    const { view, extra } = hashToView();
+    setView.skipHash = true;
+    setView(view, extra);
+  });
+  document.getElementById("announceAudience")?.addEventListener("change", (event) => {
+    const wrap = document.getElementById("announceHouseWrap");
+    if (wrap) wrap.hidden = event.target.value !== "house";
+  });
+  document.getElementById("modalAddNight")?.addEventListener("click", () => {
+    if (!openHouseId) return;
+    const night = readNight();
+    night.houses = night.houses.includes(openHouseId)
+      ? night.houses.filter((id) => id !== openHouseId)
+      : [...night.houses, openHouseId];
+    writeNight(night);
+    openHouse(openHouseId);
+    renderMyNight();
+  });
+  document.getElementById("modalWatch")?.addEventListener("click", () => {
+    if (!openHouseId) return;
+    const night = readNight();
+    night.watch = night.watch.includes(openHouseId)
+      ? night.watch.filter((id) => id !== openHouseId)
+      : [...night.watch, openHouseId];
+    writeNight(night);
+    openHouse(openHouseId);
   });
 
   document.body.addEventListener("click", (event) => {
@@ -939,6 +1238,8 @@ function bindUi() {
         loadAdminFeedback();
       }
       if (staffTab === "announce") loadAdminAnnouncements();
+      if (staffTab === "ops") loadOps();
+      if (staffTab === "announce") loadAdminAnnouncements();
     });
   });
 
@@ -955,14 +1256,38 @@ function bindUi() {
 
   els.adminFeedbackTarget?.addEventListener("change", () => loadAdminFeedback());
 
+  document.getElementById("lookupStudentForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const err = document.getElementById("lookupStudentError");
+    const form = document.getElementById("awardStampForm");
+    const nameEl = document.getElementById("lookupStudentName");
+    if (err) err.hidden = true;
+    try {
+      const data = await lookupStudent(document.getElementById("awardStudentNumber").value);
+      if (form) form.hidden = false;
+      if (nameEl) {
+        const stamps = Object.keys(data.stamps || {}).length;
+        nameEl.textContent = `Confirm: ${data.fullName} (${data.studentNumber}) · ${stamps}/6 stamps`;
+      }
+    } catch (error) {
+      if (form) form.hidden = true;
+      if (err) {
+        err.hidden = false;
+        err.textContent = error.message;
+      }
+    }
+  });
+
   els.awardStampForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (els.awardStampError) els.awardStampError.hidden = true;
     if (els.awardStampOk) els.awardStampOk.hidden = true;
     try {
+      const code = document.getElementById("awardStationCode")?.value.trim().toUpperCase();
+      const fromCode = BOOTHS.find((b) => b.code === code);
       const data = await awardStamp(
         document.getElementById("awardStudentNumber").value,
-        els.awardBooth.value
+        fromCode?.id || els.awardBooth.value
       );
       if (els.awardStampOk) {
         els.awardStampOk.hidden = false;
@@ -988,9 +1313,12 @@ function bindUi() {
       await submitFeedback(
         els.feedbackKind.value,
         els.feedbackTarget.value,
-        document.getElementById("feedbackMessage").value
+        document.getElementById("feedbackMessage").value,
+        document.getElementById("feedbackRating")?.value
       );
       document.getElementById("feedbackMessage").value = "";
+      const ratingEl = document.getElementById("feedbackRating");
+      if (ratingEl) ratingEl.value = "";
       if (els.feedbackOk) els.feedbackOk.hidden = false;
     } catch (error) {
       if (els.feedbackError) {
@@ -1004,7 +1332,11 @@ function bindUi() {
     event.preventDefault();
     if (els.announceError) els.announceError.hidden = true;
     try {
-      await postAnnouncement(document.getElementById("announceMessage").value);
+      await postAnnouncement(document.getElementById("announceMessage").value, {
+        audience: document.getElementById("announceAudience")?.value || "all",
+        houseId: document.getElementById("announceHouse")?.value || "",
+        expiresMinutes: document.getElementById("announceExpires")?.value || "",
+      });
       document.getElementById("announceMessage").value = "";
       await loadAdminAnnouncements();
       await loadPublicAnnouncements();
@@ -1045,6 +1377,7 @@ function bindUi() {
 }
 
 function onStoreChange(next) {
+  notifyWatches(next);
   houses = next;
   renderDashboard();
   renderPins();
@@ -1057,6 +1390,7 @@ function onStoreChange(next) {
 async function init() {
   try {
     bindUi();
+    paintSafety();
   } catch (error) {
     console.warn("UI bind failed", error);
   }
@@ -1080,6 +1414,11 @@ async function init() {
   renderAdmin();
   renderTimeline();
   loadPublicAnnouncements();
+  const start = hashToView();
+  if (location.hash && start.view) {
+    setView.skipHash = true;
+    setView(start.view, start.extra);
+  }
   window.setInterval(() => {
     if (document.hidden) return;
     loadPublicAnnouncements();
@@ -1112,8 +1451,13 @@ async function init() {
       ok: "",
     }[status.reason] || "";
     els.dbBanner.textContent = live
-      ? "Connected to Supabase. Staff edits write to the scare_houses table."
-      : `Not writing to the database.${error ? ` ${error}` : ""}${localHint}`;
+      ? "LIVE. Wait times and stamps write to the database."
+      : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
+  }
+  const note = document.getElementById("siteLiveNote");
+  if (note) {
+    note.hidden = live;
+    note.textContent = live ? "" : "Demo mode: this browser is not connected to the live event database.";
   }
 }
 

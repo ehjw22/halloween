@@ -126,5 +126,31 @@ drop policy if exists "anon read announcements" on public.announcements;
 create policy "anon read announcements"
   on public.announcements for select using (true);
 
+alter table public.event_feedback add column if not exists rating smallint check (rating is null or (rating >= 1 and rating <= 5));
+
+alter table public.announcements add column if not exists audience text not null default 'all';
+alter table public.announcements add column if not exists house_id text;
+alter table public.announcements add column if not exists expires_at timestamptz;
+
+create table if not exists public.staff_audit (
+  id uuid primary key default gen_random_uuid(),
+  at timestamptz not null default now(),
+  staff_id text not null,
+  action text not null,
+  target text,
+  detail jsonb not null default '{}'::jsonb
+);
+
+alter table public.staff_audit enable row level security;
+
+create table if not exists public.game_saves (
+  student_number text not null references public.students (student_number) on delete cascade,
+  game_id text not null,
+  state jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  primary key (student_number, game_id)
+);
+
+alter table public.game_saves enable row level security;
 
 

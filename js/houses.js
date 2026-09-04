@@ -15,6 +15,7 @@ export const HOUSES = [
     y: 7,
     wait: 5,
     status: "open",
+    tags: ["jumpscare", "crowd"],
     story:
       "The night crowd spilling off Dover MRT never quite makes it past Gate 1. Fog rolls in from the tracks, ticket gates slam by themselves, and something keeps scanning EZ-Link cards that do not exist.",
   },
@@ -26,6 +27,7 @@ export const HOUSES = [
     y: 15,
     wait: 20,
     status: "busy",
+    tags: ["jumpscare", "dark"],
     story:
       "Hangars should not echo like catacombs. Inside Aerohub, aircraft silhouettes twist into bone, and a hangar door opens onto a runway that ends in open sky — and then keeps going.",
   },
@@ -37,6 +39,7 @@ export const HOUSES = [
     y: 16,
     wait: 10,
     status: "open",
+    tags: ["low-light"],
     story:
       "Prototype booths still glow after closing time. Each demo pod plays a pitch from a founder who graduated years ago — except they never left the village, and they want one more teammate.",
   },
@@ -48,6 +51,7 @@ export const HOUSES = [
     y: 44,
     wait: 0,
     status: "open",
+    tags: ["outdoors", "stairs"],
     story:
       "The floodlights stay on for a race nobody scheduled. Laps tick past 400m, 800m, then something on the far straight starts gaining — and it is not wearing a bib.",
   },
@@ -59,6 +63,7 @@ export const HOUSES = [
     y: 32,
     wait: 15,
     status: "busy",
+    tags: ["outdoors", "fog"],
     story:
       "The multi-purpose field is a bowl of low fog. Whistles blow from the centre circle. When the mist parts, the players have no faces — only SP crests stitched over where mouths should be.",
   },
@@ -70,6 +75,7 @@ export const HOUSES = [
     y: 28,
     wait: 25,
     status: "busy",
+    tags: ["stairs", "jumpscare"],
     story:
       "Look up through T12 and the floors do not match. Stairwells loop, lecture-theatre doors open onto other years, and a PA voice keeps calling a module code that was retired a decade ago.",
   },
@@ -81,6 +87,7 @@ export const HOUSES = [
     y: 35,
     wait: 8,
     status: "open",
+    tags: ["strobe"],
     story:
       "Bunsen burners light themselves in T11. Formulas crawl off whiteboards and across the floor. The lab safety poster now lists a fourth hazard: curiosity after midnight.",
   },
@@ -92,6 +99,7 @@ export const HOUSES = [
     y: 41,
     wait: 35,
     status: "at_capacity",
+    tags: ["quiet", "stairs"],
     story:
       "Silent floor is silent for a reason. Books reshelve themselves into a Dewey system of last words. If your student card beeps at the gate, something in the stacks already knows your name.",
   },
@@ -103,6 +111,7 @@ export const HOUSES = [
     y: 37,
     wait: 12,
     status: "open",
+    tags: ["low-light"],
     story:
       "Counter 3 is still open. The clerk stamps forms in red wax. Every appeal you file comes back approved — and dated the night you disappear from the attendance system.",
   },
@@ -114,6 +123,7 @@ export const HOUSES = [
     y: 48,
     wait: 18,
     status: "busy",
+    tags: ["crowd", "outdoors"],
     story:
       "The plaza fountain runs black. Campus cats refuse to cross it. At the stroke of a fake midnight, the crowd in the open space is twice as large as the people who actually walked in.",
   },
@@ -125,6 +135,7 @@ export const HOUSES = [
     y: 33,
     wait: 22,
     status: "busy",
+    tags: ["strobe", "crowd", "stairs"],
     story:
       "The arena scoreboard counts down from 13. Cheer squads in the dark bleachers never sit down. When the buzzer sounds, both teams are already gone — the court is waiting for you.",
   },
@@ -136,6 +147,7 @@ export const HOUSES = [
     y: 41,
     wait: 6,
     status: "open",
+    tags: ["stairs", "dark"],
     story:
       "Moberly’s corridors remember every CCA that ever practiced after hours. Lockers tap from the inside. A PE whistle echoes from a gym that is already locked and dark.",
   },
@@ -147,6 +159,7 @@ export const HOUSES = [
     y: 54,
     wait: 0,
     status: "closed",
+    tags: ["strobe"],
     story:
       "W1 to W3 share a ventilation shaft that whispers lab results. After lights-out, workshop machines cycle on their own, milling souvenirs from a campus that does not exist yet.",
   },
@@ -158,6 +171,7 @@ export const HOUSES = [
     y: 58,
     wait: 9,
     status: "open",
+    tags: ["crowd"],
     story:
       "The steam trays are still hot. Stall uncle smiles too wide. Your usual order arrives before you speak — and the receipt lists a table number from a food court that burned down in a story nobody admits telling.",
   },
@@ -169,6 +183,7 @@ export const HOUSES = [
     y: 78,
     wait: 40,
     status: "at_capacity",
+    tags: ["dark", "jumpscare"],
     story:
       "Pallets shift in WSA when nobody is on shift. Forklifts idle in a V formation. Follow the yellow floor tape far enough and it leads under the building — into a loading bay that only opens on Halloween.",
   },

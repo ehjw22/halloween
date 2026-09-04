@@ -115,7 +115,7 @@ function localSignIn({ id, fullName, password }) {
     if (pass !== "SP2026") {
       throw new Error("Staff password is incorrect.");
     }
-    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName });
+    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName, staffScope: "admin" });
     setAdminToken(token);
     return { staff: true, token, local: true };
   }
@@ -203,6 +203,76 @@ export async function fetchStamps() {
   return local;
 }
 
+export async function lookupStudent(studentNumber) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  try {
+    const res = await fetch(`/api/lookup-student?studentNumber=${encodeURIComponent(normalizeAdminNumber(studentNumber))}`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.error && /student|admin number|sign in/i.test(data.error)) {
+        throw new Error(data.error);
+      }
+      return {
+        studentNumber: normalizeAdminNumber(studentNumber),
+        fullName: "Name not confirmed (offline)",
+        stamps: {},
+        demo: true,
+      };
+    }
+    return data;
+  } catch (error) {
+    if (error.message && /student|admin number|Staff session/i.test(error.message)) throw error;
+    return {
+      studentNumber: normalizeAdminNumber(studentNumber),
+      fullName: "Name not confirmed (offline)",
+      stamps: {},
+      demo: true,
+    };
+  }
+}
+
+export async function fetchOps() {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  const res = await fetch("/api/ops", {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not load command post.");
+  return data;
+}
+
+export async function fetchClickerSave() {
+  const session = getStudentSession();
+  if (!session) return null;
+  try {
+    const res = await fetch("/api/game-save", {
+      headers: { Authorization: `Bearer ${session.token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return null;
+    return data.state || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveClickerRemote(state) {
+  const session = getStudentSession();
+  if (!session) return;
+  await fetch("/api/game-save", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify({ state }),
+  });
+}
+
 export async function awardStamp(studentNumber, boothId) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
@@ -219,14 +289,14 @@ export async function awardStamp(studentNumber, boothId) {
   return data;
 }
 
-export async function submitFeedback(kind, targetId, message) {
+export async function submitFeedback(kind, targetId, message, rating) {
   const session = getStudentSession();
   const headers = { "Content-Type": "application/json" };
   if (session) headers.Authorization = `Bearer ${session.token}`;
   const res = await fetch("/api/feedback", {
     method: "POST",
     headers,
-    body: JSON.stringify({ kind, targetId, message }),
+    body: JSON.stringify({ kind, targetId, message, rating }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Could not send feedback.");
@@ -274,11 +344,13 @@ export async function fetchAnnouncements({ all = false } = {}) {
     return data.announcements || [];
   } catch {
     const rows = readLocalAnnouncements();
-    return all ? rows : rows.filter((r) => r.active !== false);
+    return all
+      ? rows
+      : rows.filter((r) => r.active !== false && (!r.expires_at || new Date(r.expires_at).getTime() > Date.now()));
   }
 }
 
-export async function postAnnouncement(message) {
+export async function postAnnouncement(message, extra = {}) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
@@ -288,7 +360,12 @@ export async function postAnnouncement(message) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.token}`,
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        message,
+        audience: extra.audience || "all",
+        houseId: extra.houseId || "",
+        expiresMinutes: extra.expiresMinutes || "",
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data.announcement;
@@ -301,6 +378,11 @@ export async function postAnnouncement(message) {
     message,
     posted_by: session.payload.staffId,
     active: true,
+    audience: extra.audience || "all",
+    house_id: extra.houseId || null,
+    expires_at: extra.expiresMinutes
+      ? new Date(Date.now() + Number(extra.expiresMinutes) * 60000).toISOString()
+      : null,
     created_at: new Date().toISOString(),
   };
   writeLocalAnnouncements([row, ...readLocalAnnouncements()]);

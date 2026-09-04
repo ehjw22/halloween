@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SP Scream Fest</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta name="description" content="Singapore Polytechnic Scream Fest — wait times, stamp card, tonight’s programme, and safety.">
+  <meta property="og:title" content="SP Scream Fest">
+  <meta property="og:description" content="Campus haunt map, wait times, and stamp card for Singapore Polytechnic Scream Fest.">
+  <meta property="og:image" content="sp_map.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
@@ -21,18 +26,26 @@
     </div>
     <nav class="nav" aria-label="Primary">
       <button class="nav__btn is-active" type="button" data-nav="map">Event Map</button>
-      <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
       <button class="nav__btn" type="button" data-nav="tonight">Tonight</button>
-      <button class="nav__btn" type="button" data-nav="games">Games</button>
-      <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
-      <button class="nav__btn" type="button" data-nav="safety">Safety</button>
-      <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
-      <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
+      <button class="nav__btn" type="button" data-nav="stamps">Stamp Card</button>
+      <button class="nav__btn nav__more" type="button" id="navMore" aria-expanded="false" aria-controls="navMoreMenu">More</button>
+      <div class="nav-more-menu" id="navMoreMenu" hidden>
+        <button class="nav__btn" type="button" data-nav="games">Games</button>
+        <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
+        <button class="nav__btn" type="button" data-nav="safety">Safety</button>
+        <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
+        <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
+      </div>
+      <button class="nav__btn nav__wide" type="button" data-nav="games">Games</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="feedback">Feedback</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="safety">Safety</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
     </nav>
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.1.0</div>
+      <div class="version-chip" title="App version">v1.2.0</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -41,6 +54,8 @@
     <button class="nav__btn" type="button" data-game="catch">Catch</button>
   </div>
 
+  <div class="watch-banner" id="watchBanner" hidden></div>
+  <p class="site-live-note" id="siteLiveNote" hidden></p>
   <main>
     <section class="view is-active" data-view="map">
       <div class="announce-panel">
@@ -52,9 +67,14 @@
       </div>
       <div class="section-head">
         <h2>Scare House Wait Times</h2>
-        <p>Fifteen haunts across campus. Times update live for every visitor.</p>
+        <p>Fifteen haunts across campus. Sorted by wait. Times show when staff last published.</p>
       </div>
+      <div class="short-waits" id="shortWaits"></div>
       <div class="house-grid" id="houseGrid"></div>
+      <div class="my-night-panel" id="myNightPanel" hidden>
+        <h3 class="roadmap__title">My night</h3>
+        <ol class="my-night-list" id="myNightList"></ol>
+      </div>
 
       <div class="section-head section-head--map">
         <h2>Campus Haunt Map</h2>
@@ -116,7 +136,7 @@
           <form class="auth-card" id="staffLoginForm">
             <p class="auth-card__kicker">Staff</p>
             <h2>Facilitator access</h2>
-            <p class="muted">Same admin number format, plus the staff password. The Staff tab unlocks after this.</p>
+            <p class="muted">Same admin number format, plus the staff password. Wait-time, stamp, and full-admin passwords can differ in production.</p>
             <label>
               Admin number
               <input id="staffLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
@@ -349,8 +369,19 @@
           <select id="feedbackTarget" required></select>
         </label>
         <label>
+          Rating
+          <select id="feedbackRating">
+            <option value="">No stars — comment only</option>
+            <option value="5">5 — excellent</option>
+            <option value="4">4 — good</option>
+            <option value="3">3 — okay</option>
+            <option value="2">2 — weak</option>
+            <option value="1">1 — poor</option>
+          </select>
+        </label>
+        <label>
           Your feedback
-          <textarea id="feedbackMessage" rows="4" maxlength="1000" required placeholder="What worked, what to fix…"></textarea>
+          <textarea id="feedbackMessage" rows="4" maxlength="1000" placeholder="Optional if you pick a rating. What worked, what to fix…"></textarea>
         </label>
         <p class="form-error" id="feedbackError" hidden></p>
         <p class="muted" id="feedbackOk" hidden>Thanks — staff can read this on the Staff page.</p>
@@ -363,15 +394,7 @@
         <h2>Stay safe tonight</h2>
         <p>General notes for SP Scream Fest. Follow staff instructions on the ground.</p>
       </div>
-      <ul class="safety-list">
-        <li>Stay with your group and agree a meetup spot if you get separated.</li>
-        <li>Watch your step in fog, cables, and low light. No running in queues.</li>
-        <li>Drink water and take a break if you feel unwell. Tell a friend or staff.</li>
-        <li>Keep bags closed and phones secure. Do not leave belongings unattended.</li>
-        <li>Respect house capacity and closed areas. Staff calls are final.</li>
-        <li>If someone is hurt or lost, find a facilitator or the help desk rather than crowding in.</li>
-        <li>Look after each other. If a scare is too much, step out — you can skip a house.</li>
-      </ul>
+      <ul class="safety-list" id="safetyList"></ul>
     </section>
 
     <section class="view" data-view="admin" hidden>
@@ -385,10 +408,11 @@
       <div id="adminApp" hidden>
         <p class="db-banner" id="dbBanner" hidden></p>
         <div class="staff-tabs" role="tablist" aria-label="Staff sections">
-          <button class="nav__btn is-active" type="button" data-staff-tab="waits">Wait times</button>
-          <button class="nav__btn" type="button" data-staff-tab="stamps">Award stamps</button>
-          <button class="nav__btn" type="button" data-staff-tab="feedback">Feedback</button>
-          <button class="nav__btn" type="button" data-staff-tab="announce">Announcements</button>
+          <button class="nav__btn is-active" type="button" data-staff-tab="waits" data-staff-scope="waits">Wait times</button>
+          <button class="nav__btn" type="button" data-staff-tab="stamps" data-staff-scope="stamps">Award stamps</button>
+          <button class="nav__btn" type="button" data-staff-tab="ops" data-staff-scope="admin">Command post</button>
+          <button class="nav__btn" type="button" data-staff-tab="feedback" data-staff-scope="admin">Feedback</button>
+          <button class="nav__btn" type="button" data-staff-tab="announce" data-staff-scope="admin">Announcements</button>
         </div>
 
         <div class="staff-panel" data-staff-panel="waits">
@@ -422,13 +446,22 @@
         <div class="staff-panel" data-staff-panel="stamps" hidden>
           <div class="section-head">
             <h2>Award a booth stamp</h2>
-            <p>Enter the student’s admin number and the booth they finished. Students cannot stamp themselves.</p>
+            <p>Look up the student, confirm the name, then award. Station codes: PG, BAT, GH3, WEB, CND, CRY.</p>
           </div>
-          <form class="auth-card" id="awardStampForm">
+          <form class="auth-card" id="lookupStudentForm">
             <label>
               Admin number
               <input id="awardStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
               <span class="field-hint">P followed by 7 digits</span>
+            </label>
+            <p class="form-error" id="lookupStudentError" hidden></p>
+            <button class="btn" type="submit">Look up</button>
+          </form>
+          <form class="auth-card" id="awardStampForm" hidden>
+            <p class="muted" id="lookupStudentName"></p>
+            <label>
+              Booth or station code
+              <input id="awardStationCode" type="text" maxlength="8" placeholder="PG" spellcheck="false">
             </label>
             <label>
               Booth
@@ -436,8 +469,18 @@
             </label>
             <p class="form-error" id="awardStampError" hidden></p>
             <p class="muted" id="awardStampOk" hidden></p>
-            <button class="btn" type="submit">Award stamp</button>
+            <button class="btn" type="submit">Confirm and award stamp</button>
           </form>
+        </div>
+
+        <div class="staff-panel" data-staff-panel="ops" hidden>
+          <div class="section-head">
+            <h2>Command post</h2>
+            <p>Live counts for the night. Needs a working API and database.</p>
+          </div>
+          <div class="ops-grid" id="opsGrid"></div>
+          <h3 class="roadmap__title">Recent staff actions</h3>
+          <ul class="feedback-list" id="opsAudit"></ul>
         </div>
 
         <div class="staff-panel" data-staff-panel="feedback" hidden>
@@ -470,12 +513,36 @@
               Message
               <textarea id="announceMessage" rows="3" maxlength="400" required placeholder="House T12 last entry in 10 minutes…"></textarea>
             </label>
+            <label>
+              Who should see it
+              <select id="announceAudience">
+                <option value="all">Everyone</option>
+                <option value="house">One scare house</option>
+                <option value="booths">Booths / stamp trail</option>
+              </select>
+            </label>
+            <label id="announceHouseWrap" hidden>
+              Scare house
+              <select id="announceHouse"></select>
+            </label>
+            <label>
+              Auto-expire (minutes, optional)
+              <input id="announceExpires" type="number" min="0" max="600" placeholder="Leave blank to keep">
+            </label>
             <p class="form-error" id="announceError" hidden></p>
             <button class="btn" type="submit">Post announcement</button>
           </form>
           <ul class="feedback-list" id="adminAnnounceList"></ul>
         </div>
       </div>
+    </section>
+
+    <section class="view board-view" data-view="board" hidden>
+      <div class="section-head">
+        <h2>Scream Fest board</h2>
+        <p>Campus high scores. Auto-refreshes for a projector.</p>
+      </div>
+      <div class="board-grid" id="boardGrid"></div>
     </section>
   </main>
 
@@ -490,6 +557,12 @@
         <strong data-modal-wait></strong>
       </div>
       <p class="modal__story" data-modal-story></p>
+      <p class="house-tags" data-modal-tags></p>
+      <p class="muted" data-modal-updated></p>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="modalAddNight">Add to my night</button>
+        <button class="btn btn--ghost" type="button" id="modalWatch">Watch wait</button>
+      </div>
     </div>
   </div>
 

@@ -4,6 +4,7 @@ export const BOOTHS = [
     icon: "🎃",
     name: "Pumpkin Gate",
     short: "Booth 01",
+    code: "PG",
     place: "Gate 1 / Dover approach",
     summary: "A carving station that kicks off the haunt trail.",
     about:
@@ -14,6 +15,7 @@ export const BOOTHS = [
     icon: "🦇",
     name: "Bat Colony",
     short: "Booth 02",
+    code: "BAT",
     place: "Aerohub / T18A edge",
     summary: "A reflex game under hanging silhouettes.",
     about:
@@ -24,6 +26,7 @@ export const BOOTHS = [
     icon: "👻",
     name: "Plaza Ghost",
     short: "Booth 03",
+    code: "GH3",
     place: "Campus plaza",
     summary: "A short ghost-story quiz at the fountain.",
     about:
@@ -34,6 +37,7 @@ export const BOOTHS = [
     icon: "🕸️",
     name: "Web Lab",
     short: "Booth 04",
+    code: "WEB",
     place: "T11 labs",
     summary: "A hands-on web of string, UV paint, and puzzles.",
     about:
@@ -44,6 +48,7 @@ export const BOOTHS = [
     icon: "🍬",
     name: "Candy Court",
     short: "Booth 05",
+    code: "CND",
     place: "Food court",
     summary: "Treats, trivia, and a share-a-sweet challenge.",
     about:
@@ -54,6 +59,7 @@ export const BOOTHS = [
     icon: "💀",
     name: "Crypt Keep",
     short: "Booth 06",
+    code: "CRY",
     place: "WSA / warehouse edge",
     summary: "The final checkpoint before Fast Pass.",
     about:

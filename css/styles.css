@@ -1247,8 +1247,99 @@ input, select {
 .night-stop p { margin: 4px 0 0; }
 .announce-board { max-width: 720px; margin: 0 auto 20px; }
 
-@media (max-width: 640px) {
-  .brand h1 { font-size: 1.35rem; }
-  .map-viewport { height: 58vh; }
-  .night-stop { grid-template-columns: 1fr; }
+.nav__btn:focus-visible, .btn:focus-visible, .house-card:focus-visible, .map-pin:focus-visible {
+  outline: 2px solid var(--orange-2);
+  outline-offset: 3px;
+}
+.nav { position: relative; }
+.nav-more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.nav__more { display: none; }
+.short-waits { margin: 0 18px 16px; }
+.short-waits__label { margin: 0 0 8px; color: var(--muted); font-size: 0.85rem; }
+.short-waits__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.short-wait {
+  border: 1px solid var(--line);
+  background: #1a0d16;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.house-card .fresh { font-size: 0.72rem; display: block; }
+.house-tags, .tag-chip { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.tag-chip {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--orange-2);
+}
+.watch-banner {
+  margin: 0;
+  padding: 10px 18px;
+  background: rgba(255, 122, 24, 0.18);
+  border-bottom: 1px solid var(--line);
+}
+.site-live-note {
+  margin: 0;
+  padding: 8px 18px;
+  background: rgba(248, 113, 113, 0.15);
+  color: #fecaca;
+}
+.my-night-list { padding-left: 18px; }
+.my-night-list button {
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.ops-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--panel);
+}
+.ops-card strong { display: block; font-size: 1.4rem; }
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 0 18px 32px;
+}
+.board-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+}
+.board-card ol { list-style: none; padding: 0; }
+.board-card li { display: flex; justify-content: space-between; margin: 8px 0; }
+body.is-board .site-header,
+body.is-board .game-subnav,
+body.is-board .watch-banner,
+body.is-board .site-live-note { display: none; }
+body.is-board { background: #050308; }
+@media (max-width: 800px) {
+  .nav__more { display: inline-flex; }
+  .nav__wide { display: none !important; }
 }

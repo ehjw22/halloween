@@ -1,4 +1,4 @@
-import { fetchLeaderboard, getAdminSession, getStudentSession, submitScore } from "./session.js";
+import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js";
 import { setupCatchArcade } from "./catch-arcade.js";
 
 const GAMES = ["clicker", "memory", "catch"];
@@ -140,6 +140,12 @@ function saveClicker(state) {
     return;
   }
   localStorage.setItem(`scream-clicker:${key}`, JSON.stringify(state));
+  if (key.startsWith("student:")) {
+    clearTimeout(saveClicker.timer);
+    saveClicker.timer = setTimeout(() => {
+      saveClickerRemote(state).catch(() => {});
+    }, 1400);
+  }
 }
 
 function upgradeCost(def, level) {
@@ -926,6 +932,11 @@ export function applyGameAccount() {
     guestBests = { clicker: 0, memory: 0, catch: 0 };
   }
   clickerApi.reload();
+  fetchClickerSave().then((remote) => {
+    if (!remote || !accountKey()) return;
+    saveClicker(hydrateClicker(remote));
+    clickerApi.reload();
+  }).catch(() => {});
   memoryApi.reset();
   catchApi.reset?.();
   GAMES.forEach((id) => {
@@ -940,6 +951,11 @@ export function initGames() {
     btn.addEventListener("click", () => showGame(btn.dataset.game));
   });
   setupClicker();
+  fetchClickerSave().then((remote) => {
+    if (!remote || !accountKey()) return;
+    saveClicker(hydrateClicker(remote));
+    clickerApi.reload();
+  }).catch(() => {});
   setupMemory();
   setupCatch();
   GAMES.forEach(refreshScores);
