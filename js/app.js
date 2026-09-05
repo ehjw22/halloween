@@ -374,14 +374,26 @@ function stopBoard() {
   boardTimer = 0;
 }
 
+function mapImageSize() {
+  const img = els.mapWorld?.querySelector("img");
+  return {
+    img,
+    width: img?.naturalWidth || img?.clientWidth || 0,
+    height: img?.naturalHeight || img?.clientHeight || 0,
+  };
+}
+
 function renderPins() {
   if (!els.mapPins) return;
+  const { width, height } = mapImageSize();
   const pinHouses = HOUSES.filter((house) => house.id === "wsa" || house.id === "sports-complex");
   els.mapPins.innerHTML = pinHouses.map((house) => {
     const row = houses.find((h) => h.id === house.id) || house;
     const status = row.status || house.status;
+    const left = width ? `${(Number(house.x) / 100) * width}px` : `${house.x}%`;
+    const top = height ? `${(Number(house.y) / 100) * height}px` : `${house.y}%`;
     return `
-      <button class="map-pin status-${status}" type="button" style="left:${house.x}%; top:${house.y}%"
+      <button class="map-pin status-${status}" type="button" style="left:${left}; top:${top}"
         data-open-house="${house.id}" aria-label="${house.name}">
         <span class="map-pin__dot"></span>
         <span class="map-pin__name">${house.short}</span>
@@ -397,18 +409,23 @@ function applyMapTransform() {
 }
 
 function sizeMapWorld() {
-  const img = els.mapWorld?.querySelector("img");
-  if (!img?.naturalWidth || !els.mapWorld) return;
-  els.mapWorld.style.width = `${img.naturalWidth}px`;
-  els.mapWorld.style.height = `${img.naturalHeight}px`;
-  img.style.width = `${img.naturalWidth}px`;
-  img.style.height = `${img.naturalHeight}px`;
+  const { img, width, height } = mapImageSize();
+  if (!img || !width || !height || !els.mapWorld) return;
+  els.mapWorld.style.width = `${width}px`;
+  els.mapWorld.style.height = `${height}px`;
+  img.style.width = `${width}px`;
+  img.style.height = `${height}px`;
+  if (els.mapPins) {
+    els.mapPins.style.width = `${width}px`;
+    els.mapPins.style.height = `${height}px`;
+  }
 }
 
 function fitMap() {
   const img = els.mapWorld?.querySelector("img");
   if (!img || !els.mapViewport) return;
   sizeMapWorld();
+  renderPins();
   const vp = els.mapViewport.getBoundingClientRect();
   const w = img.naturalWidth || img.clientWidth || 1600;
   const h = img.naturalHeight || img.clientHeight || 900;
@@ -416,7 +433,7 @@ function fitMap() {
   const fit = Math.min(vp.width / w, vp.height / h);
   mapState.min = fit * 0.85;
   mapState.max = Math.max(2.4, fit * 6);
-  mapState.scale = Math.min(mapState.max, Math.max(fit * 1.75, fit * 1.2));
+  mapState.scale = Math.min(mapState.max, fit * 1.12);
   mapState.x = (vp.width - w * mapState.scale) / 2;
   mapState.y = (vp.height - h * mapState.scale) / 2;
   applyMapTransform();
