@@ -46,9 +46,9 @@ export const HOUSES = [
   {
     id: "sports-complex",
     name: "Trackside Terror",
-    short: "SC",
-    x: 18,
-    y: 44,
+    short: "Trackside Terror",
+    x: 38,
+    y: 20,
     wait: 0,
     status: "open",
     tags: ["outdoors", "stairs"],

@@ -1024,6 +1024,14 @@ function bindUi() {
     menu.hidden = !menu.hidden;
     event.currentTarget.setAttribute("aria-expanded", String(!menu.hidden));
   });
+  document.addEventListener("click", (event) => {
+    const menu = document.getElementById("navMoreMenu");
+    const more = document.getElementById("navMore");
+    if (!menu || menu.hidden) return;
+    if (more?.contains(event.target) || menu.contains(event.target)) return;
+    menu.hidden = true;
+    more?.setAttribute("aria-expanded", "false");
+  });
   els.navButtons.forEach((btn) => {
     if (btn.id === "navMore") return;
     btn.addEventListener("click", () => setView(btn.dataset.nav));

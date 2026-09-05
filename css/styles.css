@@ -1257,14 +1257,16 @@ input, select {
   right: 0;
   top: calc(100% + 6px);
   z-index: 8;
-  display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 10px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
+  min-width: 160px;
 }
+.nav-more-menu[hidden] { display: none !important; }
+.nav-more-menu:not([hidden]) { display: flex; }
 .nav__more { display: none; }
 .short-waits { margin: 0 18px 16px; }
 .short-waits__label { margin: 0 0 8px; color: var(--muted); font-size: 0.85rem; }
@@ -1342,4 +1344,8 @@ body.is-board { background: #050308; }
 @media (max-width: 800px) {
   .nav__more { display: inline-flex; }
   .nav__wide { display: none !important; }
+}
+@media (min-width: 801px) {
+  .nav__more,
+  .nav-more-menu { display: none !important; }
 }
