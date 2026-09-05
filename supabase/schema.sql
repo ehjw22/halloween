@@ -55,25 +55,13 @@ create table if not exists public.stamp_cards (
 alter table public.students enable row level security;
 alter table public.stamp_cards enable row level security;
 
--- Browser never writes these tables. APIs use the service role (bypasses RLS)
--- or the anon key with the policies below as a fallback.
+-- Writes go through Vercel APIs with the service role (bypasses RLS).
+-- The published anon key must not read student names, stamp cards, or feedback.
 drop policy if exists "anon read students" on public.students;
-create policy "anon read students"
-  on public.students for select using (true);
 drop policy if exists "anon insert students" on public.students;
 drop policy if exists "anon insert cards" on public.stamp_cards;
 drop policy if exists "anon update cards" on public.stamp_cards;
-drop policy if exists "anon insert scores" on public.game_scores;
-drop policy if exists "anon update scores" on public.game_scores;
-drop policy if exists "anon insert feedback" on public.event_feedback;
-drop policy if exists "anon insert announcements" on public.announcements;
-drop policy if exists "anon update announcements" on public.announcements;
--- Writes go through Vercel APIs with the service role (bypasses RLS).
--- Browsers with the anon key can only read.
-
 drop policy if exists "anon read cards" on public.stamp_cards;
-create policy "anon read cards"
-  on public.stamp_cards for select using (true);
 
 create table if not exists public.game_scores (
   student_number text not null references public.students (student_number) on delete cascade,
@@ -86,8 +74,8 @@ create table if not exists public.game_scores (
 alter table public.game_scores enable row level security;
 
 drop policy if exists "anon read scores" on public.game_scores;
-create policy "anon read scores"
-  on public.game_scores for select using (true);
+drop policy if exists "anon insert scores" on public.game_scores;
+drop policy if exists "anon update scores" on public.game_scores;
 
 do $$
 begin
@@ -109,8 +97,7 @@ create table if not exists public.event_feedback (
 alter table public.event_feedback enable row level security;
 
 drop policy if exists "anon read feedback" on public.event_feedback;
-create policy "anon read feedback"
-  on public.event_feedback for select using (true);
+drop policy if exists "anon insert feedback" on public.event_feedback;
 
 create table if not exists public.announcements (
   id uuid primary key default gen_random_uuid(),
@@ -122,6 +109,8 @@ create table if not exists public.announcements (
 
 alter table public.announcements enable row level security;
 
+drop policy if exists "anon insert announcements" on public.announcements;
+drop policy if exists "anon update announcements" on public.announcements;
 drop policy if exists "anon read announcements" on public.announcements;
 create policy "anon read announcements"
   on public.announcements for select using (true);

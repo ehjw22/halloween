@@ -1,6 +1,11 @@
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
 
+function isBrowserLocal() {
+  const host = String(window.location.hostname || "");
+  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+}
+
 function decodePayload(token) {
   try {
     const mid = token.split(".")[1];
@@ -31,12 +36,20 @@ function readSession(storageKey) {
 export function getStudentSession() {
   const session = readSession(STUDENT_KEY);
   if (!session || session.payload.role !== "student") return null;
+  if (session.payload.local && !isBrowserLocal()) {
+    localStorage.removeItem(STUDENT_KEY);
+    return null;
+  }
   return session;
 }
 
 export function getAdminSession() {
   const session = readSession(ADMIN_KEY);
   if (!session || session.payload.role !== "admin") return null;
+  if (session.payload.local && !isBrowserLocal()) {
+    localStorage.removeItem(ADMIN_KEY);
+    return null;
+  }
   return session;
 }
 
@@ -110,6 +123,9 @@ function writeLocalCard(studentNumber, card) {
 }
 
 function localSignIn({ id, fullName, password }) {
+  if (!isBrowserLocal()) {
+    throw new Error("Sign-in is unavailable. Try again in a moment.");
+  }
   const pass = String(password || "");
   if (pass) {
     if (pass !== "SP2026") {
@@ -166,13 +182,19 @@ export async function signIn({ adminNumber, fullName, password }) {
       else setStudentToken(data.token);
       return data;
     }
-    if (res.status === 401 || res.status === 400) {
+    if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
       throw new Error(data.error || "Sign-in failed.");
+    }
+    if (!isBrowserLocal()) {
+      throw new Error(data.error || "Sign-in is unavailable. Try again in a moment.");
     }
     return localSignIn({ id, fullName: name, password });
   } catch (error) {
-    if (error.message && /admin number|full name|incorrect|Sign-in failed/i.test(error.message)) {
+    if (error.message && /admin number|full name|incorrect|Sign-in failed|unavailable|Too many/i.test(error.message)) {
       throw error;
+    }
+    if (!isBrowserLocal()) {
+      throw new Error("Sign-in is unavailable. Try again in a moment.");
     }
     return localSignIn({ id, fullName: name, password });
   }

@@ -18,9 +18,10 @@ const {
 function handleConfig(req, res) {
   const env = getEnv();
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   res.status(200).json({
-    supabaseUrl: env.url,
-    supabaseAnonKey: env.anon,
+    supabaseUrl: env.url || "",
+    supabaseAnonKey: env.anon || "",
   });
 }
 
@@ -39,7 +40,6 @@ function routeName(req) {
 }
 
 const HANDLERS = {
-  config: handleConfig,
   login: handleLogin,
   stamps: handleStamps,
   "award-stamp": handleAwardStamp,
@@ -56,10 +56,24 @@ const HANDLERS = {
 };
 
 module.exports = async function handler(req, res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
   const name = routeName(req);
+  if (name === "config") {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    return handleConfig(req, res);
+  }
   const fn = HANDLERS[name];
   if (!fn) {
-    res.setHeader("Cache-Control", "no-store");
     res.status(404).json({ error: "Unknown API route." });
     return;
   }
