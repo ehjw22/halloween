@@ -373,18 +373,6 @@ function stopBoard() {
   clearInterval(boardTimer);
   boardTimer = 0;
 }
-  if (!els.mapPins) return;
-  els.mapPins.innerHTML = HOUSES.map((house) => {
-    const row = houses.find((h) => h.id === house.id) || house;
-    const status = row.status || house.status;
-    return `
-      <button class="map-pin status-${status}" type="button" style="left:${house.x}%; top:${house.y}%"
-        data-open-house="${house.id}" aria-label="${house.name}">
-        <span class="map-pin__dot"></span>
-        <span class="map-pin__name">${house.short}</span>
-      </button>`;
-  }).join("");
-}
 
 function renderPins() {
   if (!els.mapPins) return;
