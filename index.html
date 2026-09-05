@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map7">
+  <link rel="stylesheet" href="css/styles.css?v=map9">
 </head>
 <body>
   <div class="fog" aria-hidden="true"></div>
@@ -45,7 +45,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.2.7</div>
+      <div class="version-chip" title="App version">v1.2.8</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -91,7 +91,16 @@
           <div class="map-world" id="mapWorld">
             <div class="map-stage" id="mapStage">
               <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
-              <div class="map-pins" id="mapPins"></div>
+              <svg id="mapPinLayer" class="map-pin-svg" viewBox="0 0 2301 1405" preserveAspectRatio="none" aria-label="Haunt locations">
+                <g class="map-pin status-open" data-open-house="sports-complex" tabindex="0" role="button" aria-label="Trackside Terror">
+                  <text class="map-pin__label" x="1243" y="338" text-anchor="middle">Trackside Terror</text>
+                  <circle class="map-pin__mark" cx="1243" cy="372" r="22"></circle>
+                </g>
+                <g class="map-pin status-at_capacity" data-open-house="wsa" tabindex="0" role="button" aria-label="WSA Warehouse Whispers">
+                  <text class="map-pin__label" x="1818" y="1202" text-anchor="middle">WSA</text>
+                  <circle class="map-pin__mark" cx="1818" cy="1236" r="22"></circle>
+                </g>
+              </svg>
             </div>
           </div>
         </div>
@@ -605,6 +614,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map7"></script>
+  <script type="module" src="js/app.js?v=map9"></script>
 </body>
 </html>

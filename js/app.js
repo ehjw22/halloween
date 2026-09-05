@@ -40,7 +40,7 @@ const els = {
   shortWaits: document.getElementById("shortWaits"),
   mapWorld: document.getElementById("mapWorld"),
   mapViewport: document.getElementById("mapViewport"),
-  mapPins: document.getElementById("mapPins"),
+  mapPins: document.getElementById("mapPinLayer"),
   zoomLabel: document.getElementById("zoomLabel"),
   liveMode: document.getElementById("liveMode"),
   modal: document.getElementById("detailModal"),
@@ -389,20 +389,16 @@ const MAP_PIN_PLACEMENTS = [
 ];
 
 function renderPins() {
-  if (!els.mapPins) return;
-  els.mapPins.innerHTML = MAP_PIN_PLACEMENTS.map((pin) => {
+  const layer = document.getElementById("mapPinLayer");
+  if (!layer) return;
+  MAP_PIN_PLACEMENTS.forEach((pin) => {
+    const node = layer.querySelector(`[data-open-house="${pin.id}"]`);
+    if (!node) return;
     const house = HOUSES.find((h) => h.id === pin.id) || pin;
     const row = houses.find((h) => h.id === pin.id) || house;
     const status = row.status || house.status || "open";
-    return `
-      <button class="map-pin status-${status}" type="button" style="left:${pin.x}%;top:${pin.y}%"
-        data-open-house="${pin.id}" aria-label="${house.name || pin.id}">
-        <span class="map-pin__gfx">
-          <span class="map-pin__name">${house.short || house.name || pin.id}</span>
-          <span class="map-pin__dot"></span>
-        </span>
-      </button>`;
-  }).join("");
+    node.setAttribute("class", `map-pin status-${status}`);
+  });
 }
 
 function applyMapTransform() {
