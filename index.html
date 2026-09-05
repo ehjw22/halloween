@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=map7">
 </head>
 <body>
   <div class="fog" aria-hidden="true"></div>
@@ -45,7 +45,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.2.6</div>
+      <div class="version-chip" title="App version">v1.2.7</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -89,8 +89,10 @@
         </div>
         <div class="map-viewport" id="mapViewport">
           <div class="map-world" id="mapWorld">
-            <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
-            <div class="map-pins" id="mapPins"></div>
+            <div class="map-stage" id="mapStage">
+              <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
+              <div class="map-pins" id="mapPins"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -603,6 +605,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=map7"></script>
 </body>
 </html>

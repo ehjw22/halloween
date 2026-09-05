@@ -383,20 +383,24 @@ function mapImageSize() {
   };
 }
 
+const MAP_PIN_PLACEMENTS = [
+  { id: "sports-complex", x: 54, y: 26.5 },
+  { id: "wsa", x: 79, y: 88 },
+];
+
 function renderPins() {
   if (!els.mapPins) return;
-  const { width, height } = mapImageSize();
-  const pinHouses = HOUSES.filter((house) => house.id === "wsa" || house.id === "sports-complex");
-  els.mapPins.innerHTML = pinHouses.map((house) => {
-    const row = houses.find((h) => h.id === house.id) || house;
-    const status = row.status || house.status;
-    const left = width ? `${(Number(house.x) / 100) * width}px` : `${house.x}%`;
-    const top = height ? `${(Number(house.y) / 100) * height}px` : `${house.y}%`;
+  els.mapPins.innerHTML = MAP_PIN_PLACEMENTS.map((pin) => {
+    const house = HOUSES.find((h) => h.id === pin.id) || pin;
+    const row = houses.find((h) => h.id === pin.id) || house;
+    const status = row.status || house.status || "open";
     return `
-      <button class="map-pin status-${status}" type="button" style="left:${left}; top:${top}"
-        data-open-house="${house.id}" aria-label="${house.name}">
-        <span class="map-pin__dot"></span>
-        <span class="map-pin__name">${house.short}</span>
+      <button class="map-pin status-${status}" type="button" style="left:${pin.x}%;top:${pin.y}%"
+        data-open-house="${pin.id}" aria-label="${house.name || pin.id}">
+        <span class="map-pin__gfx">
+          <span class="map-pin__name">${house.short || house.name || pin.id}</span>
+          <span class="map-pin__dot"></span>
+        </span>
       </button>`;
   }).join("");
 }
@@ -411,14 +415,10 @@ function applyMapTransform() {
 function sizeMapWorld() {
   const { img, width, height } = mapImageSize();
   if (!img || !width || !height || !els.mapWorld) return;
-  els.mapWorld.style.width = `${width}px`;
-  els.mapWorld.style.height = `${height}px`;
   img.style.width = `${width}px`;
   img.style.height = `${height}px`;
-  if (els.mapPins) {
-    els.mapPins.style.width = `${width}px`;
-    els.mapPins.style.height = `${height}px`;
-  }
+  els.mapWorld.style.width = `${width}px`;
+  els.mapWorld.style.height = `${height}px`;
 }
 
 function fitMap() {
@@ -433,7 +433,7 @@ function fitMap() {
   const fit = Math.min(vp.width / w, vp.height / h);
   mapState.min = fit * 0.85;
   mapState.max = Math.max(2.4, fit * 6);
-  mapState.scale = Math.min(mapState.max, fit * 1.12);
+  mapState.scale = Math.min(mapState.max, fit);
   mapState.x = (vp.width - w * mapState.scale) / 2;
   mapState.y = (vp.height - h * mapState.scale) / 2;
   applyMapTransform();
