@@ -376,7 +376,8 @@ function stopBoard() {
 
 function renderPins() {
   if (!els.mapPins) return;
-  els.mapPins.innerHTML = HOUSES.map((house) => {
+  const pinHouses = HOUSES.filter((house) => house.id === "wsa" || house.id === "sports-complex");
+  els.mapPins.innerHTML = pinHouses.map((house) => {
     const row = houses.find((h) => h.id === house.id) || house;
     const status = row.status || house.status;
     return `
@@ -400,6 +401,8 @@ function sizeMapWorld() {
   if (!img?.naturalWidth || !els.mapWorld) return;
   els.mapWorld.style.width = `${img.naturalWidth}px`;
   els.mapWorld.style.height = `${img.naturalHeight}px`;
+  img.style.width = `${img.naturalWidth}px`;
+  img.style.height = `${img.naturalHeight}px`;
 }
 
 function fitMap() {
