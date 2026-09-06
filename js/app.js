@@ -1,3 +1,4 @@
+import { initEventGate, isEventOpen } from "./gate.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
@@ -215,6 +216,10 @@ function setHash(view, extra) {
 }
 
 function setView(name, extra) {
+  if (!isEventOpen()) {
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    return;
+  }
   const student = getStudentSession();
   const admin = getAdminSession();
   if (name === "admin" && !admin) name = "login";
@@ -1026,6 +1031,36 @@ function bindMap() {
     zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, mapState.scale / 1.2);
   });
   document.getElementById("zoomReset")?.addEventListener("click", resetMap);
+  const pinFade = document.getElementById("pinOpacity");
+  const pinLayer = document.getElementById("mapPinLayer");
+  const applyPinFade = (raw) => {
+    const n = Math.min(100, Math.max(0, Number(raw)));
+    const t = Number.isFinite(n) ? n : 100;
+    if (pinLayer) {
+      pinLayer.style.opacity = String(t / 100);
+      pinLayer.style.pointerEvents = t < 8 ? "none" : "";
+    }
+    if (pinFade) {
+      pinFade.value = String(t);
+      pinFade.setAttribute("aria-valuetext", `${t} percent`);
+    }
+    try {
+      localStorage.setItem("scream-pin-opacity", String(t));
+    } catch {
+      /* ignore */
+    }
+  };
+  if (pinFade && pinLayer) {
+    let saved = 100;
+    try {
+      saved = Number(localStorage.getItem("scream-pin-opacity"));
+    } catch {
+      saved = 100;
+    }
+    applyPinFade(Number.isFinite(saved) ? saved : 100);
+    pinFade.addEventListener("input", () => applyPinFade(pinFade.value));
+    pinFade.addEventListener("change", () => applyPinFade(pinFade.value));
+  }
   window.addEventListener("resize", fitMap);
   const img = els.mapWorld.querySelector("img");
   if (img?.complete) fitMap();
@@ -1400,6 +1435,11 @@ function onStoreChange(next) {
 }
 
 async function init() {
+  try {
+    initEventGate();
+  } catch (error) {
+    console.warn("Event gate failed", error);
+  }
   try {
     bindUi();
     paintSafety();

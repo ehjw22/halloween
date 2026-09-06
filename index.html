@@ -12,10 +12,38 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map9">
+  <link rel="stylesheet" href="css/styles.css?v=map11">
+  <script>
+    (function () {
+      var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
+      var host = location.hostname;
+      var local = host === "127.0.0.1" || host === "localhost";
+      try {
+        if (local && sessionStorage.getItem("scream-gate-open") === "1") open = true;
+        if (local && new URLSearchParams(location.search).get("preview") === "1") open = true;
+      } catch (e) {}
+      if (open) document.documentElement.classList.add("event-open");
+    })();
+  </script>
 </head>
 <body>
   <div class="fog" aria-hidden="true"></div>
+  <button class="event-view-toggle" type="button" id="eventViewToggle" hidden aria-pressed="false">View site</button>
+  <div id="eventGate" class="event-gate" role="dialog" aria-modal="true" aria-labelledby="eventGateTitle">
+    <p class="event-gate__kicker">Singapore Polytechnic</p>
+    <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
+    <p class="event-gate__when">Opens 24 October 2026 · 6:00pm Singapore time</p>
+    <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
+    <div class="event-gate__clock" aria-hidden="true">
+      <div class="event-gate__unit"><span id="cdDays">0</span><small>Days</small></div>
+      <div class="event-gate__unit"><span id="cdHours">00</span><small>Hours</small></div>
+      <div class="event-gate__unit"><span id="cdMinutes">00</span><small>Minutes</small></div>
+      <div class="event-gate__unit"><span id="cdSeconds">00</span><small>Seconds</small></div>
+    </div>
+    <p class="event-gate__note">The haunt map, stamp card, games, and sign-in unlock at opening.</p>
+    <button class="btn" type="button" id="eventGateLocal" hidden>Preview site on this computer</button>
+  </div>
+  <div id="eventApp" data-event-app>
   <header class="site-header">
     <div class="brand">
       <span class="brand__mark">SP</span>
@@ -45,7 +73,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.2.9</div>
+      <div class="version-chip" title="App version">v1.3.0</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -87,6 +115,11 @@
           <button id="zoomReset" type="button">Reset</button>
           <span id="zoomLabel">100%</span>
         </div>
+        <label class="map-pin-fade">
+          <span>Pins</span>
+          <input id="pinOpacity" type="range" min="0" max="100" value="100" step="1" aria-label="Pin visibility">
+          <span>Map</span>
+        </label>
         <div class="map-viewport" id="mapViewport">
           <div class="map-world" id="mapWorld">
             <div class="map-stage" id="mapStage">
@@ -614,6 +647,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map9"></script>
+  <script type="module" src="js/app.js?v=map11"></script>
+</div>
 </body>
 </html>
