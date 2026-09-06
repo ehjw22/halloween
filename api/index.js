@@ -8,6 +8,7 @@ const {
   handleLogin,
   handleLookupStudent,
   handleOps,
+  handlePush,
   handleRedeem,
   handleScores,
   handleStamps,
@@ -22,6 +23,7 @@ function handleConfig(req, res) {
   res.status(200).json({
     supabaseUrl: env.url || "",
     supabaseAnonKey: env.anon || "",
+    vapidPublicKey: require("../lib/push").getPublicVapidKey(),
   });
 }
 
@@ -53,6 +55,7 @@ const HANDLERS = {
   "game-save": handleGameSave,
   "student-auth": handleStudentAuth,
   "admin-auth": handleAdminAuth,
+  push: handlePush,
 };
 
 module.exports = async function handler(req, res) {

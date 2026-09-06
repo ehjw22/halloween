@@ -22,6 +22,15 @@ import {
   submitFeedback,
   normalizeAdminNumber,
 } from "./session.js";
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  paintPushHint,
+  registerPushWorker,
+  resumePushIfWanted,
+  setWantsPush,
+  syncPushWatch,
+} from "./push.js";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -1174,6 +1183,7 @@ function bindUi() {
       : [...night.watch, openHouseId];
     writeNight(night);
     openHouse(openHouseId);
+    syncPushWatch(night.watch);
   });
 
   document.body.addEventListener("click", (event) => {
@@ -1203,6 +1213,7 @@ function bindUi() {
     if (logout) {
       if (logout.dataset.logout === "student") {
         flushGameProgress();
+        disablePushNotifications();
         clearStudentSession();
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
@@ -1252,6 +1263,24 @@ function bindUi() {
       if (!data.staff) {
         cardState.studentNumber = "";
         await renderStamps({ refresh: true });
+        const notify = document.getElementById("studentNotifyOptIn");
+        if (notify?.checked) {
+          setWantsPush(true);
+          try {
+            const result = await enablePushNotifications(readNight().watch);
+            paintPushHint();
+            if (result.reason === "denied") {
+              if (err) {
+                err.hidden = false;
+                err.textContent = "Signed in. Notifications were blocked in the browser settings.";
+              }
+            }
+          } catch {
+            paintPushHint();
+          }
+        } else {
+          paintPushHint();
+        }
       }
     } catch (error) {
       if (err) {
@@ -1512,6 +1541,9 @@ async function init() {
   renderAdmin();
   renderTimeline();
   loadPublicAnnouncements();
+  registerPushWorker();
+  paintPushHint();
+  resumePushIfWanted(readNight().watch);
   const start = hashToView();
   if (location.hash && start.view) {
     setView.skipHash = true;

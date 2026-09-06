@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SP Scream Fest</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Scream Fest">
+  <meta name="theme-color" content="#ff7a18">
   <meta name="description" content="Singapore Polytechnic Scream Fest — wait times, stamp card, tonight’s programme, and safety.">
   <meta property="og:title" content="SP Scream Fest">
   <meta property="og:description" content="Campus haunt map, wait times, and stamp card for Singapore Polytechnic Scream Fest.">
@@ -12,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map16">
+  <link rel="stylesheet" href="css/styles.css?v=map17">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -120,7 +125,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.3.3</div>
+      <div class="version-chip" title="App version">v1.3.4</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -130,6 +135,9 @@
   </div>
 
   <div class="watch-banner" id="watchBanner" hidden></div>
+  <p class="push-install-hint" id="pushInstallHint" hidden>
+    iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that icon, and allow notifications. Wait alerts will not arrive from a normal Safari tab.
+  </p>
   <p class="site-live-note" id="siteLiveNote" hidden></p>
   <main>
     <section class="view is-active" data-view="map">
@@ -211,6 +219,10 @@
             <label>
               Full name
               <input id="studentLoginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Full name on your card" required>
+            </label>
+            <label class="check-row">
+              <input id="studentNotifyOptIn" type="checkbox">
+              <span>Notify me on this phone when a house I watch changes. iPhone needs Add to Home Screen first.</span>
             </label>
             <p class="form-error" id="studentLoginError" hidden></p>
             <button class="btn" type="submit">Register / sign in</button>
@@ -697,7 +709,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map15"></script>
+  <script type="module" src="js/app.js?v=map17"></script>
 </div>
 </body>
 </html>

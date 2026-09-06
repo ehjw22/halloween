@@ -142,4 +142,16 @@ create table if not exists public.game_saves (
 
 alter table public.game_saves enable row level security;
 
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  student_number text not null references public.students (student_number) on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  watch jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.push_subscriptions enable row level security;
+
 

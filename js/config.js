@@ -1,6 +1,7 @@
 window.HALLOWEEN_CONFIG = {
   supabaseUrl: "",
   supabaseAnonKey: "",
+  vapidPublicKey: "",
 };
 
 window.__CONFIG_STATUS = { ok: false, reason: "not-loaded" };
@@ -22,6 +23,7 @@ window.loadHalloweenConfig = async function loadHalloweenConfig() {
     const data = await res.json();
     if (data.supabaseUrl) window.HALLOWEEN_CONFIG.supabaseUrl = data.supabaseUrl;
     if (data.supabaseAnonKey) window.HALLOWEEN_CONFIG.supabaseAnonKey = data.supabaseAnonKey;
+    if (data.vapidPublicKey) window.HALLOWEEN_CONFIG.vapidPublicKey = data.vapidPublicKey;
     const ready = Boolean(data.supabaseUrl && data.supabaseAnonKey);
     window.__CONFIG_STATUS = {
       ok: ready,
