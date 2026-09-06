@@ -33,14 +33,23 @@ function handleConfig(req, res) {
   });
 }
 
+function firstSegment(value) {
+  return String(value || "").split("/").filter(Boolean)[0] || "";
+}
+
 function routeName(req) {
-  if (req.query && req.query.path) {
-    return String(req.query.path).split("/").filter(Boolean)[0] || "";
+  const q = req.query || {};
+  if (q.path) {
+    const raw = Array.isArray(q.path) ? q.path[0] : q.path;
+    const name = firstSegment(raw);
+    if (name && name !== "index") return name;
   }
   try {
     const url = new URL(req.url, "http://localhost");
+    const fromQuery = firstSegment(url.searchParams.get("path"));
+    if (fromQuery && fromQuery !== "index") return fromQuery;
     const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
-    if (parts[0] === "index") return "";
+    if (parts[0] === "index") return firstSegment(parts.slice(1).join("/")) || fromQuery;
     return parts[0] || "";
   } catch {
     return "";
@@ -61,7 +70,13 @@ const HANDLERS = {
   "game-save": handleGameSave,
   "student-auth": handleStudentAuth,
   "admin-auth": handleAdminAuth,
-  push: handlePush,
+  push: async (req, res) => {
+    try {
+      return await handlePush(req, res);
+    } catch {
+      if (!res.headersSent) res.status(503).json({ error: "Push is not available." });
+    }
+  },
 };
 
 module.exports = async function handler(req, res) {
@@ -69,22 +84,28 @@ module.exports = async function handler(req, res) {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
-  }
-  const name = routeName(req);
-  if (name === "config") {
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      res.status(405).json({ error: "Method not allowed" });
+  try {
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
       return;
     }
-    return handleConfig(req, res);
+    const name = routeName(req);
+    if (name === "config") {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        res.status(405).json({ error: "Method not allowed" });
+        return;
+      }
+      return handleConfig(req, res);
+    }
+    const fn = HANDLERS[name];
+    if (!fn) {
+      res.status(404).json({ error: "Unknown API route." });
+      return;
+    }
+    return await fn(req, res);
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Something went wrong. Try again." });
+    }
   }
-  const fn = HANDLERS[name];
-  if (!fn) {
-    res.status(404).json({ error: "Unknown API route." });
-    return;
-  }
-  return fn(req, res);
 };

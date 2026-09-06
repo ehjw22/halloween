@@ -2,8 +2,13 @@ const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
 
 function isBrowserLocal() {
-  const host = String(window.location.hostname || "");
-  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  const host = String(window.location.hostname || "").toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "0.0.0.0") return true;
+  if (host.endsWith(".localhost")) return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(host)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(host)) return true;
+  return false;
 }
 
 function decodePayload(token) {
@@ -177,26 +182,30 @@ export async function signIn({ adminNumber, fullName, password }) {
       body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) {
+    if (res.ok && data.token) {
       if (data.staff) setAdminToken(data.token);
       else setStudentToken(data.token);
       return data;
     }
+    if (res.ok) {
+      throw new Error("Sign-in did not return a session. Try again.");
+    }
+    const apiError = String(data.error || "").trim();
     if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
-      throw new Error(data.error || "Sign-in failed.");
+      throw new Error(apiError || "Sign-in failed.");
     }
-    if (!isBrowserLocal()) {
-      throw new Error(data.error || "Sign-in is unavailable. Try again in a moment.");
+    if (isBrowserLocal()) {
+      return localSignIn({ id, fullName: name, password });
     }
-    return localSignIn({ id, fullName: name, password });
+    throw new Error(apiError || "Sign-in is unavailable. Try again in a moment.");
   } catch (error) {
-    if (error.message && /admin number|full name|incorrect|Sign-in failed|unavailable|Too many/i.test(error.message)) {
+    if (error && error.message && !/failed to fetch|networkerror|load failed/i.test(error.message)) {
       throw error;
     }
-    if (!isBrowserLocal()) {
-      throw new Error("Sign-in is unavailable. Try again in a moment.");
+    if (isBrowserLocal()) {
+      return localSignIn({ id, fullName: name, password });
     }
-    return localSignIn({ id, fullName: name, password });
+    throw new Error("Sign-in is unavailable. Try again in a moment.");
   }
 }
 
