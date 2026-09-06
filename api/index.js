@@ -14,6 +14,7 @@ const {
   handleStamps,
   handleStudentAuth,
   handleWaitTimes,
+  studentLoginReady,
 } = require("../lib/server-auth");
 
 function handleConfig(req, res) {
@@ -30,6 +31,7 @@ function handleConfig(req, res) {
     supabaseUrl: env.url || "",
     supabaseAnonKey: env.anon || "",
     vapidPublicKey,
+    studentLogin: studentLoginReady(),
   });
 }
 

@@ -154,4 +154,85 @@ create table if not exists public.push_subscriptions (
 
 alter table public.push_subscriptions enable row level security;
 
+create or replace function public.register_scream_student(p_number text, p_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  nm text;
+  existing public.students%rowtype;
+begin
+  n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
+  if n ~ '^[0-9]{7}$' then
+    n := 'P' || n;
+  end if;
+  if n !~ '^P[0-9]{7}$' then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  nm := left(trim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g')), 80);
+  if char_length(nm) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'bad_name');
+  end if;
+
+  select * into existing from public.students where student_number = n;
+  if found then
+    if lower(regexp_replace(existing.full_name, '\s+', '', 'g')) <> lower(regexp_replace(nm, '\s+', '', 'g')) then
+      return jsonb_build_object('ok', false, 'error', 'name_mismatch');
+    end if;
+    insert into public.stamp_cards (student_number, stamps)
+    values (n, '{}'::jsonb)
+    on conflict (student_number) do nothing;
+    return jsonb_build_object('ok', true, 'created', false, 'student_number', n, 'full_name', existing.full_name);
+  end if;
+
+  insert into public.students (student_number, full_name) values (n, nm);
+  insert into public.stamp_cards (student_number, stamps)
+  values (n, '{}'::jsonb)
+  on conflict (student_number) do nothing;
+  return jsonb_build_object('ok', true, 'created', true, 'student_number', n, 'full_name', nm);
+end;
+$$;
+
+create or replace function public.get_scream_card(p_number text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  card public.stamp_cards%rowtype;
+begin
+  n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
+  if n ~ '^[0-9]{7}$' then
+    n := 'P' || n;
+  end if;
+  select * into card from public.stamp_cards where student_number = n;
+  if not found then
+    insert into public.stamp_cards (student_number, stamps)
+    values (n, '{}'::jsonb)
+    on conflict (student_number) do nothing;
+    select * into card from public.stamp_cards where student_number = n;
+  end if;
+  if not found then
+    return jsonb_build_object('ok', false);
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'stamps', coalesce(card.stamps, '{}'::jsonb),
+    'redeemed_at', card.redeemed_at,
+    'redeemed_by', card.redeemed_by
+  );
+end;
+$$;
+
+revoke all on function public.register_scream_student(text, text) from public;
+revoke all on function public.get_scream_card(text) from public;
+grant execute on function public.register_scream_student(text, text) to anon, authenticated, service_role;
+grant execute on function public.get_scream_card(text) to anon, authenticated, service_role;
+
+
 

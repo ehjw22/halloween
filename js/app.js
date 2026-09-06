@@ -1564,8 +1564,9 @@ async function init() {
   const connectWait = new Promise((resolve) => setTimeout(() => resolve({ mode: "local", error: "Connection timed out." }), 6000));
   const { mode, error } = await Promise.race([connected, connectWait]);
   const live = mode === "live";
+  const accounts = Boolean(window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.studentLogin);
   const status = window.__CONFIG_STATUS || {};
-  els.liveMode.textContent = live ? "Live · Supabase" : "Demo · local sync";
+  els.liveMode.textContent = live ? (accounts ? "Live · Supabase" : "Live · waits only") : "Demo · local sync";
   els.liveMode.classList.toggle("is-live", live);
   if (els.dbBanner) {
     els.dbBanner.hidden = false;
@@ -1579,7 +1580,9 @@ async function init() {
       ok: "",
     }[status.reason] || "";
     els.dbBanner.textContent = live
-      ? "LIVE. Wait times and stamps write to the database."
+      ? (accounts
+        ? "LIVE. Wait times and stamps write to the database."
+        : "LIVE waits. Student sign-up needs SUPABASE_SERVICE_ROLE_KEY on Vercel (or run supabase/schema.sql), then redeploy.")
       : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
   }
   const note = document.getElementById("siteLiveNote");
