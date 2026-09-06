@@ -12,15 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map14">
+  <link rel="stylesheet" href="css/styles.css?v=map16">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
-      var host = location.hostname;
-      var local = host === "127.0.0.1" || host === "localhost";
       try {
-        if (local && sessionStorage.getItem("scream-gate-open") === "1") open = true;
-        if (local && new URLSearchParams(location.search).get("preview") === "1") open = true;
+        if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
+        if (new URLSearchParams(location.search).get("preview") === "1") open = true;
       } catch (e) {}
       if (open) document.documentElement.classList.add("event-open");
     })();
@@ -75,7 +73,7 @@
       <button class="btn" type="button" id="watchTrailer">Watch trailer</button>
       <p class="event-gate__by">Brought to you by</p>
       <p class="event-gate__clubs" id="clubCredits">SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC · SMAC</p>
-      <button class="btn btn--ghost" type="button" id="eventGateLocal" hidden>Preview site on this computer</button>
+      <button class="btn btn--ghost" type="button" id="eventGateLocal" hidden>View the site</button>
     </div>
     <div class="trailer-modal" id="trailerModal" hidden>
       <div class="trailer-modal__backdrop" data-close-trailer></div>
@@ -122,7 +120,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.3.2</div>
+      <div class="version-chip" title="App version">v1.3.3</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -173,16 +171,7 @@
           <div class="map-world" id="mapWorld">
             <div class="map-stage" id="mapStage">
               <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
-              <svg id="mapPinLayer" class="map-pin-svg" viewBox="0 0 2301 1405" preserveAspectRatio="none" aria-label="Haunt locations">
-                <g class="map-pin status-open" data-open-house="sports-complex" tabindex="0" role="button" aria-label="Trackside Terror">
-                  <text class="map-pin__label" x="1243" y="338" text-anchor="middle">Trackside Terror</text>
-                  <circle class="map-pin__mark" cx="1243" cy="372" r="22"></circle>
-                </g>
-                <g class="map-pin status-at_capacity" data-open-house="wsa" tabindex="0" role="button" aria-label="WSA Warehouse Whispers">
-                  <text class="map-pin__label" x="1818" y="1202" text-anchor="middle">WSA</text>
-                  <circle class="map-pin__mark" cx="1818" cy="1236" r="22"></circle>
-                </g>
-              </svg>
+              <svg id="mapPinLayer" class="map-pin-svg" viewBox="0 0 2301 1405" preserveAspectRatio="none" aria-label="Haunt locations"></svg>
             </div>
           </div>
         </div>
@@ -547,30 +536,23 @@
         <div class="staff-panel" data-staff-panel="stamps" hidden>
           <div class="section-head">
             <h2>Award a booth stamp</h2>
-            <p>Look up the student, confirm the name, then award. Station codes: PG, BAT, GH3, WEB, CND, CRY.</p>
+            <p>Enter the student admin number, pick the booth, and award.</p>
           </div>
-          <form class="auth-card" id="lookupStudentForm">
-            <label>
-              Admin number
-              <input id="awardStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-              <span class="field-hint">P followed by 7 digits</span>
-            </label>
-            <p class="form-error" id="lookupStudentError" hidden></p>
-            <button class="btn" type="submit">Look up</button>
-          </form>
-          <form class="auth-card" id="awardStampForm" hidden>
-            <p class="muted" id="lookupStudentName"></p>
-            <label>
-              Booth or station code
-              <input id="awardStationCode" type="text" maxlength="8" placeholder="PG" spellcheck="false">
-            </label>
-            <label>
-              Booth
-              <select id="awardBooth" required></select>
-            </label>
+          <form class="auth-card award-stamp-form" id="awardStampForm">
+            <div class="award-stamp-fields">
+              <label>
+                Admin number
+                <input id="awardStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
+                <span class="field-hint">P followed by 7 digits</span>
+              </label>
+              <label>
+                Booth
+                <select id="awardBooth" required></select>
+              </label>
+            </div>
             <p class="form-error" id="awardStampError" hidden></p>
             <p class="muted" id="awardStampOk" hidden></p>
-            <button class="btn" type="submit">Confirm and award stamp</button>
+            <button class="btn" type="submit">Award stamp</button>
           </form>
         </div>
 
@@ -667,6 +649,17 @@
     </div>
   </div>
 
+  <div class="modal" id="boothsModal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+      <p class="modal__code">Eleven Square</p>
+      <h3>Booths</h3>
+      <p class="muted">Six stamp stations. Tap a booth for the brief.</p>
+      <div class="booths-list" id="boothsPinList"></div>
+    </div>
+  </div>
+
   <div class="modal" id="boothModal" hidden>
     <div class="modal__backdrop" data-close-modal></div>
     <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
@@ -704,7 +697,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map14"></script>
+  <script type="module" src="js/app.js?v=map15"></script>
 </div>
 </body>
 </html>

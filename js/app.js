@@ -15,7 +15,6 @@ import {
   fetchStamps,
   getAdminSession,
   getStudentSession,
-  lookupStudent,
   postAnnouncement,
   redeemPass,
   setAnnouncementActive,
@@ -51,6 +50,7 @@ const els = {
   passBack: document.getElementById("passBack"),
   stampModal: document.getElementById("stampModal"),
   boothModal: document.getElementById("boothModal"),
+  boothsModal: document.getElementById("boothsModal"),
   stampForm: document.getElementById("stampForm"),
   stampBy: document.getElementById("stampBy"),
   stampPass: document.getElementById("stampPass"),
@@ -408,22 +408,53 @@ function mapImageSize() {
   };
 }
 
-const MAP_PIN_PLACEMENTS = [
-  { id: "sports-complex", x: 54, y: 26.5 },
-  { id: "wsa", x: 79, y: 88 },
-];
+const MAP_VB = { w: 2301, h: 1405 };
+const BOOTHS_PIN = { x: 67.14, y: 35.23 };
+
+function pctToSvg(x, y) {
+  return { cx: (Number(x) / 100) * MAP_VB.w, cy: (Number(y) / 100) * MAP_VB.h };
+}
 
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
   if (!layer) return;
-  MAP_PIN_PLACEMENTS.forEach((pin) => {
-    const node = layer.querySelector(`[data-open-house="${pin.id}"]`);
-    if (!node) return;
-    const house = HOUSES.find((h) => h.id === pin.id) || pin;
-    const row = houses.find((h) => h.id === pin.id) || house;
+  const housePins = HOUSES.map((house) => {
+    const { cx, cy } = pctToSvg(house.x, house.y);
+    const row = houses.find((h) => h.id === house.id) || house;
     const status = row.status || house.status || "open";
-    node.setAttribute("class", `map-pin status-${status}`);
+    const label = escapeHtml(house.short || house.name);
+    return `<g class="map-pin status-${status}" data-open-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="${escapeHtml(house.name)}">
+      <text class="map-pin__label" x="${cx.toFixed(1)}" y="${(cy - 34).toFixed(1)}" text-anchor="middle">${label}</text>
+      <circle class="map-pin__mark" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="22"></circle>
+    </g>`;
   });
+  const booth = pctToSvg(BOOTHS_PIN.x, BOOTHS_PIN.y);
+  const boothPin = `<g class="map-pin map-pin--booths" data-open-booths tabindex="0" role="button" aria-label="Booths at Eleven Square">
+    <text class="map-pin__label" x="${booth.cx.toFixed(1)}" y="${(booth.cy - 34).toFixed(1)}" text-anchor="middle">Booths</text>
+    <circle class="map-pin__mark" cx="${booth.cx.toFixed(1)}" cy="${booth.cy.toFixed(1)}" r="22"></circle>
+  </g>`;
+  layer.innerHTML = housePins.join("") + boothPin;
+}
+
+function paintBoothsPinList() {
+  const list = document.getElementById("boothsPinList");
+  if (!list || list.dataset.filled) return;
+  list.innerHTML = BOOTHS.map(
+    (b) => `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(b.id)}">
+      <span>${escapeHtml(b.icon)} ${escapeHtml(b.short)}</span>
+      <strong>${escapeHtml(b.name)}</strong>
+      <small>${escapeHtml(b.place)}</small>
+    </button>`
+  ).join("");
+  list.dataset.filled = "1";
+}
+
+function openBooths() {
+  paintBoothsPinList();
+  const modal = els.boothsModal;
+  if (!modal) return;
+  modal.hidden = false;
+  modal.querySelector(".modal__panel")?.focus();
 }
 
 function applyMapTransform() {
@@ -525,6 +556,7 @@ function slotKey(id) {
 function closeModals() {
   if (els.modal) els.modal.hidden = true;
   if (els.boothModal) els.boothModal.hidden = true;
+  if (els.boothsModal) els.boothsModal.hidden = true;
   if (els.stampModal) els.stampModal.hidden = true;
   if (els.redeemModal) els.redeemModal.hidden = true;
   pendingStampId = null;
@@ -923,7 +955,7 @@ function renderAdmin() {
     })
     .join("");
   if (els.awardBooth && !els.awardBooth.dataset.filled) {
-    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.name} (${b.code})</option>`).join("");
+    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
     els.awardBooth.dataset.filled = "1";
   }
   const houseSel = document.getElementById("announceHouse");
@@ -1081,6 +1113,14 @@ function bindMap() {
     pinFade.addEventListener("input", () => applyPinFade(pinFade.value));
     pinFade.addEventListener("change", () => applyPinFade(pinFade.value));
   }
+  pinLayer?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const pin = event.target.closest(".map-pin");
+    if (!pin) return;
+    event.preventDefault();
+    if (pin.hasAttribute("data-open-booths")) openBooths();
+    else if (pin.dataset.openHouse) openHouse(pin.dataset.openHouse);
+  });
   window.addEventListener("resize", fitMap);
   const img = els.mapWorld.querySelector("img");
   if (img?.complete) fitMap();
@@ -1144,6 +1184,15 @@ function bindUi() {
     }
     const houseBtn = event.target.closest("[data-open-house]");
     if (houseBtn) openHouse(houseBtn.dataset.openHouse);
+
+    const boothsPin = event.target.closest("[data-open-booths]");
+    if (boothsPin) openBooths();
+
+    const boothBtn = event.target.closest("[data-open-booth]");
+    if (boothBtn) {
+      if (els.boothsModal) els.boothsModal.hidden = true;
+      openBooth(boothBtn.dataset.openBooth);
+    }
 
     const stampBtn = event.target.closest("[data-stamp]");
     if (stampBtn) {
@@ -1323,38 +1372,14 @@ function bindUi() {
 
   els.adminFeedbackTarget?.addEventListener("change", () => loadAdminFeedback());
 
-  document.getElementById("lookupStudentForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const err = document.getElementById("lookupStudentError");
-    const form = document.getElementById("awardStampForm");
-    const nameEl = document.getElementById("lookupStudentName");
-    if (err) err.hidden = true;
-    try {
-      const data = await lookupStudent(document.getElementById("awardStudentNumber").value);
-      if (form) form.hidden = false;
-      if (nameEl) {
-        const stamps = Object.keys(data.stamps || {}).length;
-        nameEl.textContent = `Confirm: ${data.fullName} (${data.studentNumber}) · ${stamps}/6 stamps`;
-      }
-    } catch (error) {
-      if (form) form.hidden = true;
-      if (err) {
-        err.hidden = false;
-        err.textContent = error.message;
-      }
-    }
-  });
-
   els.awardStampForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (els.awardStampError) els.awardStampError.hidden = true;
     if (els.awardStampOk) els.awardStampOk.hidden = true;
     try {
-      const code = document.getElementById("awardStationCode")?.value.trim().toUpperCase();
-      const fromCode = BOOTHS.find((b) => b.code === code);
       const data = await awardStamp(
         document.getElementById("awardStudentNumber").value,
-        fromCode?.id || els.awardBooth.value
+        els.awardBooth.value
       );
       if (els.awardStampOk) {
         els.awardStampOk.hidden = false;

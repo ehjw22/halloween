@@ -543,6 +543,37 @@ html.event-open .header-meta {
 .login-how h3 { margin: 14px 0 6px; font-size: 1.05rem; }
 .login-how p { color: var(--muted); margin: 0 0 8px; }
 .nav__btn[hidden] { display: none; }
+.award-stamp-form {
+  max-width: 640px;
+}
+.award-stamp-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+.booths-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.booths-list__btn {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(20, 8, 16, 0.55);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.booths-list__btn:hover {
+  border-color: var(--orange);
+}
+.booths-list__btn small {
+  color: var(--muted);
+}
 .auth-card {
   max-width: 440px;
   margin: 24px auto;
@@ -1286,6 +1317,9 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
 .map-pin-svg .map-pin.status-closed .map-pin__mark { fill: var(--closed); }
 .map-pin-svg .map-pin.status-at_capacity .map-pin__mark { fill: var(--full); }
 .map-pin-svg .map-pin.status-open .map-pin__mark { fill: var(--open); }
+.map-pin-svg .map-pin--booths .map-pin__mark {
+  fill: var(--orange);
+}
 .map-pin-svg .map-pin__label {
   fill: var(--ink);
   font-family: Outfit, sans-serif;

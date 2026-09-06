@@ -5,15 +5,14 @@ const TRAILER_SRC = `https://www.youtube-nocookie.com/embed/${TRAILER_YOUTUBE_ID
 
 let tickId = 0;
 
-export function isLocalHost() {
-  const host = location.hostname;
-  return host === "127.0.0.1" || host === "localhost";
-}
-
 export function isEventOpen() {
   if (Date.now() >= GATES_AT) return true;
-  if (new URLSearchParams(location.search).get("preview") === "1" && isLocalHost()) return true;
-  if (isLocalHost() && sessionStorage.getItem(PREVIEW_KEY) === "1") return true;
+  if (new URLSearchParams(location.search).get("preview") === "1") return true;
+  try {
+    if (sessionStorage.getItem(PREVIEW_KEY) === "1") return true;
+  } catch {
+    /* private mode */
+  }
   return false;
 }
 
@@ -82,7 +81,7 @@ function syncToggle() {
   const toggle = document.getElementById("eventViewToggle");
   const localBtn = document.getElementById("eventGateLocal");
   const beforeEvent = Date.now() < GATES_AT;
-  const show = isLocalHost() && beforeEvent;
+  const show = beforeEvent;
   if (toggle) {
     toggle.hidden = !show;
     const open = document.documentElement.classList.contains("event-open");
