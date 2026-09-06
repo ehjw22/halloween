@@ -1,4 +1,5 @@
 import { initEventGate, isEventOpen } from "./gate.js";
+import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
@@ -350,6 +351,25 @@ function paintSafety() {
     "Drink water and take a break if you feel unwell.",
     "Keep bags closed. Respect capacity and closed areas. Staff calls are final.",
   ].map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+}
+
+function paintClubs() {
+  const credits = document.getElementById("clubCredits");
+  if (credits) {
+    credits.textContent = CLUBS.map((club) => club.abbr).join(" · ");
+  }
+  const list = document.getElementById("clubFollowList");
+  if (!list) return;
+  list.innerHTML = CLUBS.map((club) => `
+    <article class="club-card">
+      <p class="club-card__abbr">${escapeHtml(club.abbr)}</p>
+      <h3>${escapeHtml(club.name)}</h3>
+      <p class="club-card__links">
+        <a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="mailto:${escapeHtml(club.email)}">${escapeHtml(club.email)}</a>
+      </p>
+    </article>
+  `).join("");
 }
 
 async function startBoard() {
@@ -1443,6 +1463,7 @@ async function init() {
   try {
     bindUi();
     paintSafety();
+    paintClubs();
   } catch (error) {
     console.warn("UI bind failed", error);
   }

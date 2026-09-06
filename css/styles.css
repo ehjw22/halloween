@@ -1557,6 +1557,56 @@ input, select {
 }
 .safety-list li { margin: 0 0 10px; }
 
+.event-gate__by {
+  margin: 4px 0 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.event-gate__clubs {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.club-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto 32px;
+}
+.club-card {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  text-align: left;
+}
+.club-card__abbr {
+  margin: 0 0 6px;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--orange-2);
+}
+.club-card h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+.club-card__links {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.club-card__links a {
+  color: var(--ink);
+  word-break: break-all;
+}
+
 .announce-panel .announce-list { max-width: none; }
 .announce-board__hint { margin: -8px 0 12px; }
 .announce-list {

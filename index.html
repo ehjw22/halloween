@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map13">
+  <link rel="stylesheet" href="css/styles.css?v=map14">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -73,6 +73,8 @@
         <li>1 Free Admission</li>
       </ul>
       <button class="btn" type="button" id="watchTrailer">Watch trailer</button>
+      <p class="event-gate__by">Brought to you by</p>
+      <p class="event-gate__clubs" id="clubCredits">SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC · SMAC</p>
       <button class="btn btn--ghost" type="button" id="eventGateLocal" hidden>Preview site on this computer</button>
     </div>
     <div class="trailer-modal" id="trailerModal" hidden>
@@ -106,19 +108,21 @@
         <button class="nav__btn" type="button" data-nav="games">Games</button>
         <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
         <button class="nav__btn" type="button" data-nav="safety">Safety</button>
+        <button class="nav__btn" type="button" data-nav="follow">Follow us</button>
         <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
         <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
       </div>
       <button class="nav__btn nav__wide" type="button" data-nav="games">Games</button>
       <button class="nav__btn nav__wide" type="button" data-nav="feedback">Feedback</button>
       <button class="nav__btn nav__wide" type="button" data-nav="safety">Safety</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="follow">Follow us</button>
       <button class="nav__btn nav__wide" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
       <button class="nav__btn nav__wide" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
     </nav>
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.3.1</div>
+      <div class="version-chip" title="App version">v1.3.2</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -486,6 +490,14 @@
       <ul class="safety-list" id="safetyList"></ul>
     </section>
 
+    <section class="view" data-view="follow" hidden>
+      <div class="section-head">
+        <h2>Follow us</h2>
+        <p>Scream Fest is brought to you by these SP student clubs. Instagram and email links are placeholders until the official accounts are confirmed.</p>
+      </div>
+      <div class="club-grid" id="clubFollowList"></div>
+    </section>
+
     <section class="view" data-view="admin" hidden>
       <div id="adminGate" class="auth-card">
         <p class="auth-card__kicker">SP Scream Fest</p>
@@ -692,7 +704,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map12"></script>
+  <script type="module" src="js/app.js?v=map14"></script>
 </div>
 </body>
 </html>
