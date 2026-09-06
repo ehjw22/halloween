@@ -273,8 +273,7 @@ function setView(name, extra) {
   }
   if (name === "board") startBoard();
   else stopBoard();
-  const more = document.getElementById("navMoreMenu");
-  if (more) more.hidden = true;
+  setMoreMenu(false);
 }
 
 function renderDashboard() {
@@ -1136,21 +1135,27 @@ function bindMap() {
   else img?.addEventListener("load", fitMap, { once: true });
 }
 
+function setMoreMenu(open) {
+  const menu = document.getElementById("navMoreMenu");
+  const more = document.getElementById("navMore");
+  if (!menu || !more) return;
+  menu.hidden = !open;
+  more.setAttribute("aria-expanded", String(open));
+}
+
 function bindUi() {
   document.getElementById("navMore")?.addEventListener("click", (event) => {
     event.stopPropagation();
     const menu = document.getElementById("navMoreMenu");
     if (!menu) return;
-    menu.hidden = !menu.hidden;
-    event.currentTarget.setAttribute("aria-expanded", String(!menu.hidden));
+    setMoreMenu(menu.hidden);
   });
   document.addEventListener("click", (event) => {
     const menu = document.getElementById("navMoreMenu");
     const more = document.getElementById("navMore");
     if (!menu || menu.hidden) return;
     if (more?.contains(event.target) || menu.contains(event.target)) return;
-    menu.hidden = true;
-    more?.setAttribute("aria-expanded", "false");
+    setMoreMenu(false);
   });
   els.navButtons.forEach((btn) => {
     if (btn.id === "navMore") return;
@@ -1243,7 +1248,9 @@ function bindUi() {
   async function handleAuthSubmit(event, { staff }) {
     event.preventDefault();
     const err = document.getElementById(staff ? "staffLoginError" : "studentLoginError");
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
     if (err) err.hidden = true;
+    if (submit) submit.disabled = true;
     try {
       flushGameProgress();
       const data = await signIn({
@@ -1262,22 +1269,11 @@ function bindUi() {
       setView(data.staff ? "admin" : "stamps");
       if (!data.staff) {
         cardState.studentNumber = "";
-        await renderStamps({ refresh: true });
+        renderStamps({ refresh: true }).catch(() => paintStampUi());
         const notify = document.getElementById("studentNotifyOptIn");
         if (notify?.checked) {
           setWantsPush(true);
-          try {
-            const result = await enablePushNotifications(readNight().watch);
-            paintPushHint();
-            if (result.reason === "denied") {
-              if (err) {
-                err.hidden = false;
-                err.textContent = "Signed in. Notifications were blocked in the browser settings.";
-              }
-            }
-          } catch {
-            paintPushHint();
-          }
+          enablePushNotifications(readNight().watch).then(paintPushHint).catch(paintPushHint);
         } else {
           paintPushHint();
         }
@@ -1287,6 +1283,8 @@ function bindUi() {
         err.hidden = false;
         err.textContent = error.message;
       }
+    } finally {
+      if (submit) submit.disabled = false;
     }
   }
 

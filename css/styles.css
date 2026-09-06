@@ -448,6 +448,9 @@ body {
   color: var(--ink);
   border-radius: 999px;
   padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav__btn.is-active, .btn {
   background: linear-gradient(135deg, #ff8a2a, #d94b00);
@@ -1819,8 +1822,36 @@ body.is-board .watch-banner,
 body.is-board .site-live-note { display: none; }
 body.is-board { background: #050308; }
 @media (max-width: 800px) {
+  .nav {
+    width: 100%;
+    position: static;
+  }
+  .nav > .nav__btn {
+    flex: 1 1 calc(50% - 8px);
+  }
   .nav__more { display: inline-flex; }
   .nav__wide { display: none !important; }
+  .nav-more-menu {
+    position: static;
+    inset: auto;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    margin-top: 2px;
+    padding: 10px 0 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    gap: 8px;
+  }
+  .nav-more-menu:not([hidden]) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .nav-more-menu .nav__btn {
+    width: 100%;
+    border-radius: 12px;
+  }
 }
 @media (min-width: 801px) {
   .nav__more,

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map17">
+  <link rel="stylesheet" href="css/styles.css?v=map19">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -125,7 +125,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.3.4.2</div>
+      <div class="version-chip" title="App version">v1.3.4.3</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -204,7 +204,7 @@
       <div class="login-page">
         <div class="section-head">
           <h2>Sign in</h2>
-          <p>Pick the form that matches you. Admin number is <strong>P</strong> plus seven digits, for example <strong>P1234567</strong>.</p>
+          <p>Pick the form that matches you. Admin number is <strong>P</strong> plus seven digits, for example <strong>P1234567</strong>. The 7 digits alone also work.</p>
         </div>
         <div class="login-split">
           <form class="auth-card" id="studentLoginForm">
@@ -214,7 +214,7 @@
             <label>
               Admin number
               <input id="studentLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-              <span class="field-hint">P followed by 7 numbers</span>
+              <span class="field-hint">P plus 7 digits, or just the 7 digits</span>
             </label>
             <label>
               Full name
@@ -709,7 +709,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map18"></script>
+  <script type="module" src="js/app.js?v=map19"></script>
 </div>
 </body>
 </html>

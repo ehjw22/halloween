@@ -84,10 +84,12 @@ async function parseError(res) {
 }
 
 export function normalizeAdminNumber(value) {
-  return String(value || "")
+  let id = String(value || "")
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
+  if (/^[0-9]{7}$/.test(id)) id = `P${id}`;
+  return id;
 }
 
 export function isAdminNumber(value) {
