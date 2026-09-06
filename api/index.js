@@ -20,10 +20,16 @@ function handleConfig(req, res) {
   const env = getEnv();
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  let vapidPublicKey = process.env.VAPID_PUBLIC_KEY || "";
+  try {
+    vapidPublicKey = require("../lib/push").getPublicVapidKey() || vapidPublicKey;
+  } catch {
+    /* push extras must not block live Supabase config */
+  }
   res.status(200).json({
     supabaseUrl: env.url || "",
     supabaseAnonKey: env.anon || "",
-    vapidPublicKey: require("../lib/push").getPublicVapidKey(),
+    vapidPublicKey,
   });
 }
 
