@@ -1,5 +1,7 @@
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
+const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
+const TRAILER_SRC = `https://www.youtube-nocookie.com/embed/${TRAILER_YOUTUBE_ID}?autoplay=1&rel=0`;
 
 let tickId = 0;
 
@@ -90,7 +92,23 @@ function syncToggle() {
   if (localBtn) localBtn.hidden = !show || document.documentElement.classList.contains("event-open");
 }
 
+function closeTrailer() {
+  const modal = document.getElementById("trailerModal");
+  const frame = document.getElementById("trailerFrame");
+  if (modal) modal.hidden = true;
+  if (frame) frame.removeAttribute("src");
+}
+
+function openTrailer() {
+  const modal = document.getElementById("trailerModal");
+  const frame = document.getElementById("trailerFrame");
+  if (!modal || !frame) return;
+  frame.src = TRAILER_SRC;
+  modal.hidden = false;
+}
+
 export function openEventGate() {
+  closeTrailer();
   document.documentElement.classList.add("event-open");
   const gate = document.getElementById("eventGate");
   if (gate) {
@@ -106,6 +124,7 @@ export function openEventGate() {
 }
 
 export function lockEventGate() {
+  closeTrailer();
   document.documentElement.classList.remove("event-open");
   const gate = document.getElementById("eventGate");
   if (gate) {
@@ -141,6 +160,18 @@ export function initEventGate() {
     });
   }
   document.getElementById("eventGateLocal")?.addEventListener("click", previewSite);
+  document.getElementById("watchTrailer")?.addEventListener("click", openTrailer);
+  document.getElementById("trailerModal")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-trailer]")) closeTrailer();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const modal = document.getElementById("trailerModal");
+    if (modal && !modal.hidden) {
+      event.preventDefault();
+      closeTrailer();
+    }
+  });
 
   if (isEventOpen()) {
     openEventGate();
