@@ -272,5 +272,69 @@ $$;
 revoke all on function public.set_scare_house_wait(text, integer, text) from public;
 grant execute on function public.set_scare_house_wait(text, integer, text) to anon, authenticated, service_role;
 
+alter table public.push_subscriptions alter column student_number drop not null;
+alter table public.push_subscriptions drop constraint if exists push_subscriptions_student_number_fkey;
+
+create or replace function public.upsert_push_subscription(
+  p_endpoint text,
+  p_student text,
+  p_p256dh text,
+  p_auth text,
+  p_watch jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_endpoint is null or length(p_endpoint) < 12 or length(p_endpoint) > 2048 then
+    return jsonb_build_object('ok', false);
+  end if;
+  insert into public.push_subscriptions (endpoint, student_number, p256dh, auth, watch, updated_at)
+  values (
+    p_endpoint,
+    nullif(trim(coalesce(p_student, '')), ''),
+    coalesce(p_p256dh, ''),
+    coalesce(p_auth, ''),
+    coalesce(p_watch, '[]'::jsonb),
+    now()
+  )
+  on conflict (endpoint) do update set
+    student_number = coalesce(excluded.student_number, public.push_subscriptions.student_number),
+    p256dh = case when length(excluded.p256dh) > 0 then excluded.p256dh else public.push_subscriptions.p256dh end,
+    auth = case when length(excluded.auth) > 0 then excluded.auth else public.push_subscriptions.auth end,
+    watch = excluded.watch,
+    updated_at = now();
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+create or replace function public.list_push_watchers(p_house text)
+returns table (endpoint text, p256dh text, auth text)
+language sql
+security definer
+set search_path = public
+as $$
+  select s.endpoint, s.p256dh, s.auth
+  from public.push_subscriptions s
+  where s.watch @> to_jsonb(array[p_house]);
+$$;
+
+create or replace function public.delete_push_subscription(p_endpoint text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.push_subscriptions where endpoint = p_endpoint;
+$$;
+
+revoke all on function public.upsert_push_subscription(text, text, text, text, jsonb) from public;
+revoke all on function public.list_push_watchers(text) from public;
+revoke all on function public.delete_push_subscription(text) from public;
+grant execute on function public.upsert_push_subscription(text, text, text, text, jsonb) to anon, authenticated, service_role;
+grant execute on function public.list_push_watchers(text) to anon, authenticated, service_role;
+grant execute on function public.delete_push_subscription(text) to anon, authenticated, service_role;
+
 
 

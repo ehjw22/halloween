@@ -4,6 +4,5 @@ node_modules/
 _tmp_*.png
 nodemon.json
 package-lock.json
-package.json
 server.js
 signup.js

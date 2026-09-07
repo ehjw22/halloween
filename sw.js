@@ -18,6 +18,10 @@ self.addEventListener("push", (event) => {
     body: data.body || "A scare house wait time changed.",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
+    tag: data.walkIn ? "scream-walk-in" : "scream-wait",
+    renotify: true,
+    requireInteraction: Boolean(data.walkIn),
+    vibrate: data.walkIn ? [200, 80, 200] : [120],
     data: { url: data.url || "/#map" },
   };
   event.waitUntil(self.registration.showNotification(title, options));

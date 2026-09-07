@@ -1,0 +1,10 @@
+{
+  "name": "sp-scream-fest",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

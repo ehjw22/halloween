@@ -320,32 +320,70 @@ function renderMyNight() {
   }).join("");
 }
 
+function showWaitToast(title, body, walkIn = false) {
+  const host = document.getElementById("waitToasts");
+  if (!host) return;
+  const el = document.createElement("aside");
+  el.className = `wait-toast${walkIn ? " wait-toast--go" : ""}`;
+  el.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;
+  host.appendChild(el);
+  while (host.children.length > 3) host.removeChild(host.firstChild);
+  setTimeout(() => {
+    el.remove();
+  }, walkIn ? 12000 : 8000);
+}
+
+function phoneNotify(title, body, url) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const options = {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: url || "scream-wait",
+    data: { url: url || "/#map" },
+  };
+  if (navigator.serviceWorker?.ready) {
+    navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, options)).catch(() => {
+      try {
+        new Notification(title, options);
+      } catch {
+        /* ignore */
+      }
+    });
+    return;
+  }
+  try {
+    new Notification(title, options);
+  } catch {
+    /* ignore */
+  }
+}
+
 function notifyWatches(nextHouses) {
   const night = readNight();
   if (!night.watch.length) {
     watchSnapshot = new Map(nextHouses.map((h) => [h.id, `${h.wait_minutes}:${h.status}`]));
     return;
   }
-  const banner = document.getElementById("watchBanner");
-  const notes = [];
   nextHouses.forEach((row) => {
     if (!night.watch.includes(row.id)) return;
     const prev = watchSnapshot.get(row.id);
     const key = `${row.wait_minutes}:${row.status}`;
-    if (prev && prev !== key) {
-      const meta = houseMeta(row.id);
-      notes.push(`${meta?.short || row.name}: ${waitLabel(row.wait_minutes, row.status)} (${STATUS_LABEL[row.status] || row.status})`);
-    }
+    if (!prev || prev === key) return;
+    const [prevWait] = String(prev).split(":");
+    const wasWait = Number(prevWait);
+    const nowWait = Number(row.wait_minutes) || 0;
+    const meta = houseMeta(row.id);
+    const label = meta?.short || row.name;
+    const walkIn = nowWait === 0 && row.status !== "closed" && row.status !== "at_capacity" && wasWait > 0;
+    const title = walkIn ? "Walk in now" : label;
+    const body = walkIn
+      ? `${row.name} is 0 minutes. Head over.`
+      : `${row.name}: ${waitLabel(row.wait_minutes, row.status)}`;
+    showWaitToast(title, body, walkIn);
+    if (walkIn || document.hidden) phoneNotify(title, body, `/#house/${row.id}`);
   });
   watchSnapshot = new Map(nextHouses.map((h) => [h.id, `${h.wait_minutes}:${h.status}`]));
-  if (!banner) return;
-  if (!notes.length) return;
-  banner.hidden = false;
-  banner.textContent = notes.join(" · ");
-  clearTimeout(notifyWatches.timer);
-  notifyWatches.timer = setTimeout(() => {
-    banner.hidden = true;
-  }, 8000);
 }
 
 function paintSafety() {
@@ -536,7 +574,7 @@ function openHouse(id) {
   const addBtn = document.getElementById("modalAddNight");
   const watchBtn = document.getElementById("modalWatch");
   if (addBtn) addBtn.textContent = night.houses.includes(id) ? "Remove from my night" : "Add to my night";
-  if (watchBtn) watchBtn.textContent = night.watch.includes(id) ? "Stop watching" : "Watch wait";
+  if (watchBtn) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
   els.modal.hidden = false;
   els.modal.querySelector(".modal__panel").focus();
   setHash("house", id);
@@ -1215,12 +1253,34 @@ function bindUi() {
   document.getElementById("modalWatch")?.addEventListener("click", () => {
     if (!openHouseId) return;
     const night = readNight();
-    night.watch = night.watch.includes(openHouseId)
+    const watching = night.watch.includes(openHouseId);
+    night.watch = watching
       ? night.watch.filter((id) => id !== openHouseId)
       : [...night.watch, openHouseId];
     writeNight(night);
     openHouse(openHouseId);
-    syncPushWatch(night.watch);
+    if (!watching) {
+      setWantsPush(true);
+      enablePushNotifications(night.watch).then((result) => {
+        paintPushHint();
+        if (result?.ok) {
+          showWaitToast("Walk-in alert on", "We’ll ping this phone when the wait hits 0 minutes.", false);
+          return;
+        }
+        if (result?.reason === "ios-install") {
+          showWaitToast("Add to Home Screen", "On iPhone, install the app first, then tap Alert when walk-in again.", false);
+          return;
+        }
+        if (result?.reason === "denied") {
+          showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
+          return;
+        }
+        showWaitToast("Walk-in alert on", "You’ll see a message here when the wait hits 0. Phone alerts need notification permission.", false);
+      }).catch(paintPushHint);
+    } else {
+      syncPushWatch(night.watch);
+      showWaitToast("Alert off", "This house will no longer ping you at 0 minutes.", false);
+    }
   });
 
   document.body.addEventListener("click", (event) => {

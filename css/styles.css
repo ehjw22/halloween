@@ -1756,6 +1756,49 @@ input, select {
   background: rgba(255, 122, 24, 0.18);
   border-bottom: 1px solid var(--line);
 }
+.wait-toasts {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  width: min(320px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.wait-toast {
+  pointer-events: auto;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 122, 24, 0.45);
+  background: rgba(18, 8, 14, 0.94);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  color: var(--ink);
+}
+.wait-toast strong {
+  display: block;
+  color: var(--orange-2);
+  font-size: 0.92rem;
+}
+.wait-toast span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.wait-toast--go {
+  border-color: #4ade80;
+  background: rgba(12, 28, 18, 0.96);
+}
+.wait-toast--go strong { color: #86efac; }
+@media (max-width: 800px) {
+  .wait-toasts {
+    left: 12px;
+    bottom: 84px;
+  }
+}
 .site-live-note {
   margin: 0;
   padding: 8px 18px;
@@ -1818,7 +1861,6 @@ input, select {
 .board-card li { display: flex; justify-content: space-between; margin: 8px 0; }
 body.is-board .site-header,
 body.is-board .game-subnav,
-body.is-board .watch-banner,
 body.is-board .site-live-note { display: none; }
 body.is-board { background: #050308; }
 @media (max-width: 800px) {

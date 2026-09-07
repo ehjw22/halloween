@@ -125,7 +125,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.3.8</div>
+      <div class="version-chip" title="App version">v1.3.9</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -134,9 +134,9 @@
     <button class="nav__btn" type="button" data-game="catch">Catch</button>
   </div>
 
-  <div class="watch-banner" id="watchBanner" hidden></div>
+  <div class="wait-toasts" id="waitToasts" aria-live="polite"></div>
   <p class="push-install-hint" id="pushInstallHint" hidden>
-    iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that icon, and allow notifications. Wait alerts will not arrive from a normal Safari tab.
+    iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that icon, then tap <strong>Alert when walk-in</strong> on a house. Safari tabs cannot show phone alerts.
   </p>
   <p class="site-live-note" id="siteLiveNote" hidden></p>
   <main>
@@ -222,7 +222,7 @@
             </label>
             <label class="check-row">
               <input id="studentNotifyOptIn" type="checkbox">
-              <span>Notify me on this phone when a house I watch changes. iPhone needs Add to Home Screen first.</span>
+              <span>Notify this phone when a house I watch hits 0 minutes (walk-in). iPhone: Add to Home Screen first.</span>
             </label>
             <p class="form-error" id="studentLoginError" hidden></p>
             <button class="btn" type="submit">Register / sign in</button>
@@ -657,7 +657,7 @@
       <p class="muted" data-modal-updated></p>
       <div class="modal-actions">
         <button class="btn" type="button" id="modalAddNight">Add to my night</button>
-        <button class="btn btn--ghost" type="button" id="modalWatch">Watch wait</button>
+        <button class="btn btn--ghost" type="button" id="modalWatch">Alert when walk-in</button>
       </div>
     </div>
   </div>

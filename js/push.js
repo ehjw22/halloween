@@ -58,7 +58,7 @@ export async function registerPushWorker() {
 }
 
 function authHeaders() {
-  const token = localStorage.getItem("sp-student-jwt");
+  const token = localStorage.getItem("sp-student-jwt") || localStorage.getItem("sp-admin-jwt");
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
@@ -78,8 +78,7 @@ export function paintPushHint() {
 }
 
 export async function syncPushWatch(watchIds) {
-  const sessionOn = Boolean(localStorage.getItem("sp-student-jwt"));
-  if (!sessionOn || !wantsPush()) return { ok: false };
+  if (!wantsPush()) return { ok: false };
   const sub = await currentSubscription();
   if (!sub) return { ok: false };
   try {
@@ -155,7 +154,6 @@ export async function disablePushNotifications() {
 export async function resumePushIfWanted(watchIds = []) {
   paintPushHint();
   if (!wantsPush()) return;
-  if (!localStorage.getItem("sp-student-jwt")) return;
   if (isIos() && !isStandalone()) return;
   if (typeof Notification !== "undefined" && Notification.permission === "granted") {
     await enablePushNotifications(watchIds);
