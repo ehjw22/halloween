@@ -1,4 +1,5 @@
 import { HOUSES } from "./houses.js";
+import { getAdminSession } from "./session.js";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v1";
@@ -148,32 +149,53 @@ export function createStore(onChange) {
       { broadcastLocal: true }
     );
 
-    if (!persist) return;
+    if (!persist) return { ok: true, local: true };
 
     const row = rows.find((r) => r.id === id);
-    const token = localStorage.getItem("sp-admin-jwt");
-    if (!token || !row) return;
+    if (!row) return { ok: false, error: "Unknown scare house." };
+
+    const session = getAdminSession();
+    if (!session?.token) {
+      return { ok: false, error: "Staff session expired. Sign in again to save wait times." };
+    }
+    if (session.payload.local) {
+      return {
+        ok: false,
+        error: "This staff login is demo-only. Wait times stay on this device and are not written to Supabase.",
+      };
+    }
 
     try {
       const res = await fetch("/api/wait-times", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${session.token}`,
         },
         body: JSON.stringify({
           id: row.id,
+          name: row.name,
           wait_minutes: row.wait_minutes,
           status: row.status,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        console.warn("Wait time save failed.", data.error || res.statusText);
-        return;
+        await refreshFromDb();
+        const error = data.error || (res.status === 404 ? "Wait-time API was not found." : res.statusText);
+        console.warn("Wait time save failed.", error);
+        return { ok: false, error };
       }
+      if (data.house) {
+        applyRows(
+          rows.map((r) => (r.id === data.house.id ? { ...r, ...data.house } : r)),
+          { broadcastLocal: true }
+        );
+      }
+      return { ok: true };
     } catch (error) {
       console.warn("Wait time save failed.", error.message);
+      return { ok: false, error: error.message || "Could not reach the wait-time API." };
     }
   }
 
@@ -187,5 +209,5 @@ export function createStore(onChange) {
     if (channel && client) client.removeChannel(channel);
   }
 
-  return { connect, publish, get, destroy, hasRemote };
+  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote };
 }

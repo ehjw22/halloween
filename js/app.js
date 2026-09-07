@@ -79,6 +79,7 @@ const els = {
   adminTable: document.getElementById("adminTable"),
   autoSave: document.getElementById("autoSave"),
   publishAll: document.getElementById("publishAll"),
+  waitSaveStatus: document.getElementById("waitSaveStatus"),
   dbBanner: document.getElementById("dbBanner"),
   studentAuth: document.getElementById("studentAuth"),
   studentAuthForm: document.getElementById("studentAuthForm"),
@@ -959,6 +960,8 @@ function renderAdmin() {
             <select data-status>${options}</select>
           </td>
           <td>
+            <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
+          </td>
         </tr>`;
     })
     .join("");
@@ -1028,9 +1031,37 @@ function readAdminRow(tr) {
   return { id, wait_minutes: wait, status };
 }
 
-function maybePublish(id, patch) {
+function setWaitSaveStatus(message, isError = true) {
+  if (!els.waitSaveStatus) return;
+  if (!message) {
+    els.waitSaveStatus.hidden = true;
+    els.waitSaveStatus.textContent = "";
+    els.waitSaveStatus.classList.add("form-error");
+    els.waitSaveStatus.classList.remove("muted");
+    return;
+  }
+  els.waitSaveStatus.hidden = false;
+  els.waitSaveStatus.textContent = message;
+  els.waitSaveStatus.classList.toggle("form-error", isError);
+  els.waitSaveStatus.classList.toggle("muted", !isError);
+}
+
+async function maybePublish(id, patch) {
   drafts.set(id, patch);
-  if (autoSave) store.publish(id, patch, { persist: true });
+  if (!autoSave) return;
+  await persistHouse(id, patch);
+}
+
+async function persistHouse(id, patch) {
+  if (!store) return { ok: false, error: "Wait times are still loading." };
+  const result = await store.publish(id, patch, { persist: true });
+  if (result?.ok) {
+    drafts.delete(id);
+    setWaitSaveStatus("Saved to the live database.", false);
+    return result;
+  }
+  setWaitSaveStatus(result?.error || "Could not save wait times to the database.");
+  return result;
 }
 
 function bindMap() {
@@ -1349,7 +1380,7 @@ function bindUi() {
     }
     if (event.target.closest("[data-publish-one]")) {
       const patch = readAdminRow(tr);
-      store.publish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status }, { persist: true });
+      persistHouse(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
     }
   });
 
@@ -1360,11 +1391,15 @@ function bindUi() {
     maybePublish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
   });
 
-  els.publishAll?.addEventListener("click", () => {
-    [...els.adminTable.querySelectorAll("[data-admin-row]")].forEach((tr) => {
-      const patch = readAdminRow(tr);
-      store.publish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status }, { persist: true });
-    });
+  els.publishAll?.addEventListener("click", async () => {
+    const results = await Promise.all(
+      [...els.adminTable.querySelectorAll("[data-admin-row]")].map((tr) => {
+        const patch = readAdminRow(tr);
+        return persistHouse(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+      })
+    );
+    const failed = results.find((r) => r && r.ok === false);
+    if (!failed) setWaitSaveStatus("All wait times saved to the live database.", false);
   });
 
   document.querySelectorAll("[data-staff-tab]").forEach((btn) => {

@@ -46,6 +46,9 @@ function routeName(req) {
     const name = firstSegment(raw);
     if (name && name !== "index") return name;
   }
+  const invoke = String(req.headers["x-invoke-path"] || req.headers["x-matched-path"] || "");
+  const fromInvoke = firstSegment(invoke.replace(/^\/api\/?/, ""));
+  if (fromInvoke && fromInvoke !== "index") return fromInvoke;
   try {
     const url = new URL(req.url, "http://localhost");
     const fromQuery = firstSegment(url.searchParams.get("path"));
