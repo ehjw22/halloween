@@ -234,5 +234,43 @@ revoke all on function public.get_scream_card(text) from public;
 grant execute on function public.register_scream_student(text, text) to anon, authenticated, service_role;
 grant execute on function public.get_scream_card(text) to anon, authenticated, service_role;
 
+create or replace function public.set_scare_house_wait(p_id text, p_wait integer, p_status text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  row public.scare_houses%rowtype;
+  wait_val integer;
+begin
+  if p_id is null or length(trim(p_id)) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'bad_id');
+  end if;
+  if p_status not in ('open', 'busy', 'closed', 'at_capacity') then
+    return jsonb_build_object('ok', false, 'error', 'bad_status');
+  end if;
+  wait_val := greatest(0, least(240, coalesce(p_wait, 0)));
+
+  update public.scare_houses
+    set wait_minutes = wait_val,
+        status = p_status,
+        updated_at = now()
+  where id = p_id
+  returning * into row;
+
+  if not found then
+    insert into public.scare_houses (id, name, wait_minutes, status)
+    values (p_id, p_id, wait_val, p_status)
+    returning * into row;
+  end if;
+
+  return jsonb_build_object('ok', true, 'house', to_jsonb(row));
+end;
+$$;
+
+revoke all on function public.set_scare_house_wait(text, integer, text) from public;
+grant execute on function public.set_scare_house_wait(text, integer, text) to anon, authenticated, service_role;
+
 
 

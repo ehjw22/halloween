@@ -1,5 +1,5 @@
 import { HOUSES } from "./houses.js";
-import { getAdminSession } from "./session.js";
+import { getAdminSession, apiUrl } from "./session.js";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v1";
@@ -166,7 +166,7 @@ export function createStore(onChange) {
     }
 
     try {
-      const res = await fetch("/api/wait-times", {
+      const res = await fetch(apiUrl("wait-times"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

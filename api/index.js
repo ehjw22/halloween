@@ -47,6 +47,7 @@ function routeName(req) {
     return name && name !== "index" && name !== "[name]" ? name : "";
   };
   const named = fromParam(q.name) || fromParam(q.path);
+  if (named === "wait_times" || named === "waittimes" || named === "waits") return "wait-times";
   if (named) return named;
   const invoke = String(req.headers["x-invoke-path"] || req.headers["x-matched-path"] || "");
   const fromInvoke = firstSegment(invoke.replace(/^\/api\/?/, ""));

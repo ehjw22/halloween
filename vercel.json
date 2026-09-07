@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:name", "destination": "/api/index?path=:name" }
+    { "source": "/api/:name", "destination": "/api?path=:name" }
   ],
   "headers": [
     {

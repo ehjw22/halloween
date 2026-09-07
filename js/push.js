@@ -1,3 +1,5 @@
+import { apiUrl } from "./session.js";
+
 const WANT_KEY = "scream-push-wanted";
 const SUB_KEY = "scream-push-endpoint";
 
@@ -39,7 +41,7 @@ function urlBase64ToUint8Array(base64String) {
 async function vapidKey() {
   const fromConfig = window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.vapidPublicKey;
   if (fromConfig) return fromConfig;
-  const res = await fetch("/api/push", { cache: "no-store" });
+  const res = await fetch(apiUrl("push"), { cache: "no-store" });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.vapidPublicKey) return "";
   if (window.HALLOWEEN_CONFIG) window.HALLOWEEN_CONFIG.vapidPublicKey = data.vapidPublicKey;
@@ -81,7 +83,7 @@ export async function syncPushWatch(watchIds) {
   const sub = await currentSubscription();
   if (!sub) return { ok: false };
   try {
-    const res = await fetch("/api/push", {
+    const res = await fetch(apiUrl("push"), {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
@@ -121,7 +123,7 @@ export async function enablePushNotifications(watchIds = []) {
   } catch {
     /* ignore */
   }
-  const res = await fetch("/api/push", {
+  const res = await fetch(apiUrl("push"), {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
@@ -138,7 +140,7 @@ export async function disablePushNotifications() {
   try {
     const sub = await currentSubscription();
     if (sub) {
-      await fetch("/api/push", {
+      await fetch(apiUrl("push"), {
         method: "DELETE",
         headers: authHeaders(),
         body: JSON.stringify({ subscription: sub.toJSON() }),

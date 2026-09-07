@@ -6,6 +6,7 @@ import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
 import { SAFETY } from "./safety.js";
 import { createStore } from "./store.js";
 import {
+  apiUrl,
   awardStamp,
   clearAdminSession,
   clearStudentSession,
@@ -388,7 +389,7 @@ async function startBoard() {
     const games = ["clicker", "memory", "catch"];
     const blocks = await Promise.all(games.map(async (id) => {
       try {
-        const res = await fetch(`/api/scores?game=${id}`);
+        const res = await fetch(apiUrl("scores", { game: id }));
         const data = await res.json().catch(() => ({}));
         const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
         return `<article class="board-card"><h3>${id}</h3><ol>${rows || "<li>No scores yet</li>"}</ol></article>`;

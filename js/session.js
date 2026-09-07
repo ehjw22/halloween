@@ -1,6 +1,16 @@
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
 
+export function apiUrl(name, params = {}) {
+  const q = new URLSearchParams();
+  q.set("path", name);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    q.set(key, String(value));
+  });
+  return `/api?${q.toString()}`;
+}
+
 function isBrowserLocal() {
   const host = String(window.location.hostname || "").toLowerCase();
   if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "0.0.0.0") return true;
@@ -178,7 +188,7 @@ export async function signIn({ adminNumber, fullName, password }) {
     throw new Error("Enter your full name.");
   }
   try {
-    const res = await fetch("/api/login", {
+    const res = await fetch(apiUrl("login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
@@ -225,7 +235,7 @@ export async function fetchStamps() {
   const local = readLocalCard(session.payload.studentNumber) || emptyCard(session);
   if (session.payload.local) return local;
   try {
-    const res = await fetch("/api/stamps", {
+    const res = await fetch(apiUrl("stamps"), {
       headers: { Authorization: `Bearer ${session.token}` },
     });
     const data = await res.json().catch(() => ({}));
@@ -240,7 +250,7 @@ export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch(`/api/lookup-student?studentNumber=${encodeURIComponent(normalizeAdminNumber(studentNumber))}`, {
+    const res = await fetch(apiUrl("lookup-student", { studentNumber: normalizeAdminNumber(studentNumber) }), {
       headers: { Authorization: `Bearer ${session.token}` },
     });
     const data = await res.json().catch(() => ({}));
@@ -270,7 +280,7 @@ export async function lookupStudent(studentNumber) {
 export async function fetchOps() {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const res = await fetch("/api/ops", {
+  const res = await fetch(apiUrl("ops"), {
     headers: { Authorization: `Bearer ${session.token}` },
   });
   const data = await res.json().catch(() => ({}));
@@ -282,7 +292,7 @@ export async function fetchClickerSave() {
   const session = getStudentSession();
   if (!session) return null;
   try {
-    const res = await fetch("/api/game-save", {
+    const res = await fetch(apiUrl("game-save"), {
       headers: { Authorization: `Bearer ${session.token}` },
     });
     const data = await res.json().catch(() => ({}));
@@ -296,7 +306,7 @@ export async function fetchClickerSave() {
 export async function saveClickerRemote(state) {
   const session = getStudentSession();
   if (!session) return;
-  await fetch("/api/game-save", {
+  await fetch(apiUrl("game-save"), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -309,7 +319,7 @@ export async function saveClickerRemote(state) {
 export async function awardStamp(studentNumber, boothId) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const res = await fetch("/api/award-stamp", {
+  const res = await fetch(apiUrl("award-stamp"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -326,7 +336,7 @@ export async function submitFeedback(kind, targetId, message, rating) {
   const session = getStudentSession();
   const headers = { "Content-Type": "application/json" };
   if (session) headers.Authorization = `Bearer ${session.token}`;
-  const res = await fetch("/api/feedback", {
+  const res = await fetch(apiUrl("feedback"), {
     method: "POST",
     headers,
     body: JSON.stringify({ kind, targetId, message, rating }),
@@ -339,11 +349,7 @@ export async function submitFeedback(kind, targetId, message, rating) {
 export async function fetchFeedback(kind, targetId) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const params = new URLSearchParams();
-  if (kind) params.set("kind", kind);
-  if (targetId) params.set("target", targetId);
-  const q = params.toString();
-  const res = await fetch(`/api/feedback${q ? `?${q}` : ""}`, {
+  const res = await fetch(apiUrl("feedback", { kind, target: targetId }), {
     headers: { Authorization: `Bearer ${session.token}` },
   });
   const data = await res.json().catch(() => ({}));
@@ -369,9 +375,8 @@ export async function fetchAnnouncements({ all = false } = {}) {
   const session = getAdminSession();
   const headers = {};
   if (session) headers.Authorization = `Bearer ${session.token}`;
-  const q = all ? "?all=1" : "";
   try {
-    const res = await fetch(`/api/announcements${q}`, { headers });
+    const res = await fetch(apiUrl("announcements", all ? { all: "1" } : {}), { headers });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Could not load announcements.");
     return data.announcements || [];
@@ -387,7 +392,7 @@ export async function postAnnouncement(message, extra = {}) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch("/api/announcements", {
+    const res = await fetch(apiUrl("announcements"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -426,7 +431,7 @@ export async function setAnnouncementActive(id, active) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch("/api/announcements", {
+    const res = await fetch(apiUrl("announcements"), {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -449,7 +454,7 @@ export async function fetchLeaderboard(gameId) {
   const session = getStudentSession();
   const headers = {};
   if (session) headers.Authorization = `Bearer ${session.token}`;
-  const res = await fetch(`/api/scores?game=${encodeURIComponent(gameId)}`, { headers });
+  const res = await fetch(apiUrl("scores", { game: gameId }), { headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Could not load scores.");
   return data;
@@ -458,7 +463,7 @@ export async function fetchLeaderboard(gameId) {
 export async function submitScore(gameId, score) {
   const session = getStudentSession();
   if (!session) return null;
-  const res = await fetch("/api/scores", {
+  const res = await fetch(apiUrl("scores"), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -474,7 +479,7 @@ export async function submitScore(gameId, score) {
 export async function redeemPass(staffId, passcode) {
   const session = getStudentSession();
   if (!session) throw new Error("Student session expired.");
-  const res = await fetch("/api/redeem", {
+  const res = await fetch(apiUrl("redeem"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

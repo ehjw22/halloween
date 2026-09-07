@@ -11,7 +11,7 @@ window.loadHalloweenConfig = async function loadHalloweenConfig() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 4000);
   try {
-    const res = await fetch("/api/config", { cache: "no-store", signal: controller.signal });
+    const res = await fetch("/api?path=config", { cache: "no-store", signal: controller.signal });
     if (!res.ok) {
       window.__CONFIG_STATUS = { ok: false, reason: `api-${res.status}` };
       return;
