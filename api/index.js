@@ -41,20 +41,24 @@ function firstSegment(value) {
 
 function routeName(req) {
   const q = req.query || {};
-  if (q.path) {
-    const raw = Array.isArray(q.path) ? q.path[0] : q.path;
+  const fromParam = (value) => {
+    const raw = Array.isArray(value) ? value[0] : value;
     const name = firstSegment(raw);
-    if (name && name !== "index") return name;
-  }
+    return name && name !== "index" && name !== "[name]" ? name : "";
+  };
+  const named = fromParam(q.name) || fromParam(q.path);
+  if (named) return named;
   const invoke = String(req.headers["x-invoke-path"] || req.headers["x-matched-path"] || "");
   const fromInvoke = firstSegment(invoke.replace(/^\/api\/?/, ""));
-  if (fromInvoke && fromInvoke !== "index") return fromInvoke;
+  if (fromInvoke && fromInvoke !== "index" && fromInvoke !== "[name]") return fromInvoke;
   try {
     const url = new URL(req.url, "http://localhost");
     const fromQuery = firstSegment(url.searchParams.get("path"));
     if (fromQuery && fromQuery !== "index") return fromQuery;
     const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
-    if (parts[0] === "index") return firstSegment(parts.slice(1).join("/")) || fromQuery;
+    if (parts[0] === "index" || parts[0] === "[name]") {
+      return firstSegment(parts.slice(1).join("/")) || fromQuery;
+    }
     return parts[0] || "";
   } catch {
     return "";
