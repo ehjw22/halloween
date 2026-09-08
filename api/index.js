@@ -109,13 +109,18 @@ module.exports = async function handler(req, res) {
     }
     const fn = HANDLERS[name];
     if (!fn) {
-      res.status(404).json({ error: "Unknown API route." });
+      res.status(404).json({ error: "Unknown API route.", code: "unknown-route", detail: `path=${name || "(empty)"}` });
       return;
     }
     return await fn(req, res);
   } catch (error) {
+    console.error("[api]", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Something went wrong. Try again." });
+      res.status(500).json({
+        error: "Something went wrong. Try again.",
+        code: "unhandled",
+        detail: String((error && error.message) || "").slice(0, 280),
+      });
     }
   }
 };

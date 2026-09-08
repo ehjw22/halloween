@@ -336,5 +336,78 @@ grant execute on function public.upsert_push_subscription(text, text, text, text
 grant execute on function public.list_push_watchers(text) to anon, authenticated, service_role;
 grant execute on function public.delete_push_subscription(text) to anon, authenticated, service_role;
 
+create or replace function public.award_scream_stamp(p_number text, p_booth text, p_staff text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  booth text;
+  student public.students%rowtype;
+  card public.stamp_cards%rowtype;
+  next_stamps jsonb;
+begin
+  n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
+  if n ~ '^[0-9]{7}$' then
+    n := 'P' || n;
+  end if;
+  if n !~ '^P[0-9]{7}$' then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
+  if booth !~ '^[1-6]$' then
+    return jsonb_build_object('ok', false, 'error', 'bad_booth');
+  end if;
+
+  select * into student from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+
+  select * into card from public.stamp_cards where student_number = n;
+  if not found then
+    insert into public.stamp_cards (student_number, stamps)
+    values (n, '{}'::jsonb)
+    on conflict (student_number) do nothing;
+    select * into card from public.stamp_cards where student_number = n;
+  end if;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_card');
+  end if;
+
+  next_stamps := coalesce(card.stamps, '{}'::jsonb);
+  if next_stamps ? booth then
+    return jsonb_build_object('ok', false, 'error', 'already', 'full_name', student.full_name, 'student_number', n, 'stamps', next_stamps);
+  end if;
+
+  next_stamps := next_stamps || jsonb_build_object(
+    booth,
+    jsonb_build_object(
+      'by', left(trim(coalesce(p_staff, 'staff')), 80),
+      'at', (extract(epoch from now()) * 1000)::bigint,
+      'boothId', booth
+    )
+  );
+
+  update public.stamp_cards
+    set stamps = next_stamps,
+        updated_at = now()
+  where student_number = n
+  returning * into card;
+
+  return jsonb_build_object(
+    'ok', true,
+    'student_number', n,
+    'full_name', student.full_name,
+    'stamps', card.stamps
+  );
+end;
+$$;
+
+revoke all on function public.award_scream_stamp(text, text, text) from public;
+grant execute on function public.award_scream_stamp(text, text, text) to anon, authenticated, service_role;
+
 
 

@@ -1,3 +1,5 @@
+import { boothById } from "./booths.js";
+
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
 
@@ -9,6 +11,18 @@ export function apiUrl(name, params = {}) {
     q.set(key, String(value));
   });
   return `/api?${q.toString()}`;
+}
+
+function apiFail(data, res, fallback) {
+  const status = res && res.status;
+  const message = (data && data.error) || fallback || "Request failed.";
+  const extra = [data && data.detail, data && data.code, status && status >= 400 ? `HTTP ${status}` : ""]
+    .filter((part, index, all) => part && all.indexOf(part) === index)
+    .join(" · ");
+  const err = new Error(extra ? `${message} — ${extra}` : message);
+  err.code = (data && data.code) || String(status || "");
+  err.detail = (data && data.detail) || "";
+  return err;
 }
 
 function isBrowserLocal() {
@@ -292,7 +306,7 @@ export async function fetchOps() {
     headers: { Authorization: `Bearer ${session.token}` },
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not load command post.");
+  if (!res.ok) throw apiFail(data, res, "Could not load command post.");
   return data;
 }
 
@@ -326,18 +340,60 @@ export async function saveClickerRemote(state) {
 
 export async function awardStamp(studentNumber, boothId) {
   const session = getAdminSession();
-  if (!session) throw new Error("Staff session expired.");
+  if (!session) throw new Error("Staff session expired. Sign in again.");
+  const num = normalizeAdminNumber(studentNumber);
+  if (!isAdminNumber(num)) {
+    throw new Error("Enter a valid admin number, for example P1234567.");
+  }
+  const booth = boothById(boothId);
+  if (!booth) throw new Error("Choose a valid booth.");
+
+  if (session.payload.local) {
+    return awardStampLocal(session, num, booth);
+  }
+
   const res = await fetch(apiUrl("award-stamp"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.token}`,
     },
-    body: JSON.stringify({ studentNumber, boothId }),
+    body: JSON.stringify({ studentNumber: num, boothId: booth.id }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not award stamp.");
+  if (!res.ok) {
+    if (res.status === 404 && /unknown api/i.test(data.error || "")) {
+      throw new Error("Award API was not found. Redeploy with the api/ folder, then try again.");
+    }
+    throw apiFail(data, res, "Could not award stamp.");
+  }
   return data;
+}
+
+function awardStampLocal(session, num, booth) {
+  const card = readLocalCard(num) || {
+    stamps: {},
+    redeemedAt: null,
+    redeemedBy: null,
+    fullName: "",
+    studentNumber: num,
+    passId: `SP-FP-${num}`,
+  };
+  const stamps = { ...(card.stamps || {}) };
+  if (stamps[booth.id] || stamps[Number(booth.id)]) {
+    throw new Error("This student already has that booth stamp.");
+  }
+  stamps[booth.id] = { by: session.payload.staffId || session.payload.name || "staff", at: Date.now(), boothId: booth.id };
+  const next = { ...card, stamps, studentNumber: num };
+  writeLocalCard(num, next);
+  return {
+    studentNumber: num,
+    fullName: card.fullName || "",
+    stamps,
+    awarded: booth.id,
+    boothName: booth.name,
+    local: true,
+  };
 }
 
 export async function submitFeedback(kind, targetId, message, rating) {
@@ -350,7 +406,7 @@ export async function submitFeedback(kind, targetId, message, rating) {
     body: JSON.stringify({ kind, targetId, message, rating }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not send feedback.");
+  if (!res.ok) throw apiFail(data, res, "Could not send feedback.");
   return data;
 }
 
@@ -361,7 +417,7 @@ export async function fetchFeedback(kind, targetId) {
     headers: { Authorization: `Bearer ${session.token}` },
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not load feedback.");
+  if (!res.ok) throw apiFail(data, res, "Could not load feedback.");
   return data;
 }
 
@@ -386,7 +442,7 @@ export async function fetchAnnouncements({ all = false } = {}) {
   try {
     const res = await fetch(apiUrl("announcements", all ? { all: "1" } : {}), { headers });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Could not load announcements.");
+    if (!res.ok) throw apiFail(data, res, "Could not load announcements.");
     return data.announcements || [];
   } catch {
     const rows = readLocalAnnouncements();
@@ -464,7 +520,7 @@ export async function fetchLeaderboard(gameId) {
   if (session) headers.Authorization = `Bearer ${session.token}`;
   const res = await fetch(apiUrl("scores", { game: gameId }), { headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not load scores.");
+  if (!res.ok) throw apiFail(data, res, "Could not load scores.");
   return data;
 }
 
@@ -480,7 +536,7 @@ export async function submitScore(gameId, score) {
     body: JSON.stringify({ gameId, score }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Could not save score.");
+  if (!res.ok) throw apiFail(data, res, "Could not save score.");
   return data;
 }
 
@@ -496,6 +552,6 @@ export async function redeemPass(studentNumber) {
     body: JSON.stringify({ studentNumber }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Redeem failed.");
+  if (!res.ok) throw apiFail(data, res, "Redeem failed.");
   return data;
 }

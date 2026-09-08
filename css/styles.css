@@ -592,6 +592,37 @@ html.event-open .header-meta {
 .award-stamp-form {
   max-width: 640px;
 }
+.staff-log {
+  margin: 0 0 16px;
+  padding: 8px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 8, 16, 0.45);
+}
+.staff-log summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--orange-2);
+}
+.staff-log__list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+.staff-log__list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.88rem;
+  color: #fecaca;
+  white-space: pre-wrap;
+}
+.staff-log__list li strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.78rem;
+}
 .award-stamp-fields {
   display: grid;
   gap: 12px;

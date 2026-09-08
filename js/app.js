@@ -1069,6 +1069,41 @@ async function loadOps() {
   }
 }
 
+function fillAwardBoothSelect() {
+  if (!els.awardBooth) return;
+  if (els.awardBooth.options.length && els.awardBooth.dataset.filled) return;
+  els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
+  els.awardBooth.dataset.filled = "1";
+}
+
+function readStaffLog() {
+  try {
+    return JSON.parse(sessionStorage.getItem("scream-staff-log") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function paintStaffLog() {
+  const list = document.getElementById("staffErrorLog");
+  if (!list) return;
+  const rows = readStaffLog();
+  list.innerHTML = rows.length
+    ? rows.map((row) => `<li><strong>${escapeHtml(row.at)} · ${escapeHtml(row.action)}</strong>${escapeHtml(row.message)}</li>`).join("")
+    : "<li class='muted'>No errors yet.</li>";
+}
+
+function pushStaffLog(action, error) {
+  const rows = readStaffLog();
+  rows.unshift({
+    at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    action,
+    message: error && error.message ? String(error.message) : String(error || "Unknown error"),
+  });
+  sessionStorage.setItem("scream-staff-log", JSON.stringify(rows.slice(0, 40)));
+  paintStaffLog();
+}
+
 function renderAdmin() {
   if (!isAdminUnlocked()) {
     els.adminGate.hidden = false;
@@ -1111,10 +1146,7 @@ function renderAdmin() {
         </tr>`;
     })
     .join("");
-  if (els.awardBooth && !els.awardBooth.dataset.filled) {
-    els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
-    els.awardBooth.dataset.filled = "1";
-  }
+  fillAwardBoothSelect();
   const houseSel = document.getElementById("announceHouse");
   if (houseSel && !houseSel.dataset.filled) {
     houseSel.innerHTML = HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`).join("");
@@ -1207,6 +1239,7 @@ async function persistHouse(id, patch) {
     return result;
   }
   setWaitSaveStatus(result?.error || "Could not save wait times to the database.");
+  if (result?.error) pushStaffLog("Wait times", result.error);
   return result;
 }
 
@@ -1328,6 +1361,12 @@ function setMoreMenu(open) {
 }
 
 function bindUi() {
+  fillAwardBoothSelect();
+  paintStaffLog();
+  document.getElementById("staffLogClear")?.addEventListener("click", () => {
+    sessionStorage.removeItem("scream-staff-log");
+    paintStaffLog();
+  });
   const houseSearch = document.getElementById("houseSearch");
   houseSearch?.addEventListener("input", () => {
     houseFilter.q = houseSearch.value || "";
@@ -1576,6 +1615,7 @@ function bindUi() {
       document.getElementById("staffRedeemStamps").textContent = `${filled} / 6 stamps · ready to skip the wait line`;
       document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
     } catch (error) {
+      pushStaffLog("Redeem lookup", error);
       if (err) {
         err.hidden = false;
         err.textContent = error.message;
@@ -1599,6 +1639,7 @@ function bindUi() {
       }
     } catch (error) {
       resetStaffRedeemView();
+      pushStaffLog("Redeem Fast Pass", error);
       if (err) {
         err.hidden = false;
         err.textContent = error.message;
@@ -1706,12 +1747,15 @@ function bindUi() {
       );
       if (els.awardStampOk) {
         els.awardStampOk.hidden = false;
-        els.awardStampOk.textContent = `Awarded ${data.boothName} to ${data.fullName} (${data.studentNumber}).`;
+        els.awardStampOk.textContent = data.local
+          ? `Awarded ${data.boothName} to ${data.studentNumber} on this device (demo).`
+          : `Awarded ${data.boothName} to ${data.fullName} (${data.studentNumber}).`;
       }
       if (getStudentSession()?.payload.studentNumber === data.studentNumber) {
         await renderStamps({ refresh: true });
       }
     } catch (error) {
+      pushStaffLog("Award stamp", error);
       if (els.awardStampError) {
         els.awardStampError.hidden = false;
         els.awardStampError.textContent = error.message;
