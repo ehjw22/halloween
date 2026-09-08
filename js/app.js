@@ -16,6 +16,7 @@ import {
   fetchStamps,
   getAdminSession,
   getStudentSession,
+  lookupStudent,
   postAnnouncement,
   redeemPass,
   setAnnouncementActive,
@@ -89,11 +90,8 @@ const els = {
   sessionChip: document.getElementById("sessionChip"),
   passHolder: document.getElementById("passHolder"),
   passKicker: document.getElementById("passKicker"),
-  redeemOpen: document.getElementById("redeemOpen"),
+  passUsedMark: document.getElementById("passUsedMark"),
   redeemedNote: document.getElementById("redeemedNote"),
-  redeemModal: document.getElementById("redeemModal"),
-  redeemForm: document.getElementById("redeemForm"),
-  redeemError: document.getElementById("redeemError"),
   adminAuthError: document.getElementById("adminAuthError"),
   fastPassCard: document.getElementById("fastPassCard"),
   feedbackForm: document.getElementById("feedbackForm"),
@@ -128,6 +126,7 @@ let staffTab = "waits";
 let feedbackKindFilter = "";
 let stampPoll = 0;
 let showPass = false;
+let waitSync = { liveOk: false, lastLiveAt: null };
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
@@ -712,7 +711,6 @@ function closeModals() {
   if (els.boothModal) els.boothModal.hidden = true;
   if (els.boothsModal) els.boothsModal.hidden = true;
   if (els.stampModal) els.stampModal.hidden = true;
-  if (els.redeemModal) els.redeemModal.hidden = true;
   pendingStampId = null;
 }
 
@@ -840,14 +838,15 @@ function paintStampUi() {
     els.passView.hidden = false;
     els.passToggle.textContent = "Review stamp card";
     els.passId.textContent = cardState.passId;
-    if (cardState.passId && cardState.passId !== lastQr) {
+    const redeemed = Boolean(cardState.redeemedAt);
+    els.fastPassCard.classList.toggle("is-redeemed", redeemed);
+    els.passKicker.textContent = redeemed ? "Used" : "Show this at Fast Pass";
+    if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
+    if (!redeemed && cardState.passId && cardState.passId !== lastQr) {
       lastQr = cardState.passId;
       drawQr(cardState.passId);
     }
-    const redeemed = Boolean(cardState.redeemedAt);
-    els.fastPassCard.classList.toggle("is-redeemed", redeemed);
-    els.passKicker.textContent = redeemed ? "Redeemed" : "Unlocked";
-    els.redeemOpen.hidden = redeemed;
+    if (redeemed) lastQr = "";
     els.redeemedNote.hidden = !redeemed;
     if (redeemed) {
       const when = new Date(cardState.redeemedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -856,7 +855,7 @@ function paintStampUi() {
   } else {
     els.stampView.hidden = false;
     els.passView.hidden = true;
-    els.passToggle.textContent = complete ? "Show Fast Pass" : "Show Fast Pass";
+    els.passToggle.textContent = "Show Fast Pass";
     if (!complete) els.passToggle.hidden = true;
   }
 }
@@ -1022,6 +1021,8 @@ async function loadPublicAnnouncements() {
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
+  const details = document.getElementById("announceDetails");
+  if (details) details.open = rows.length > 0;
 }
 
 async function loadAdminAnnouncements() {
@@ -1142,14 +1143,14 @@ async function drawQr(text) {
   if (!els.qrCanvas) return;
   if (typeof QRCode !== "undefined" && QRCode.toCanvas) {
     await QRCode.toCanvas(els.qrCanvas, text, {
-      width: 196,
-      margin: 1,
-      color: { dark: "#14080c", light: "#fff4d6" },
+      width: 280,
+      margin: 2,
+      color: { dark: "#14080c", light: "#ffffff" },
     });
     return;
   }
   const ctx = els.qrCanvas.getContext("2d");
-  const size = 196;
+  const size = 280;
   els.qrCanvas.width = size;
   els.qrCanvas.height = size;
   ctx.fillStyle = "#fff4d6";
@@ -1509,29 +1510,113 @@ function bindUi() {
     });
   }
 
-  els.redeemOpen?.addEventListener("click", () => {
-    els.redeemError.hidden = true;
-    els.redeemModal.hidden = false;
-    document.getElementById("redeemStaffId").focus();
+  function resetStaffRedeemView() {
+    const form = document.getElementById("staffRedeemLookupForm");
+    const ready = document.getElementById("staffRedeemReady");
+    const used = document.getElementById("staffRedeemUsed");
+    const err = document.getElementById("staffRedeemError");
+    if (form) form.hidden = false;
+    if (ready) ready.hidden = true;
+    if (used) used.hidden = true;
+    if (err) {
+      err.hidden = true;
+      err.textContent = "";
+    }
+  }
+
+  function formatRedeemedLine(at, by) {
+    if (!at) return "This pass is marked used.";
+    const when = new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `Redeemed at ${when}${by ? ` by ${by}` : ""}.`;
+  }
+
+  function showStaffUsedPass(data) {
+    const form = document.getElementById("staffRedeemLookupForm");
+    const ready = document.getElementById("staffRedeemReady");
+    const used = document.getElementById("staffRedeemUsed");
+    if (form) form.hidden = true;
+    if (ready) ready.hidden = true;
+    if (used) used.hidden = false;
+    const name = document.getElementById("staffUsedName");
+    const id = document.getElementById("staffUsedId");
+    const note = document.getElementById("staffUsedNote");
+    if (name) name.textContent = `${data.fullName || ""} · ${data.studentNumber || ""}`;
+    if (id) id.textContent = data.passId || `SP-FP-${data.studentNumber || ""}`;
+    if (note) note.textContent = formatRedeemedLine(data.redeemedAt, data.redeemedBy);
+  }
+
+  document.getElementById("staffRedeemLookupForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const err = document.getElementById("staffRedeemError");
+    if (err) {
+      err.hidden = true;
+      err.textContent = "";
+    }
+    const input = document.getElementById("redeemStudentNumber");
+    try {
+      const data = await lookupStudent(input.value);
+      if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
+      const filled = typeof data.stampCount === "number" ? data.stampCount : stampCount(data.stamps || {});
+      const passId = data.passId || `SP-FP-${data.studentNumber}`;
+      if (data.redeemedAt) {
+        showStaffUsedPass({ ...data, passId });
+        return;
+      }
+      if (filled < 6) {
+        throw new Error(`This student has ${filled} / 6 stamps. Fast Pass is not unlocked.`);
+      }
+      const form = document.getElementById("staffRedeemLookupForm");
+      const ready = document.getElementById("staffRedeemReady");
+      const used = document.getElementById("staffRedeemUsed");
+      if (form) form.hidden = true;
+      if (used) used.hidden = true;
+      if (ready) ready.hidden = false;
+      document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
+      document.getElementById("staffRedeemId").textContent = passId;
+      document.getElementById("staffRedeemStamps").textContent = `${filled} / 6 stamps · ready to skip the wait line`;
+      document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
+    } catch (error) {
+      if (err) {
+        err.hidden = false;
+        err.textContent = error.message;
+      }
+    }
   });
 
-  els.redeemForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    els.redeemError.hidden = true;
+  document.getElementById("staffRedeemConfirm")?.addEventListener("click", async () => {
+    const btn = document.getElementById("staffRedeemConfirm");
+    const err = document.getElementById("staffRedeemError");
+    const studentNumber = btn?.dataset.studentNumber;
+    if (!studentNumber) return;
+    btn.disabled = true;
     try {
-      const result = await redeemPass(
-        document.getElementById("redeemStaffId").value,
-        document.getElementById("redeemPasscode").value
-      );
-      cardState.redeemedAt = result.redeemedAt;
-      cardState.redeemedBy = result.redeemedBy;
-      closeModals();
-      showPass = true;
-      paintStampUi();
+      const result = await redeemPass(studentNumber);
+      showStaffUsedPass(result);
+      if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
+        await renderStamps({ refresh: true });
+        showPass = true;
+        paintStampUi();
+      }
     } catch (error) {
-      els.redeemError.hidden = false;
-      els.redeemError.textContent = error.message;
+      resetStaffRedeemView();
+      if (err) {
+        err.hidden = false;
+        err.textContent = error.message;
+      }
+    } finally {
+      btn.disabled = false;
     }
+  });
+
+  document.querySelectorAll("[data-redeem-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      resetStaffRedeemView();
+      const input = document.getElementById("redeemStudentNumber");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+    });
   });
 
   document.getElementById("adminLock")?.addEventListener("click", () => {
@@ -1704,11 +1789,38 @@ function bindUi() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeModals();
   });
+  window.addEventListener("online", () => paintWaitBanner());
+  window.addEventListener("offline", () => paintWaitBanner());
 }
 
-function onStoreChange(next) {
+function paintWaitBanner(sync) {
+  const note = document.getElementById("siteLiveNote");
+  if (!note) return;
+  if (sync) waitSync = sync;
+  else if (store?.getSync) waitSync = store.getSync();
+  const live = waitSync.liveOk && navigator.onLine !== false;
+  if (live) {
+    note.hidden = true;
+    note.classList.remove("is-stale");
+    note.textContent = "";
+    return;
+  }
+  if (waitSync.lastLiveAt) {
+    note.hidden = false;
+    note.classList.add("is-stale");
+    const ago = freshnessLabel(waitSync.lastLiveAt).replace(/^Updated /, "updated ");
+    note.textContent = `Last known waits · ${ago}`;
+    return;
+  }
+  note.hidden = false;
+  note.classList.remove("is-stale");
+  note.textContent = "Demo mode: this browser is not connected to the live event database.";
+}
+
+function onStoreChange(next, sync) {
   notifyWatches(next);
   houses = next;
+  if (sync) paintWaitBanner(sync);
   renderDashboard();
   renderPins();
   if (document.querySelector('.view.is-active')?.dataset.view === "admin" && isAdminUnlocked()) {
@@ -1797,10 +1909,7 @@ async function init() {
       : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
   }
   const note = document.getElementById("siteLiveNote");
-  if (note) {
-    note.hidden = live;
-    note.textContent = live ? "" : "Demo mode: this browser is not connected to the live event database.";
-  }
+  if (note) paintWaitBanner(store.getSync ? store.getSync() : { liveOk: live, lastLiveAt: live ? new Date().toISOString() : null });
 }
 
 init().catch((error) => {

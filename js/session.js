@@ -262,6 +262,10 @@ export async function lookupStudent(studentNumber) {
         studentNumber: normalizeAdminNumber(studentNumber),
         fullName: "Name not confirmed (offline)",
         stamps: {},
+        stampCount: 0,
+        redeemedAt: null,
+        redeemedBy: null,
+        passId: `SP-FP-${normalizeAdminNumber(studentNumber)}`,
         demo: true,
       };
     }
@@ -272,6 +276,10 @@ export async function lookupStudent(studentNumber) {
       studentNumber: normalizeAdminNumber(studentNumber),
       fullName: "Name not confirmed (offline)",
       stamps: {},
+      stampCount: 0,
+      redeemedAt: null,
+      redeemedBy: null,
+      passId: `SP-FP-${normalizeAdminNumber(studentNumber)}`,
       demo: true,
     };
   }
@@ -476,16 +484,16 @@ export async function submitScore(gameId, score) {
   return data;
 }
 
-export async function redeemPass(staffId, passcode) {
-  const session = getStudentSession();
-  if (!session) throw new Error("Student session expired.");
+export async function redeemPass(studentNumber) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
   const res = await fetch(apiUrl("redeem"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.token}`,
     },
-    body: JSON.stringify({ staffId, passcode }),
+    body: JSON.stringify({ studentNumber }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Redeem failed.");

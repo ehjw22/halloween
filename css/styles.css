@@ -693,6 +693,9 @@ html.event-open .header-meta {
   font-family: "Special Elite", ui-monospace, monospace;
   color: var(--muted);
 }
+.passport__id #passToggle {
+  margin-left: auto;
+}
 .passport__hint {
   margin: 0 0 16px;
   color: var(--muted);
@@ -1254,7 +1257,7 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
   margin: 0 0 6px;
 }
 .section-head p { margin: 0; color: var(--muted); }
-.section-head--map { margin-top: 28px; }
+.section-head--map { margin-top: 8px; }
 
 .house-grid {
   display: grid;
@@ -1510,24 +1513,55 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
   margin: 0 0 8px;
   font-size: 0.75rem;
 }
+.fast-pass h3 { margin: 0 0 8px; }
+.fast-pass__qr {
+  position: relative;
+  width: min(280px, 80vw);
+  margin: 16px auto;
+}
 .fast-pass canvas {
   display: block;
-  margin: 16px auto;
+  width: 100%;
+  height: auto;
   border-radius: 12px;
-  background: #fff4d6;
+  background: #fff;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.fast-pass__used {
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  font-family: "Creepster", cursive;
+  font-size: 2.4rem;
+  color: #fecaca;
+  background: rgba(20, 8, 12, 0.72);
+  border-radius: 8px;
+  letter-spacing: 0.08em;
 }
 .fast-pass.is-redeemed {
   border-color: var(--closed);
   box-shadow: none;
   opacity: 0.92;
 }
+.fast-pass.is-redeemed canvas { visibility: hidden; }
 .fast-pass__holder {
   font-weight: 700;
+  font-size: 1.05rem;
   color: var(--orange-2);
   margin: 0 0 8px;
 }
 .fast-pass__id { font-weight: 700; letter-spacing: 0.08em; }
-.fast-pass ul { text-align: left; color: var(--muted); }
+.fast-pass__rules {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 0 0 16px;
+}
+.staff-pass-preview .btn,
+.staff-pass-used .btn {
+  margin: 8px 6px 0;
+}
 
 .admin-gate, .modal__panel {
   background: var(--panel);
@@ -1780,6 +1814,30 @@ input, select {
   word-break: break-all;
 }
 
+.announce-panel {
+  margin: 12px 0 16px;
+  padding: 4px 14px 8px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(20, 8, 16, 0.4);
+}
+.announce-panel__summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 0;
+}
+.announce-panel__summary::-webkit-details-marker { display: none; }
+.announce-panel__summary h2 {
+  font-family: "Creepster", cursive;
+  font-size: 1.4rem;
+  color: var(--orange);
+  margin: 0 0 4px;
+}
+.announce-panel__summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
 .announce-panel .announce-list { max-width: none; }
 .announce-board__hint { margin: -8px 0 12px; }
 .announce-list {
@@ -1940,6 +1998,10 @@ input, select {
   padding: 8px 18px;
   background: rgba(248, 113, 113, 0.15);
   color: #fecaca;
+}
+.site-live-note.is-stale {
+  background: rgba(255, 186, 73, 0.16);
+  color: #ffd7a8;
 }
 .push-install-hint {
   margin: 0;

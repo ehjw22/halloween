@@ -3,6 +3,7 @@ import { getAdminSession, apiUrl } from "./session.js";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v1";
+const SYNC_KEY = "sp-halloween-waits-sync-v1";
 const POLL_MS = 4000;
 
 function cloneHouses() {
@@ -35,6 +36,19 @@ function writeLocal(rows) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
 }
 
+function readLastLiveAt() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SYNC_KEY) || "null");
+    return raw?.lastLiveAt || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastLiveAt(iso) {
+  localStorage.setItem(SYNC_KEY, JSON.stringify({ lastLiveAt: iso }));
+}
+
 export function createStore(onChange) {
   const config = window.HALLOWEEN_CONFIG || {};
   const hasRemote = Boolean(config.supabaseUrl && config.supabaseAnonKey);
@@ -42,8 +56,19 @@ export function createStore(onChange) {
   let client = null;
   let channel = null;
   let pollTimer = null;
+  let liveOk = false;
 
-  const emit = () => onChange(rows.map((r) => ({ ...r })));
+  const getSync = () => ({ liveOk, lastLiveAt: readLastLiveAt() });
+  const emit = () => onChange(rows.map((r) => ({ ...r })), getSync());
+
+  function markLive() {
+    liveOk = true;
+    writeLastLiveAt(new Date().toISOString());
+  }
+
+  function markStale() {
+    liveOk = false;
+  }
 
   function applyRows(next, { broadcastLocal = false } = {}) {
     if (!next?.length) return false;
@@ -73,8 +98,14 @@ export function createStore(onChange) {
   async function refreshFromDb() {
     if (!client) return;
     const { data, error } = await client.from("scare_houses").select("*");
-    if (error || !data) return;
-    applyRows(data, { broadcastLocal: true });
+    if (error || !data) {
+      markStale();
+      emit();
+      return;
+    }
+    markLive();
+    const changed = applyRows(data, { broadcastLocal: true });
+    if (!changed) emit();
   }
 
   function startPolling() {
@@ -106,11 +137,14 @@ export function createStore(onChange) {
     const { data, error } = await client.from("scare_houses").select("*").order("name");
     if (error) {
       console.warn("Supabase read failed, using local demo mode.", error.message);
+      markStale();
       emit();
       return { mode: "local", error: error.message };
     }
 
+    markLive();
     if (data?.length) applyRows(data);
+    else emit();
 
     channel = client
       .channel("scare-houses-live", { config: { broadcast: { ack: false } } })
@@ -120,13 +154,17 @@ export function createStore(onChange) {
         (payload) => {
           const next = payload.new;
           if (!next?.id) return;
+          markLive();
           applyRows(rows.map((row) => (row.id === next.id ? { ...row, ...next } : row)), {
             broadcastLocal: true,
           });
         }
       )
       .on("broadcast", { event: "wait-times" }, ({ payload }) => {
-        if (Array.isArray(payload?.rows)) applyRows(payload.rows);
+        if (Array.isArray(payload?.rows)) {
+          markLive();
+          applyRows(payload.rows);
+        }
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") refreshFromDb();
@@ -137,9 +175,17 @@ export function createStore(onChange) {
       if (!document.hidden) refreshFromDb();
     });
     window.addEventListener("focus", refreshFromDb);
+    window.addEventListener("online", () => {
+      refreshFromDb();
+    });
+    window.addEventListener("offline", () => {
+      markStale();
+      emit();
+    });
+    if (typeof navigator !== "undefined" && navigator.onLine === false) markStale();
 
     emit();
-    return { mode: "live" };
+    return { mode: liveOk ? "live" : "local" };
   }
 
   async function publish(id, patch, { persist = true } = {}) {
@@ -209,5 +255,5 @@ export function createStore(onChange) {
     if (channel && client) client.removeChannel(channel);
   }
 
-  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote };
+  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote, getSync };
 }
