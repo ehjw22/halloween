@@ -775,6 +775,13 @@ async function loadCardFromServer() {
 }
 
 let lastQr = "";
+let lastFilled = 0;
+
+function isPassRedeemed(value) {
+  if (!value) return false;
+  const t = Date.parse(value);
+  return Number.isFinite(t);
+}
 
 function paintStampUi() {
   const session = getStudentSession();
@@ -829,6 +836,8 @@ function paintStampUi() {
   }
 
   const complete = filled === 6;
+  if (complete && lastFilled < 6) showPass = true;
+  lastFilled = filled;
   els.passToggle.hidden = !complete;
   if (els.passHolder) {
     els.passHolder.textContent = `${cardState.fullName || session.payload.name} · ${cardState.studentNumber || session.payload.studentNumber}`;
@@ -838,7 +847,7 @@ function paintStampUi() {
     els.passView.hidden = false;
     els.passToggle.textContent = "Review stamp card";
     els.passId.textContent = cardState.passId;
-    const redeemed = Boolean(cardState.redeemedAt);
+    const redeemed = isPassRedeemed(cardState.redeemedAt);
     els.fastPassCard.classList.toggle("is-redeemed", redeemed);
     els.passKicker.textContent = redeemed ? "Used" : "Show this at Fast Pass";
     if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
@@ -1470,6 +1479,7 @@ function bindUi() {
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
         showPass = false;
+        lastFilled = 0;
         updateNav();
         renderStamps();
       } else {
@@ -1597,7 +1607,7 @@ function bindUi() {
       if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
       const filled = typeof data.stampCount === "number" ? data.stampCount : stampCount(data.stamps || {});
       const passId = data.passId || `SP-FP-${data.studentNumber}`;
-      if (data.redeemedAt) {
+      if (isPassRedeemed(data.redeemedAt)) {
         showStaffUsedPass({ ...data, passId });
         return;
       }
@@ -1740,6 +1750,19 @@ function bindUi() {
     event.preventDefault();
     if (els.awardStampError) els.awardStampError.hidden = true;
     if (els.awardStampOk) els.awardStampOk.hidden = true;
+    const busy = document.getElementById("awardStampBusy");
+    const submit = document.getElementById("awardStampSubmit") || els.awardStampForm.querySelector("button[type=submit]");
+    const phrases = ["Looking up student…", "Saving stamp…", "Confirming on the card…"];
+    let phraseIndex = 0;
+    if (busy) {
+      busy.hidden = false;
+      busy.textContent = phrases[0];
+    }
+    if (submit) submit.disabled = true;
+    const tick = window.setInterval(() => {
+      phraseIndex = (phraseIndex + 1) % phrases.length;
+      if (busy) busy.textContent = phrases[phraseIndex];
+    }, 800);
     try {
       const data = await awardStamp(
         document.getElementById("awardStudentNumber").value,
@@ -1760,6 +1783,10 @@ function bindUi() {
         els.awardStampError.hidden = false;
         els.awardStampError.textContent = error.message;
       }
+    } finally {
+      window.clearInterval(tick);
+      if (busy) busy.hidden = true;
+      if (submit) submit.disabled = false;
     }
   });
 

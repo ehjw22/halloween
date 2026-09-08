@@ -1562,7 +1562,7 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
 .fast-pass__used {
   position: absolute;
   inset: 12px;
-  display: grid;
+  display: none;
   place-items: center;
   font-family: "Creepster", cursive;
   font-size: 2.4rem;
@@ -1576,6 +1576,7 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
   box-shadow: none;
   opacity: 0.92;
 }
+.fast-pass.is-redeemed .fast-pass__used { display: grid; }
 .fast-pass.is-redeemed canvas { visibility: hidden; }
 .fast-pass__holder {
   font-weight: 700;
