@@ -361,10 +361,15 @@ begin
     return jsonb_build_object('ok', false, 'error', 'bad_booth');
   end if;
 
-  select * into student from public.students where student_number = n;
+  select * into student from public.students
+  where upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g')) = n
+     or upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g')) = substring(n from 2)
+     or ('P' || upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g'))) = n;
   if not found then
     return jsonb_build_object('ok', false, 'error', 'no_student');
   end if;
+
+  n := student.student_number;
 
   select * into card from public.stamp_cards where student_number = n;
   if not found then
@@ -408,6 +413,49 @@ $$;
 
 revoke all on function public.award_scream_stamp(text, text, text) from public;
 grant execute on function public.award_scream_stamp(text, text, text) to anon, authenticated, service_role;
+
+create or replace function public.lookup_scream_student(p_number text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  student public.students%rowtype;
+  card public.stamp_cards%rowtype;
+begin
+  n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
+  if n ~ '^[0-9]{7}$' then
+    n := 'P' || n;
+  end if;
+  if n !~ '^P[0-9]{7}$' then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+
+  select * into student from public.students
+  where upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g')) = n
+     or upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g')) = substring(n from 2)
+     or ('P' || upper(regexp_replace(student_number, '[^A-Za-z0-9]', '', 'g'))) = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+
+  select * into card from public.stamp_cards where student_number = student.student_number;
+  return jsonb_build_object(
+    'ok', true,
+    'student_number', student.student_number,
+    'full_name', student.full_name,
+    'stamps', coalesce(card.stamps, '{}'::jsonb),
+    'redeemed_at', card.redeemed_at,
+    'redeemed_by', card.redeemed_by
+  );
+end;
+$$;
+
+revoke all on function public.lookup_scream_student(text) from public;
+grant execute on function public.lookup_scream_student(text) to anon, authenticated, service_role;
+
 
 
 
