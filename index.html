@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map21">
+  <link rel="stylesheet" href="css/styles.css?v=map23">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -125,7 +125,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.4.0</div>
+      <div class="version-chip" title="App version">v1.4.1</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -172,7 +172,9 @@
         </div>
         <label class="map-pin-fade">
           <span>Pins</span>
-          <input id="pinOpacity" type="range" min="0" max="100" value="100" step="1" aria-label="Pin visibility">
+          <span class="map-pin-fade__track">
+            <input id="pinOpacity" type="range" min="0" max="100" value="100" step="1" aria-label="Pin visibility">
+          </span>
           <span>Map</span>
         </label>
         <div class="map-viewport" id="mapViewport">
@@ -710,7 +712,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map20"></script>
+  <script type="module" src="js/app.js?v=map21"></script>
 </div>
 </body>
 </html>

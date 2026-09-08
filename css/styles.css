@@ -362,15 +362,57 @@ html.event-open .event-gate {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.map-pin-fade input[type="range"] {
-  width: 28px;
+.map-pin-fade__track {
+  display: block;
+  position: relative;
+  width: 24px;
   height: 140px;
+}
+.map-pin-fade input[type="range"] {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140px;
+  height: 24px;
   margin: 0;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  appearance: slider-vertical;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  appearance: none;
+  background: transparent;
   accent-color: var(--orange);
   cursor: pointer;
+}
+.map-pin-fade input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--orange) var(--pin-pct, 100%), #3a1822 var(--pin-pct, 100%));
+}
+.map-pin-fade input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid #fff4d6;
+  background: var(--orange);
+  box-shadow: 0 0 10px rgba(255, 122, 24, 0.7);
+}
+.map-pin-fade input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #3a1822;
+}
+.map-pin-fade input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--orange);
+}
+.map-pin-fade input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff4d6;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 10px rgba(255, 122, 24, 0.7);
 }
 .map-pin-svg {
   transition: opacity 0.15s ease;
@@ -1928,12 +1970,11 @@ body.is-board { background: #050308; }
   .nav__wide { display: none !important; }
   .nav-more-menu {
     position: absolute;
+    left: 0;
     right: 0;
     top: calc(100% + 6px);
-    inset: auto;
-    flex: none;
-    width: min(220px, calc(100vw - 24px));
-    min-width: 160px;
+    width: 100%;
+    min-width: 0;
     margin: 0;
     padding: 8px;
     background: rgba(18, 8, 14, 0.96);
@@ -1941,10 +1982,11 @@ body.is-board { background: #050308; }
     border-radius: 14px;
     gap: 6px;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    z-index: 12;
   }
   .nav-more-menu:not([hidden]) {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   .nav-more-menu .nav__btn {
     width: 100%;

@@ -1172,6 +1172,7 @@ function bindMap() {
     }
     if (pinFade) {
       pinFade.value = String(t);
+      pinFade.style.setProperty("--pin-pct", `${t}%`);
       pinFade.setAttribute("aria-valuetext", `${t} percent`);
     }
     try {
