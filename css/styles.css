@@ -1261,21 +1261,89 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
+.house-filters {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.house-filters__search input {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: #1a0d16;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.house-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-chip {
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: #1a0d16;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+.filter-chip.is-on {
+  background: linear-gradient(135deg, #ff8a2a, #d94b00);
+  border-color: transparent;
+  color: #14080c;
+  font-weight: 700;
+}
+.house-filters__empty {
+  grid-column: 1 / -1;
+  margin: 8px 0 16px;
+  color: var(--muted);
+}
 
 .house-card {
   text-align: left;
-  padding: 12px;
+  padding: 0;
   border-radius: 16px;
   background: var(--panel);
   border: 1px solid var(--line);
   color: inherit;
   display: grid;
-  gap: 6px;
+  gap: 0;
   min-height: 118px;
-  cursor: pointer;
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .house-card:hover { border-color: var(--orange); }
+.house-card__open {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 12px 12px 8px;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+.house-card__watch {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0 10px 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #1a0d16;
+  color: var(--muted);
+}
+.house-card__watch.is-on {
+  color: #14080c;
+  background: var(--open);
+  border-color: transparent;
+}
 .house-card__short {
   font-size: 0.7rem;
   letter-spacing: 0.12em;
@@ -1353,6 +1421,31 @@ main { padding: 18px 16px 48px; max-width: 1280px; margin: 0 auto; }
 .map-pin-svg .map-pin {
   pointer-events: auto;
   cursor: pointer;
+}
+.map-pin-svg .map-pin--dim {
+  opacity: 0.22;
+  pointer-events: none;
+}
+.map-pin-svg .map-pin__ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 4;
+}
+.map-pin-svg .map-pin--watch .map-pin__ring {
+  stroke: #86efac;
+}
+.map-pin-svg .map-pin__watch-hit {
+  fill: rgba(18, 8, 14, 0.85);
+  stroke: rgba(255, 244, 214, 0.7);
+  stroke-width: 2;
+}
+.map-pin-svg .map-pin__watch.is-on .map-pin__watch-hit {
+  fill: #166534;
+  stroke: #86efac;
+}
+.map-pin-svg .map-pin__watch-icon {
+  stroke: #fff4d6;
+  pointer-events: none;
 }
 .map-pin-svg .map-pin__mark {
   fill: var(--open);

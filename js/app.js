@@ -131,6 +131,7 @@ let showPass = false;
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
+const houseFilter = { q: "", status: "", tag: "" };
 
 const mapState = {
   scale: 1,
@@ -162,6 +163,55 @@ function waitRank(row) {
 
 function sortedHouses(list = houses) {
   return [...list].sort((a, b) => waitRank(a) - waitRank(b) || a.name.localeCompare(b.name));
+}
+
+function houseSearchHay(row) {
+  const meta = houseMeta(row.id);
+  return `${row.name} ${meta?.short || ""} ${row.id}`.toLowerCase();
+}
+
+function houseMatchesFilter(row) {
+  const q = houseFilter.q.trim().toLowerCase();
+  if (q && !houseSearchHay(row).includes(q)) return false;
+  const wait = Number(row.wait_minutes) || 0;
+  if (houseFilter.status === "walkin") {
+    if (row.status === "closed" || row.status === "at_capacity" || wait !== 0) return false;
+  } else if (houseFilter.status === "queue") {
+    if (row.status !== "open" && row.status !== "busy") return false;
+  } else if (houseFilter.status === "at_capacity") {
+    if (row.status !== "at_capacity") return false;
+  } else if (houseFilter.status === "closed") {
+    if (row.status !== "closed") return false;
+  }
+  if (houseFilter.tag) {
+    const tags = houseMeta(row.id)?.tags || [];
+    if (!tags.includes(houseFilter.tag)) return false;
+  }
+  return true;
+}
+
+function filterIsActive() {
+  return Boolean(houseFilter.q.trim() || houseFilter.status || houseFilter.tag);
+}
+
+function filteredHouses() {
+  return sortedHouses().filter(houseMatchesFilter);
+}
+
+function goNowHouses() {
+  let list = sortedHouses().filter((row) => row.status === "open" || row.status === "busy");
+  const q = houseFilter.q.trim().toLowerCase();
+  if (q) list = list.filter((row) => houseSearchHay(row).includes(q));
+  return list.slice(0, 3);
+}
+
+function paintHouseFilters() {
+  document.querySelectorAll("[data-filter-status]").forEach((btn) => {
+    btn.classList.toggle("is-on", btn.dataset.filterStatus === houseFilter.status);
+  });
+  document.querySelectorAll("[data-filter-tag]").forEach((btn) => {
+    btn.classList.toggle("is-on", btn.dataset.filterTag === houseFilter.tag);
+  });
 }
 
 function freshnessLabel(iso) {
@@ -278,30 +328,74 @@ function setView(name, extra) {
   setMoreMenu(false);
 }
 
+function toggleWatchHouse(id) {
+  if (!id) return;
+  const night = readNight();
+  const watching = night.watch.includes(id);
+  night.watch = watching ? night.watch.filter((hid) => hid !== id) : [...night.watch, id];
+  writeNight(night);
+  renderDashboard();
+  renderPins();
+  if (openHouseId === id && els.modal && !els.modal.hidden) openHouse(id);
+  if (!watching) {
+    setWantsPush(true);
+    enablePushNotifications(night.watch).then((result) => {
+      paintPushHint();
+      if (result?.ok) {
+        showWaitToast("Walk-in alert on", "We’ll ping this phone when the wait hits 0 minutes.", false);
+        return;
+      }
+      if (result?.reason === "ios-install") {
+        showWaitToast("Add to Home Screen", "On iPhone, install the app first, then tap Alert when walk-in again.", false);
+        return;
+      }
+      if (result?.reason === "denied") {
+        showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
+        return;
+      }
+      showWaitToast("Walk-in alert on", "You’ll see a message here when the wait hits 0. Phone alerts need notification permission.", false);
+    }).catch(paintPushHint);
+  } else {
+    syncPushWatch(night.watch);
+    showWaitToast("Alert off", "This house will no longer ping you at 0 minutes.", false);
+  }
+}
+
 function renderDashboard() {
-  const list = sortedHouses();
+  paintHouseFilters();
+  const goNow = goNowHouses();
   if (els.shortWaits) {
-    const shortest = list.filter((row) => row.status === "open" || row.status === "busy").slice(0, 3);
-    els.shortWaits.innerHTML = shortest.length
-      ? `<p class="short-waits__label">Shortest waits</p><div class="short-waits__row">${shortest.map((row) => {
+    els.shortWaits.innerHTML = goNow.length
+      ? `<p class="short-waits__label">Go now</p><div class="short-waits__row">${goNow.map((row) => {
         const meta = houseMeta(row.id);
         return `<button type="button" class="short-wait" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button>`;
       }).join("")}</div>`
       : "";
   }
   if (!els.houseGrid) return;
+  const list = filteredHouses();
+  const watching = new Set(readNight().watch);
+  if (!list.length) {
+    els.houseGrid.innerHTML = `<p class="house-filters__empty">No houses match.</p>`;
+    renderMyNight();
+    return;
+  }
   els.houseGrid.innerHTML = list
     .map((row) => {
       const meta = houseMeta(row.id);
+      const on = watching.has(row.id);
       return `
-        <button class="house-card status-${row.status}" type="button" data-open-house="${escapeHtml(row.id)}">
-          <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
-          <strong>${escapeHtml(row.name)}</strong>
-          <span class="status-pill">${STATUS_LABEL[row.status] || row.status}</span>
-          <span class="wait">${waitLabel(row.wait_minutes, row.status)}</span>
-          <span class="fresh muted">${escapeHtml(freshnessLabel(row.updated_at))}</span>
-          <span class="house-tags">${tagChips(meta)}</span>
-        </button>`;
+        <article class="house-card status-${row.status}">
+          <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
+            <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
+            <strong>${escapeHtml(row.name)}</strong>
+            <span class="status-pill">${STATUS_LABEL[row.status] || row.status}</span>
+            <span class="wait">${waitLabel(row.wait_minutes, row.status)}</span>
+            <span class="fresh muted">${escapeHtml(freshnessLabel(row.updated_at))}</span>
+            <span class="house-tags">${tagChips(meta)}</span>
+          </button>
+          <button class="house-card__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(row.id)}" aria-pressed="${on}">${on ? "Alert on" : "Alert"}</button>
+        </article>`;
     })
     .join("");
   renderMyNight();
@@ -466,14 +560,26 @@ function pctToSvg(x, y) {
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
   if (!layer) return;
+  const watching = new Set(readNight().watch);
+  const filtering = filterIsActive();
   const housePins = HOUSES.map((house) => {
     const { cx, cy } = pctToSvg(house.x, house.y);
     const row = houses.find((h) => h.id === house.id) || house;
     const status = row.status || house.status || "open";
     const label = escapeHtml(house.short || house.name);
-    return `<g class="map-pin status-${status}" data-open-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="${escapeHtml(house.name)}">
+    const match = houseMatchesFilter(row);
+    const dim = filtering && !match;
+    const on = watching.has(house.id);
+    const wx = (cx + 34).toFixed(1);
+    const wy = (cy - 22).toFixed(1);
+    return `<g class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" data-open-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="${escapeHtml(house.name)}">
       <text class="map-pin__label" x="${cx.toFixed(1)}" y="${(cy - 34).toFixed(1)}" text-anchor="middle">${label}</text>
+      <circle class="map-pin__ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="30"></circle>
       <circle class="map-pin__mark" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="22"></circle>
+      <g class="map-pin__watch${on ? " is-on" : ""}" data-watch-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="Walk-in alert">
+        <circle class="map-pin__watch-hit" cx="${wx}" cy="${wy}" r="16"></circle>
+        <path class="map-pin__watch-icon" d="M${Number(wx) - 7} ${Number(wy) + 2}c0-5 3-8 7-8s7 3 7 8v4l2 3H${Number(wx) - 9}l2-3z M${wx} ${Number(wy) + 10}a2.5 2.5 0 0 0 2.5-2.5" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
     </g>`;
   });
   const booth = pctToSvg(BOOTHS_PIN.x, BOOTHS_PIN.y);
@@ -1194,6 +1300,12 @@ function bindMap() {
   }
   pinLayer?.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
+    const watch = event.target.closest("[data-watch-house]");
+    if (watch) {
+      event.preventDefault();
+      toggleWatchHouse(watch.dataset.watchHouse);
+      return;
+    }
     const pin = event.target.closest(".map-pin");
     if (!pin) return;
     event.preventDefault();
@@ -1215,6 +1327,29 @@ function setMoreMenu(open) {
 }
 
 function bindUi() {
+  const houseSearch = document.getElementById("houseSearch");
+  houseSearch?.addEventListener("input", () => {
+    houseFilter.q = houseSearch.value || "";
+    renderDashboard();
+    renderPins();
+  });
+  document.getElementById("houseFilters")?.addEventListener("click", (event) => {
+    const statusBtn = event.target.closest("[data-filter-status]");
+    const tagBtn = event.target.closest("[data-filter-tag]");
+    if (statusBtn) {
+      const next = statusBtn.dataset.filterStatus;
+      houseFilter.status = houseFilter.status === next ? "" : next;
+      renderDashboard();
+      renderPins();
+      return;
+    }
+    if (tagBtn) {
+      const next = tagBtn.dataset.filterTag;
+      houseFilter.tag = houseFilter.tag === next ? "" : next;
+      renderDashboard();
+      renderPins();
+    }
+  });
   document.getElementById("navMore")?.addEventListener("click", (event) => {
     event.stopPropagation();
     const menu = document.getElementById("navMoreMenu");
@@ -1253,41 +1388,20 @@ function bindUi() {
   });
   document.getElementById("modalWatch")?.addEventListener("click", () => {
     if (!openHouseId) return;
-    const night = readNight();
-    const watching = night.watch.includes(openHouseId);
-    night.watch = watching
-      ? night.watch.filter((id) => id !== openHouseId)
-      : [...night.watch, openHouseId];
-    writeNight(night);
-    openHouse(openHouseId);
-    if (!watching) {
-      setWantsPush(true);
-      enablePushNotifications(night.watch).then((result) => {
-        paintPushHint();
-        if (result?.ok) {
-          showWaitToast("Walk-in alert on", "We’ll ping this phone when the wait hits 0 minutes.", false);
-          return;
-        }
-        if (result?.reason === "ios-install") {
-          showWaitToast("Add to Home Screen", "On iPhone, install the app first, then tap Alert when walk-in again.", false);
-          return;
-        }
-        if (result?.reason === "denied") {
-          showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
-          return;
-        }
-        showWaitToast("Walk-in alert on", "You’ll see a message here when the wait hits 0. Phone alerts need notification permission.", false);
-      }).catch(paintPushHint);
-    } else {
-      syncPushWatch(night.watch);
-      showWaitToast("Alert off", "This house will no longer ping you at 0 minutes.", false);
-    }
+    toggleWatchHouse(openHouseId);
   });
 
   document.body.addEventListener("click", (event) => {
     const jump = event.target.closest("button[data-nav]");
     if (jump && !jump.closest(".nav")) {
       setView(jump.dataset.nav);
+      return;
+    }
+    const watchBtn = event.target.closest("[data-watch-house]");
+    if (watchBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleWatchHouse(watchBtn.dataset.watchHouse);
       return;
     }
     const houseBtn = event.target.closest("[data-open-house]");

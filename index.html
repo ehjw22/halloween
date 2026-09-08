@@ -125,7 +125,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.4.1</div>
+      <div class="version-chip" title="App version">v1.4.2</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -153,6 +153,24 @@
         <p>Fifteen haunts across campus. Sorted by wait. Times show when staff last published.</p>
       </div>
       <div class="short-waits" id="shortWaits"></div>
+      <div class="house-filters" id="houseFilters">
+        <label class="house-filters__search">
+          <span class="visually-hidden">Search scare houses</span>
+          <input id="houseSearch" type="search" placeholder="Search name or code (T11, library)" autocomplete="off">
+        </label>
+        <div class="house-filters__chips" role="group" aria-label="Wait status">
+          <button type="button" class="filter-chip" data-filter-status="walkin">Walk-in</button>
+          <button type="button" class="filter-chip" data-filter-status="queue">Open / busy</button>
+          <button type="button" class="filter-chip" data-filter-status="at_capacity">At capacity</button>
+          <button type="button" class="filter-chip" data-filter-status="closed">Closed</button>
+        </div>
+        <div class="house-filters__chips" role="group" aria-label="Access">
+          <button type="button" class="filter-chip" data-filter-tag="strobe">Strobe</button>
+          <button type="button" class="filter-chip" data-filter-tag="stairs">Stairs</button>
+          <button type="button" class="filter-chip" data-filter-tag="jumpscare">Jumpscare</button>
+          <button type="button" class="filter-chip" data-filter-tag="outdoors">Outdoors</button>
+        </div>
+      </div>
       <div class="house-grid" id="houseGrid"></div>
       <div class="my-night-panel" id="myNightPanel" hidden>
         <h3 class="roadmap__title">My night</h3>
