@@ -1,9 +1,16 @@
-export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
+export const GATES_AT = Date.parse("2026-09-14T00:00:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
+export const WELCOME_PENDING_KEY = "scream-welcome-pending";
 const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
 const TRAILER_SRC = `https://www.youtube-nocookie.com/embed/${TRAILER_YOUTUBE_ID}?autoplay=1&rel=0`;
+const STING_MS = 1500;
 
 let tickId = 0;
+let stingId = 0;
+let lastMinuteShown = null;
+let lastSecondShown = null;
+let lastLiveSecond = null;
+let stingStarted = false;
 
 export function isEventOpen() {
   if (Date.now() >= GATES_AT) return true;
@@ -14,6 +21,12 @@ export function isEventOpen() {
     /* private mode */
   }
   return false;
+}
+
+function prefersReducedMotion() {
+  return Boolean(
+    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches,
+  );
 }
 
 function pad(n) {
@@ -28,25 +41,93 @@ function remainingParts() {
   const hours = Math.floor((sec % 86400) / 3600);
   const minutes = Math.floor((sec % 3600) / 60);
   const seconds = sec % 60;
-  return { days, hours, minutes, seconds, done: ms <= 0 };
+  return { ms, totalSec: sec, days, hours, minutes, seconds, done: ms <= 0 };
+}
+
+function phaseFor(parts) {
+  if (parts.done) return "sting";
+  if (parts.totalSec <= 10) return "finale";
+  if (parts.totalSec <= 60) return "finalmin";
+  if (parts.totalSec <= 600) return "tenmin";
+  return "calm";
+}
+
+function pulse(el, className, holdMs = 900) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  window.setTimeout(() => el.classList.remove(className), holdMs);
+}
+
+function applyGatePhase(parts) {
+  const gate = document.getElementById("eventGate");
+  if (!gate) return;
+  const phase = phaseFor(parts);
+  gate.dataset.gatePhase = phase;
+  if (phase === "finale") gate.dataset.gateSecond = String(parts.seconds);
+  else gate.removeAttribute("data-gate-second");
+
+  const overlay = document.getElementById("gateFinaleCount");
+  if (overlay)
+    overlay.textContent =
+      phase === "finale" && parts.seconds > 0 ? String(parts.seconds) : "";
+
+  const minutesEl = document.getElementById("cdMinutes")?.parentElement;
+  if (
+    !prefersReducedMotion() &&
+    phase === "tenmin" &&
+    lastMinuteShown != null &&
+    parts.minutes !== lastMinuteShown
+  ) {
+    pulse(minutesEl, "is-minute-flip", 900);
+    pulse(gate, "is-minute-flip", 900);
+  }
+  lastMinuteShown = parts.minutes;
+
+  if (
+    !prefersReducedMotion() &&
+    phase === "finale" &&
+    lastSecondShown !== parts.seconds
+  ) {
+    pulse(gate, "is-second-beat", 700);
+  }
+  lastSecondShown = parts.seconds;
+}
+
+function paintLive(parts) {
+  const live = document.getElementById("eventGateLive");
+  if (!live) return;
+  if (parts.done) {
+    live.textContent = "Gates are open.";
+    lastLiveSecond = 0;
+    return;
+  }
+  if (lastLiveSecond === parts.totalSec) return;
+  lastLiveSecond = parts.totalSec;
+  const phase = phaseFor(parts);
+  if (phase === "finale") {
+    live.textContent = `${parts.seconds}`;
+    return;
+  }
+  if (phase === "finalmin" || parts.seconds === 0) {
+    live.textContent = `${parts.days} days, ${pad(parts.hours)} hours, ${pad(parts.minutes)} minutes, ${pad(parts.seconds)} seconds`;
+  }
 }
 
 function paintClock() {
   const parts = remainingParts();
   const set = (id, value) => {
     const node = document.getElementById(id);
-    if (node) node.textContent = id === "cdDays" ? String(parts.days) : pad(value);
+    if (node)
+      node.textContent = id === "cdDays" ? String(parts.days) : pad(value);
   };
   set("cdDays", parts.days);
   set("cdHours", parts.hours);
   set("cdMinutes", parts.minutes);
   set("cdSeconds", parts.seconds);
-  const live = document.getElementById("eventGateLive");
-  if (live) {
-    live.textContent = parts.done
-      ? "Gates are open."
-      : `${parts.days} days, ${pad(parts.hours)} hours, ${pad(parts.minutes)} minutes, ${pad(parts.seconds)} seconds`;
-  }
+  applyGatePhase(parts);
+  paintLive(parts);
   return parts.done;
 }
 
@@ -57,15 +138,49 @@ function stopClock() {
   }
 }
 
-function startClock() {
+function clearSting() {
+  if (stingId) {
+    window.clearTimeout(stingId);
+    stingId = 0;
+  }
+  stingStarted = false;
+}
+
+function finishUnlock() {
+  try {
+    sessionStorage.setItem(PREVIEW_KEY, "1");
+    sessionStorage.setItem(WELCOME_PENDING_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  openEventGate();
+  window.dispatchEvent(new CustomEvent("scream-gates-opened", { detail: { welcome: true } }));
+}
+
+function beginSting() {
+  if (stingStarted) return;
+  stingStarted = true;
   stopClock();
   paintClock();
+  if (prefersReducedMotion()) {
+    finishUnlock();
+    return;
+  }
+  stingId = window.setTimeout(finishUnlock, STING_MS);
+}
+
+function startClock() {
+  stopClock();
+  stingStarted = false;
+  lastMinuteShown = null;
+  lastSecondShown = null;
+  lastLiveSecond = null;
+  if (paintClock()) {
+    beginSting();
+    return;
+  }
   tickId = window.setInterval(() => {
-    if (paintClock()) {
-      stopClock();
-      sessionStorage.setItem(PREVIEW_KEY, "1");
-      openEventGate();
-    }
+    if (paintClock()) beginSting();
   }, 250);
 }
 
@@ -81,14 +196,13 @@ function syncToggle() {
   const toggle = document.getElementById("eventViewToggle");
   const localBtn = document.getElementById("eventGateLocal");
   const beforeEvent = Date.now() < GATES_AT;
-  const show = beforeEvent;
+  const open = document.documentElement.classList.contains("event-open");
   if (toggle) {
-    toggle.hidden = !show;
-    const open = document.documentElement.classList.contains("event-open");
+    toggle.hidden = !beforeEvent;
     toggle.textContent = open ? "Countdown" : "View site";
     toggle.setAttribute("aria-pressed", open ? "true" : "false");
   }
-  if (localBtn) localBtn.hidden = !show || document.documentElement.classList.contains("event-open");
+  if (localBtn) localBtn.hidden = open;
 }
 
 function closeTrailer() {
@@ -108,17 +222,21 @@ function openTrailer() {
 
 export function openEventGate() {
   closeTrailer();
+  clearSting();
+  stopClock();
   document.documentElement.classList.add("event-open");
   const gate = document.getElementById("eventGate");
   if (gate) {
     gate.hidden = true;
     gate.setAttribute("aria-hidden", "true");
+    gate.removeAttribute("data-gate-phase");
+    gate.removeAttribute("data-gate-second");
+    gate.classList.remove("is-second-beat");
   }
   document.querySelectorAll("[data-event-app]").forEach((node) => {
     node.removeAttribute("inert");
     node.removeAttribute("aria-hidden");
   });
-  stopClock();
   syncToggle();
 }
 
@@ -135,17 +253,23 @@ export function lockEventGate() {
     node.setAttribute("aria-hidden", "true");
   });
   stripPreviewQuery();
-  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  if (location.hash)
+    history.replaceState(null, "", location.pathname + location.search);
   startClock();
   syncToggle();
 }
 
 function previewSite() {
-  sessionStorage.setItem(PREVIEW_KEY, "1");
+  try {
+    sessionStorage.setItem(PREVIEW_KEY, "1");
+  } catch {
+    /* private mode */
+  }
   openEventGate();
 }
 
 function showCountdown() {
+  if (Date.now() >= GATES_AT) return;
   sessionStorage.removeItem(PREVIEW_KEY);
   lockEventGate();
 }
@@ -154,15 +278,22 @@ export function initEventGate() {
   const toggle = document.getElementById("eventViewToggle");
   if (toggle) {
     toggle.addEventListener("click", () => {
-      if (document.documentElement.classList.contains("event-open")) showCountdown();
+      if (document.documentElement.classList.contains("event-open"))
+        showCountdown();
       else previewSite();
     });
   }
-  document.getElementById("eventGateLocal")?.addEventListener("click", previewSite);
-  document.getElementById("watchTrailer")?.addEventListener("click", openTrailer);
-  document.getElementById("trailerModal")?.addEventListener("click", (event) => {
-    if (event.target.closest("[data-close-trailer]")) closeTrailer();
-  });
+  document
+    .getElementById("eventGateLocal")
+    ?.addEventListener("click", previewSite);
+  document
+    .getElementById("watchTrailer")
+    ?.addEventListener("click", openTrailer);
+  document
+    .getElementById("trailerModal")
+    ?.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close-trailer]")) closeTrailer();
+    });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     const modal = document.getElementById("trailerModal");

@@ -188,6 +188,10 @@ html.event-open .event-gate {
   gap: 16px;
   max-width: 40rem;
 }
+.event-gate__core .btn--ghost {
+  position: relative;
+  z-index: 4;
+}
 .event-gate__chips {
   display: flex;
   flex-wrap: wrap;
@@ -303,7 +307,10 @@ html.event-open .event-gate {
   .event-gate__mist,
   .event-gate__wisp,
   .event-gate__wash,
-  .event-gate__title {
+  .event-gate__title,
+  .event-gate__finale,
+  .event-gate__unit.is-minute-flip,
+  .event-gate__unit.is-minute-flip span {
     animation: none !important;
   }
 }
@@ -357,6 +364,206 @@ html.event-open .event-gate {
   text-transform: uppercase;
   font-size: 0.65rem;
   color: var(--muted);
+}
+
+.event-gate[data-gate-phase="tenmin"] .event-gate__wash {
+  animation-duration: 4.2s;
+  background: radial-gradient(ellipse at center, rgba(255, 150, 50, 0.5), rgba(180, 74, 255, 0.14) 42%, transparent 70%);
+}
+.event-gate[data-gate-phase="tenmin"] .event-gate__mist--a,
+.event-gate[data-gate-phase="tenmin"] .event-gate__mist--b {
+  animation-duration: 10s;
+}
+.event-gate[data-gate-phase="tenmin"] .event-gate__unit:nth-child(3) {
+  border-color: rgba(255, 122, 24, 0.55);
+  box-shadow: 0 0 16px rgba(255, 122, 24, 0.18);
+}
+.event-gate__unit.is-minute-flip {
+  z-index: 2;
+  animation: gate-minute-flip 0.9s cubic-bezier(0.16, 0.84, 0.32, 1.2);
+}
+.event-gate__unit.is-minute-flip span {
+  animation: gate-minute-digit 0.9s cubic-bezier(0.16, 0.84, 0.32, 1.15);
+}
+.event-gate.is-minute-flip .event-gate__wash {
+  animation: gate-lantern-beat 0.9s ease;
+}
+
+.event-gate[data-gate-phase="finalmin"] .event-gate__unit:last-child {
+  border-color: var(--orange);
+  transform: scale(1.08);
+  box-shadow: 0 0 22px rgba(255, 122, 24, 0.35);
+}
+.event-gate[data-gate-phase="finalmin"] .event-gate__unit:last-child span {
+  font-size: clamp(2rem, 8vw, 3rem);
+  color: #ffe7b8;
+}
+.event-gate[data-gate-phase="finalmin"] .event-gate__ember {
+  animation-duration: 3.2s;
+}
+.event-gate[data-gate-phase="finalmin"] .event-gate__wash {
+  animation-duration: 2.4s;
+}
+
+.event-gate[data-gate-phase="finale"] .event-gate__clock,
+.event-gate[data-gate-phase="finale"] .event-gate__chips,
+.event-gate[data-gate-phase="finale"] .event-gate__when,
+.event-gate[data-gate-phase="finale"] .event-gate__by,
+.event-gate[data-gate-phase="finale"] .event-gate__clubs,
+.event-gate[data-gate-phase="finale"] #watchTrailer,
+.event-gate[data-gate-phase="sting"] .event-gate__clock,
+.event-gate[data-gate-phase="sting"] .event-gate__chips,
+.event-gate[data-gate-phase="sting"] .event-gate__when,
+.event-gate[data-gate-phase="sting"] .event-gate__by,
+.event-gate[data-gate-phase="sting"] .event-gate__clubs,
+.event-gate[data-gate-phase="sting"] #watchTrailer {
+  display: none;
+}
+
+.event-gate__finale {
+  display: none;
+  position: relative;
+  z-index: 3;
+  font-family: "Creepster", cursive;
+  font-size: clamp(5.5rem, 32vw, 13rem);
+  line-height: 0.9;
+  color: #ffe7b8;
+  text-shadow:
+    0 0 18px rgba(255, 122, 24, 0.55),
+    0 0 48px rgba(180, 74, 255, 0.28);
+  pointer-events: none;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__finale {
+  display: block;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__fly {
+  animation-duration: 8s;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__ember {
+  animation-duration: 2.2s;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__wash {
+  animation-duration: 5s;
+}
+.event-gate.is-second-beat .event-gate__finale {
+  animation: gate-second-beat 0.55s ease;
+}
+.event-gate.is-second-beat .event-gate__wash {
+  animation: gate-lantern-beat 0.7s ease;
+}
+
+.event-gate[data-gate-phase="sting"] .event-gate__wash {
+  animation: none;
+  opacity: 0.82;
+  transform: translate(-50%, -40%) scale(1.08);
+  background: radial-gradient(ellipse at center, rgba(255, 150, 50, 0.42), rgba(180, 74, 255, 0.12) 45%, transparent 72%);
+}
+.event-gate[data-gate-phase="sting"] .event-gate__title {
+  animation: none;
+  color: #ffe7b8;
+  text-shadow:
+    0 0 12px rgba(255, 244, 214, 0.7),
+    0 0 32px rgba(255, 122, 24, 0.55);
+}
+.event-gate[data-gate-phase="sting"] .event-gate__finale {
+  display: none;
+}
+
+@keyframes gate-minute-flip {
+  0% {
+    transform: scale(1);
+    border-color: rgba(255, 122, 24, 0.55);
+    box-shadow: 0 0 16px rgba(255, 122, 24, 0.18);
+  }
+  22% {
+    transform: scale(1.32);
+    border-color: #ff9a3c;
+    box-shadow:
+      0 0 28px rgba(255, 122, 24, 0.85),
+      0 0 56px rgba(180, 74, 255, 0.4);
+  }
+  55% {
+    transform: scale(1.08);
+    border-color: var(--orange);
+    box-shadow: 0 0 22px rgba(255, 122, 24, 0.45);
+  }
+  100% {
+    transform: scale(1);
+    border-color: rgba(255, 122, 24, 0.55);
+    box-shadow: 0 0 16px rgba(255, 122, 24, 0.18);
+  }
+}
+@keyframes gate-minute-digit {
+  0% {
+    transform: translateY(8px) scale(0.86);
+    color: var(--orange-2);
+    opacity: 0.55;
+  }
+  28% {
+    transform: translateY(-4px) scale(1.18);
+    color: #ffe7b8;
+    text-shadow:
+      0 0 12px rgba(255, 244, 214, 0.95),
+      0 0 28px rgba(255, 122, 24, 0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    color: var(--orange-2);
+    text-shadow: none;
+    opacity: 1;
+  }
+}
+@keyframes gate-second-beat {
+  0% { transform: scale(0.86); opacity: 0.65; }
+  40% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes gate-lantern-beat {
+  0% { opacity: 0.55; }
+  40% { opacity: 0.9; }
+  100% { opacity: 0.6; }
+}
+
+.welcome-night {
+  max-width: 36rem;
+  margin: 12vh auto 48px;
+  padding: 8px 8px 32px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+.welcome-night__kicker {
+  margin: 0;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.welcome-night__title {
+  margin: 0;
+  font-family: "Creepster", cursive;
+  font-size: clamp(2.6rem, 9vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1.05;
+  color: #e0893a;
+  text-shadow: 0 0 14px rgba(255, 122, 24, 0.28);
+}
+.welcome-night__lead {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--muted);
+}
+.welcome-night__chips {
+  margin: 4px 0 0;
+}
+.welcome-night__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 .map-pin-fade {

@@ -17,10 +17,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map31">
+  <link rel="stylesheet" href="css/styles.css?v=map34">
   <script>
     (function () {
-      var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
+      var open = Date.now() >= Date.parse("2026-09-14T00:00:00+08:00");
       try {
         if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
         if (new URLSearchParams(location.search).get("preview") === "1") open = true;
@@ -65,6 +65,7 @@
       <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
       <p class="event-gate__when">Opens 24 October 2026 · 6:00pm Singapore time</p>
       <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
+      <div class="event-gate__finale" id="gateFinaleCount" aria-hidden="true"></div>
       <div class="event-gate__clock" aria-hidden="true">
         <div class="event-gate__unit"><span id="cdDays">0</span><small>Days</small></div>
         <div class="event-gate__unit"><span id="cdHours">00</span><small>Hours</small></div>
@@ -79,7 +80,7 @@
       <button class="btn" type="button" id="watchTrailer">Watch trailer</button>
       <p class="event-gate__by">Brought to you by</p>
       <p class="event-gate__clubs" id="clubCredits">SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC · SMAC</p>
-      <button class="btn btn--ghost" type="button" id="eventGateLocal" hidden>View the site</button>
+      <button class="btn btn--ghost" type="button" id="eventGateLocal">Skip to the site</button>
     </div>
     <div class="trailer-modal" id="trailerModal" hidden>
       <div class="trailer-modal__backdrop" data-close-trailer></div>
@@ -128,7 +129,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode" aria-live="polite">Connecting…</div>
-      <div class="version-chip" title="App version">v1.4.8</div>
+      <div class="version-chip" title="App version">v1.4.9</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -143,6 +144,22 @@
   </p>
   <p class="site-live-note" id="siteLiveNote" hidden></p>
   <main id="main">
+    <section class="view welcome-view" data-view="welcome" hidden>
+      <div class="welcome-night">
+        <p class="welcome-night__kicker">Singapore Polytechnic</p>
+        <h2 class="welcome-night__title">The gates are open</h2>
+        <p class="welcome-night__lead">Scream Fest is live. Fifteen scare houses, six booths, free admission — start on the map, or read How to if it is your first time.</p>
+        <ul class="event-gate__chips welcome-night__chips">
+          <li>15 Scare Houses</li>
+          <li>6 Booths</li>
+          <li>1 Free Admission</li>
+        </ul>
+        <div class="welcome-night__actions">
+          <button class="btn" type="button" data-nav="map">Enter the map</button>
+          <button class="btn btn--ghost" type="button" data-nav="guide">How to</button>
+        </div>
+      </div>
+    </section>
     <section class="view is-active" data-view="map">
       <div class="section-head section-head--map">
         <h2>Campus Haunt Map</h2>
@@ -895,7 +912,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map31"></script>
+  <script type="module" src="js/app.js?v=map34"></script>
 </div>
 </body>
 </html>

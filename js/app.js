@@ -1,4 +1,4 @@
-import { initEventGate, isEventOpen } from "./gate.js";
+import { GATES_AT, initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js";
 import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
@@ -267,10 +267,50 @@ let watchSnapshot = new Map();
 let openHouseId = "";
 let boardTimer = 0;
 
+const WELCOME_SEEN_KEY = "scream-welcome-seen";
+
 function hashToView() {
   const raw = (location.hash || "#map").replace(/^#/, "");
   const [view, extra] = raw.split("/");
   return { view: view || "map", extra: extra || "" };
+}
+
+function welcomePending() {
+  try {
+    return sessionStorage.getItem(WELCOME_PENDING_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function welcomeSeen() {
+  try {
+    return localStorage.getItem(WELCOME_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markWelcomeSeen() {
+  try {
+    localStorage.setItem(WELCOME_SEEN_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  try {
+    sessionStorage.removeItem(WELCOME_PENDING_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
+function wantsOpeningNight() {
+  if (welcomeSeen()) return false;
+  if (welcomePending()) return true;
+  if (Date.now() < GATES_AT) return false;
+  const raw = (location.hash || "").replace(/^#/, "");
+  const view = raw.split("/")[0];
+  return !view || view === "map" || view === "welcome";
 }
 
 function setHash(view, extra) {
@@ -294,6 +334,8 @@ function setView(name, extra) {
   } else {
     closeModals();
   }
+  const leavingWelcome = document.querySelector('.view[data-view="welcome"]')?.classList.contains("is-active");
+  if (name !== "welcome" && leavingWelcome) markWelcomeSeen();
   els.views.forEach((view) => {
     const active = view.dataset.view === name;
     view.classList.toggle("is-active", active);
@@ -1931,10 +1973,15 @@ async function init() {
   paintPushHint();
   resumePushIfWanted(readNight().watch);
   const start = hashToView();
-  if (location.hash && start.view) {
+  if (wantsOpeningNight()) {
+    setView("welcome");
+  } else if (location.hash && start.view) {
     setView.skipHash = true;
     setView(start.view, start.extra);
   }
+  window.addEventListener("scream-gates-opened", () => {
+    if (wantsOpeningNight()) setView("welcome");
+  });
   window.setInterval(() => {
     if (document.hidden) return;
     loadPublicAnnouncements();
