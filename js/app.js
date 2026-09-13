@@ -3,7 +3,7 @@ import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
-import { SAFETY } from "./safety.js";
+import { applyGhostPass } from "./ghost-pass.js";
 import { createStore } from "./store.js";
 import {
   apiUrl,
@@ -73,7 +73,6 @@ const els = {
   stampView: document.getElementById("stampCardPanel"),
   passView: document.getElementById("fastPassPanel"),
   passToggle: document.getElementById("passToggle"),
-  qrCanvas: document.getElementById("qrCanvas"),
   passId: document.getElementById("passId"),
   adminGate: document.getElementById("adminGate"),
   adminApp: document.getElementById("adminApp"),
@@ -89,6 +88,9 @@ const els = {
   stampApp: document.getElementById("stampApp"),
   sessionChip: document.getElementById("sessionChip"),
   passHolder: document.getElementById("passHolder"),
+  passAdmin: document.getElementById("passAdmin"),
+  lanternRaise: document.getElementById("lanternRaise"),
+  lanternHint: document.getElementById("lanternHint"),
   passKicker: document.getElementById("passKicker"),
   passUsedMark: document.getElementById("passUsedMark"),
   redeemedNote: document.getElementById("redeemedNote"),
@@ -781,7 +783,7 @@ async function loadCardFromServer() {
   };
 }
 
-let lastQr = "";
+let spiritRaised = false;
 let lastFilled = 0;
 
 function isPassRedeemed(value) {
@@ -846,23 +848,32 @@ function paintStampUi() {
   if (complete && lastFilled < 6) showPass = true;
   lastFilled = filled;
   els.passToggle.hidden = !complete;
+  const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
   if (els.passHolder) {
-    els.passHolder.textContent = `${cardState.fullName || session.payload.name} · ${cardState.studentNumber || session.payload.studentNumber}`;
+    els.passHolder.textContent = cardState.fullName || session.payload.name || "";
   }
+  if (els.passAdmin) els.passAdmin.textContent = adminNo;
   if (complete && showPass) {
     els.stampView.hidden = true;
     els.passView.hidden = false;
     els.passToggle.textContent = "Review stamp card";
     els.passId.textContent = cardState.passId;
     const redeemed = isPassRedeemed(cardState.redeemedAt);
-    els.fastPassCard.classList.toggle("is-redeemed", redeemed);
-    els.passKicker.textContent = redeemed ? "Used" : "Show this at Fast Pass";
-    if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
-    if (!redeemed && cardState.passId && cardState.passId !== lastQr) {
-      lastQr = cardState.passId;
-      drawQr(cardState.passId);
+    if (redeemed) spiritRaised = false;
+    applyGhostPass(els.fastPassCard, {
+      seed: adminNo || cardState.passId,
+      raised: spiritRaised,
+      redeemed,
+    });
+    els.passKicker.textContent = redeemed ? "Laid to rest" : "Show this at Fast Pass";
+    if (els.lanternHint) {
+      els.lanternHint.textContent = redeemed
+        ? "This spirit has been laid to rest"
+        : spiritRaised
+          ? "Show your name and admin number to staff"
+          : "Tap to raise your spirit";
     }
-    if (redeemed) lastQr = "";
+    if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
     els.redeemedNote.hidden = !redeemed;
     if (redeemed) {
       const when = new Date(cardState.redeemedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -1185,36 +1196,6 @@ function renderAdmin() {
     panel.hidden = panel.dataset.staffPanel !== staffTab;
   });
   if (staffTab === "ops") loadOps();
-}
-
-async function drawQr(text) {
-  if (!els.qrCanvas) return;
-  if (typeof QRCode !== "undefined" && QRCode.toCanvas) {
-    await QRCode.toCanvas(els.qrCanvas, text, {
-      width: 280,
-      margin: 2,
-      color: { dark: "#14080c", light: "#ffffff" },
-    });
-    return;
-  }
-  const ctx = els.qrCanvas.getContext("2d");
-  const size = 280;
-  els.qrCanvas.width = size;
-  els.qrCanvas.height = size;
-  ctx.fillStyle = "#fff4d6";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#14080c";
-  let n = 0;
-  for (const ch of text) n = (n * 33 + ch.charCodeAt(0)) >>> 0;
-  const cells = 21;
-  const cell = Math.floor(size / cells);
-  for (let y = 0; y < cells; y += 1) {
-    for (let x = 0; x < cells; x += 1) {
-      const bit = ((n >> ((x * 3 + y) % 24)) ^ (x * 17 + y * 13)) & 1;
-      const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
-      if (bit || finder) ctx.fillRect(x * cell, y * cell, cell, cell);
-    }
-  }
 }
 
 function readAdminRow(tr) {
@@ -1557,6 +1538,12 @@ function bindUi() {
 
   els.passToggle?.addEventListener("click", () => {
     showPass = !showPass;
+    if (showPass) spiritRaised = false;
+    paintStampUi();
+  });
+  els.lanternRaise?.addEventListener("click", () => {
+    if (els.fastPassCard?.classList.contains("is-redeemed")) return;
+    spiritRaised = !spiritRaised;
     paintStampUi();
   });
   if (els.passBack) {

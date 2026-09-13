@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map30">
+  <link rel="stylesheet" href="css/styles.css?v=map31">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -128,7 +128,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode" aria-live="polite">Connecting…</div>
-      <div class="version-chip" title="App version">v1.4.7</div>
+      <div class="version-chip" title="App version">v1.4.8</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -314,13 +314,33 @@
           <article class="fast-pass" id="fastPassCard">
             <p class="fast-pass__kicker" id="passKicker">Show this at Fast Pass</p>
             <h3>SP Scream Fest Fast Pass</h3>
-            <p class="fast-pass__holder" id="passHolder"></p>
-            <div class="fast-pass__qr">
-              <canvas id="qrCanvas" width="280" height="280"></canvas>
-              <span class="fast-pass__used" id="passUsedMark" hidden>Used</span>
+            <button class="lantern" id="lanternRaise" type="button" data-raise-spirit aria-expanded="false" aria-controls="passPlate">
+              <span class="lantern__handle" aria-hidden="true"></span>
+              <span class="lantern__cap" aria-hidden="true"></span>
+              <span class="lantern__glass">
+                <span class="lantern__flame" aria-hidden="true"></span>
+                <span class="ghost" aria-hidden="true">
+                  <span class="ghost__sheet">
+                    <span class="ghost__eye ghost__eye--l"></span>
+                    <span class="ghost__eye ghost__eye--r"></span>
+                    <span class="ghost__eye ghost__eye--m"></span>
+                  </span>
+                  <span class="ghost__tail"></span>
+                </span>
+                <span class="lantern__motes" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i>
+                </span>
+              </span>
+              <span class="lantern__base" aria-hidden="true"></span>
+              <span class="lantern__hint" id="lanternHint">Tap to raise your spirit</span>
+            </button>
+            <div class="pass-plate" id="passPlate">
+              <p class="pass-plate__name" id="passHolder"></p>
+              <p class="pass-plate__admin" id="passAdmin"></p>
+              <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
             </div>
-            <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
-            <p class="fast-pass__rules">Valid tonight · skip the wait line · still subject to house capacity. One party per pass.</p>
+            <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
+            <p class="fast-pass__rules">Valid tonight · skip the wait line · still subject to house capacity. One party per pass. Staff look up your admin number — they do not scan a code.</p>
             <button class="btn btn--ghost" id="passBack" type="button">Back to stamp card</button>
             <p class="muted" id="redeemedNote" hidden></p>
           </article>
@@ -874,9 +894,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map30"></script>
+  <script type="module" src="js/app.js?v=map31"></script>
 </div>
 </body>
 </html>
