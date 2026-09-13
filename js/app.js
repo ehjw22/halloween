@@ -299,7 +299,10 @@ function setView(name, extra) {
   });
   document.body.classList.toggle("is-board", name === "board");
   document.querySelectorAll(".nav [data-nav]").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.dataset.nav === name);
+    const on = btn.dataset.nav === name;
+    btn.classList.toggle("is-active", on);
+    if (on) btn.setAttribute("aria-current", "page");
+    else btn.removeAttribute("aria-current");
   });
   setGamesVisible(name === "games");
   if (!setView.skipHash) {
@@ -375,7 +378,7 @@ function renderDashboard() {
   const list = filteredHouses();
   const watching = new Set(readNight().watch);
   if (!list.length) {
-    els.houseGrid.innerHTML = `<p class="house-filters__empty">No houses match.</p>`;
+    els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Clear a filter or try a different search.</p></div>`;
     renderMyNight();
     return;
   }
@@ -403,10 +406,12 @@ function renderDashboard() {
 function renderMyNight() {
   const panel = document.getElementById("myNightPanel");
   const list = document.getElementById("myNightList");
+  const hint = document.getElementById("myNightHint");
   if (!panel || !list) return;
   const night = readNight();
   const rows = sortedHouses(night.houses.map((id) => houses.find((h) => h.id === id)).filter(Boolean));
-  panel.hidden = !rows.length;
+  panel.hidden = false;
+  if (hint) hint.hidden = rows.length > 0;
   list.innerHTML = rows.map((row) => {
     const meta = houseMeta(row.id);
     return `<li><button type="button" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || "")} · ${escapeHtml(row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button></li>`;
@@ -482,7 +487,7 @@ function notifyWatches(nextHouses) {
 function paintSafety() {
   const list = document.getElementById("safetyList");
   if (!list) return;
-  list.innerHTML = [
+  const lines = [
     SAFETY.helpDesk,
     SAFETY.meetup,
     SAFETY.firstAid,
@@ -491,7 +496,8 @@ function paintSafety() {
     "Stay with your group. Watch your step in fog, cables, and low light. No running in queues.",
     "Drink water and take a break if you feel unwell.",
     "Keep bags closed. Respect capacity and closed areas. Staff calls are final.",
-  ].map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+  ];
+  list.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 }
 
 function paintClubs() {
@@ -507,7 +513,7 @@ function paintClubs() {
       <h3>${escapeHtml(club.name)}</h3>
       <p class="club-card__links">
         <a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>
-        <a href="mailto:${escapeHtml(club.email)}">${escapeHtml(club.email)}</a>
+        <a href="mailto:${escapeHtml(club.email)}">Email</a>
       </p>
     </article>
   `).join("");
@@ -522,10 +528,11 @@ async function startBoard() {
       try {
         const res = await fetch(apiUrl("scores", { game: id }));
         const data = await res.json().catch(() => ({}));
+        const title = id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats";
         const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
-        return `<article class="board-card"><h3>${id}</h3><ol>${rows || "<li>No scores yet</li>"}</ol></article>`;
+        return `<article class="board-card"><h3>${title}</h3><ol>${rows || "<li class='empty-state__hint'>No scores yet</li>"}</ol></article>`;
       } catch {
-        return `<article class="board-card"><h3>${id}</h3><p class="muted">Scores unavailable</p></article>`;
+        return `<article class="board-card"><h3>${id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats"}</h3><p class="empty-state__hint">Scores unavailable</p></article>`;
       }
     }));
     grid.innerHTML = blocks.join("");
@@ -945,7 +952,7 @@ async function loadAdminFeedback() {
           <p class="muted">${who} · ${escapeHtml(when)}${row.rating ? ` · ${row.rating}/5` : ""}</p>
         </li>`;
       }).join("")
-      : "<li class='muted'>No feedback yet.</li>");
+      : "<li class='empty-state'><p class='empty-state__title'>No feedback yet</p><p class='empty-state__hint'>Student comments will land here as the night goes on.</p></li>");
   } catch (error) {
     if (els.adminFeedbackError) {
       els.adminFeedbackError.hidden = false;
@@ -978,9 +985,9 @@ function renderTimeline() {
   if (!els.nightTimeline) return;
   els.nightTimeline.innerHTML = SCHEDULE.map((item) => {
     const state = scheduleStatus(item);
-    const tag = state === "live" ? "Now" : state === "done" ? "Done" : "Next";
-    return `<li class="night-stop is-${state}">
-      <time>${item.start}–${item.end}</time>
+    const tag = state === "live" ? "Now" : state === "done" ? "Ended" : "Upcoming";
+    return `<li class="night-stop is-${state}"${state === "live" ? " aria-current=\"true\"" : ""}>
+      <time datetime="${item.start}">${item.start}–${item.end}</time>
       <div>
         <p class="night-stop__kind">${item.kind === "performance" ? "Performance" : "Event"} · ${tag}</p>
         <strong>${escapeHtml(item.title)}</strong>
@@ -1026,7 +1033,7 @@ function announceItemHtml(row) {
 
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
-  const empty = "<li class='muted'>No staff announcements yet.</li>";
+  const empty = `<li class="empty-state"><p class="empty-state__title">No staff announcements yet</p><p class="empty-state__hint">Official notes from facilitators will show up here.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
@@ -1048,7 +1055,7 @@ async function loadAdminAnnouncements() {
           ${posted ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
         </li>`;
       }).join("")
-      : "<li class='muted'>No announcements yet.</li>";
+      : `<li class="empty-state"><p class="empty-state__title">No announcements yet</p><p class="empty-state__hint">Post a note above for Event Map and Tonight.</p></li>`;
   } catch (error) {
     els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(error.message)}</li>`;
   }
@@ -1071,7 +1078,7 @@ async function loadOps() {
       const rows = data.audit || [];
       audit.innerHTML = rows.length
         ? rows.map((row) => `<li class="feedback-item"><p>${escapeHtml(row.action)} · ${escapeHtml(row.target || "")}</p><p class="muted">${escapeHtml(row.staff_id)} · ${escapeHtml(row.at || "")}</p></li>`).join("")
-        : "<li class='muted'>No audit rows yet.</li>";
+        : "<li class='empty-state'><p class='empty-state__title'>No audit rows yet</p><p class='empty-state__hint'>Staff actions will appear here.</p></li>";
     }
   } catch (error) {
     grid.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
@@ -1099,7 +1106,7 @@ function paintStaffLog() {
   const rows = readStaffLog();
   list.innerHTML = rows.length
     ? rows.map((row) => `<li><strong>${escapeHtml(row.at)} · ${escapeHtml(row.action)}</strong>${escapeHtml(row.message)}</li>`).join("")
-    : "<li class='muted'>No errors yet.</li>";
+    : "<li class='empty-state'><p class='empty-state__title'>No errors yet</p><p class='empty-state__hint'>Failed staff actions will be listed here.</p></li>";
 }
 
 function pushStaffLog(action, error) {
@@ -1141,9 +1148,9 @@ function renderAdmin() {
           </td>
           <td>
             <div class="wait-editor">
-              <button type="button" data-adjust="-5">−5</button>
-              <input type="number" min="0" step="1" value="${draft.wait_minutes}" data-wait-input>
-              <button type="button" data-adjust="5">+5</button>
+              <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
+              <input type="number" min="0" step="1" value="${draft.wait_minutes}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
           </td>
           <td>

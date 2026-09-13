@@ -78,7 +78,14 @@ function renderBoard(listEl, top, mine, signedIn) {
   const hint = signedIn
     ? `Your saved best: ${mine ?? 0}`
     : "Sign in to save a campus best.";
-  listEl.innerHTML = `${rows || "<li class='muted'>No scores yet.</li>"}<p class="muted">${hint}</p>`;
+  listEl.innerHTML = rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>Play a round to open the board.</p></li>";
+  let hintEl = listEl.nextElementSibling;
+  if (!hintEl || !hintEl.classList.contains("scoreboard-hint")) {
+    hintEl = document.createElement("p");
+    hintEl.className = "muted scoreboard-hint";
+    listEl.after(hintEl);
+  }
+  hintEl.textContent = hint;
 }
 
 async function refreshScores(gameId) {

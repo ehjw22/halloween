@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map26">
+  <link rel="stylesheet" href="css/styles.css?v=map30">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -30,6 +30,7 @@
   </script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="fog" aria-hidden="true"></div>
   <button class="event-view-toggle" type="button" id="eventViewToggle" hidden aria-pressed="false">View site</button>
   <div id="eventGate" class="event-gate" role="dialog" aria-modal="true" aria-labelledby="eventGateTitle">
@@ -111,6 +112,7 @@
         <button class="nav__btn" type="button" data-nav="games">Games</button>
         <button class="nav__btn" type="button" data-nav="feedback">Feedback</button>
         <button class="nav__btn" type="button" data-nav="safety">Safety</button>
+        <button class="nav__btn" type="button" data-nav="guide"><span class="nav__full">How to</span><span class="nav__short">Guide</span></button>
         <button class="nav__btn" type="button" data-nav="follow">Follow us</button>
         <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
         <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
@@ -118,14 +120,15 @@
       <button class="nav__btn nav__wide" type="button" data-nav="games">Games</button>
       <button class="nav__btn nav__wide" type="button" data-nav="feedback">Feedback</button>
       <button class="nav__btn nav__wide" type="button" data-nav="safety">Safety</button>
+      <button class="nav__btn nav__wide" type="button" data-nav="guide">How to</button>
       <button class="nav__btn nav__wide" type="button" data-nav="follow">Follow us</button>
       <button class="nav__btn nav__wide" type="button" data-nav="login" data-nav-show="guest">Sign in</button>
       <button class="nav__btn nav__wide" type="button" data-nav="admin" data-nav-show="admin" hidden>Staff</button>
     </nav>
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
-      <div class="live-chip" id="liveMode">Connecting…</div>
-      <div class="version-chip" title="App version">v1.4.6</div>
+      <div class="live-chip" id="liveMode" aria-live="polite">Connecting…</div>
+      <div class="version-chip" title="App version">v1.4.7</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -139,7 +142,7 @@
     iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that icon, then tap <strong>Alert when walk-in</strong> on a house. Safari tabs cannot show phone alerts.
   </p>
   <p class="site-live-note" id="siteLiveNote" hidden></p>
-  <main>
+  <main id="main">
     <section class="view is-active" data-view="map">
       <div class="section-head section-head--map">
         <h2>Campus Haunt Map</h2>
@@ -199,8 +202,9 @@
         </div>
       </div>
       <div class="house-grid" id="houseGrid"></div>
-      <div class="my-night-panel" id="myNightPanel" hidden>
+      <div class="my-night-panel" id="myNightPanel">
         <h3 class="roadmap__title">My night</h3>
+        <p class="muted" id="myNightHint">Open a house from the map or list, then tap Add to my night.</p>
         <ol class="my-night-list" id="myNightList"></ol>
       </div>
     </section>
@@ -244,9 +248,9 @@
               <span>Notify this phone when a house I watch hits 0 minutes (walk-in). iPhone: Add to Home Screen first.</span>
             </label>
             <p class="form-error" id="studentLoginError" hidden></p>
-            <button class="btn" type="submit">Register / sign in</button>
+            <button class="btn" type="submit">Open stamp card</button>
           </form>
-          <form class="auth-card" id="staffLoginForm">
+          <form class="auth-card auth-card--staff" id="staffLoginForm">
             <p class="auth-card__kicker">Staff</p>
             <h2>Facilitator access</h2>
             <p class="muted">Same admin number format, plus the staff password. Wait-time, stamp, and full-admin passwords can differ in production.</p>
@@ -274,6 +278,11 @@
         <p class="auth-card__kicker">SP Scream Fest</p>
         <h2>Sign in to open your card</h2>
         <p>Stamp cards are tied to your admin number (P followed by 7 digits). Use the same Sign in page as the rest of the night.</p>
+        <ul class="stamp-gate-points">
+          <li>Six booth stamps unlock Fast Pass</li>
+          <li>Staff stamp you at the booth — you cannot stamp yourself</li>
+          <li>Come back with the same admin number and name</li>
+        </ul>
         <p class="form-error" id="studentAuthError" hidden></p>
         <button class="btn" type="button" data-nav="login">Go to Sign in</button>
       </div>
@@ -494,9 +503,130 @@
           <textarea id="feedbackMessage" rows="4" maxlength="1000" placeholder="Optional if you pick a rating. What worked, what to fix…"></textarea>
         </label>
         <p class="form-error" id="feedbackError" hidden></p>
-        <p class="muted" id="feedbackOk" hidden>Thanks — staff can read this on the Staff page.</p>
+        <p class="form-ok" id="feedbackOk" hidden>Thanks — staff can read this on the Staff page.</p>
         <button class="btn" type="submit">Send feedback</button>
       </form>
+    </section>
+
+    <section class="view" data-view="guide" hidden>
+      <div class="section-head">
+        <h2>How to use this site</h2>
+        <p>Keep this tab open — wait times update on their own. Pins and house cards use the same colours.</p>
+      </div>
+
+      <h3 class="guide-heading">House states</h3>
+      <p class="guide-lead">Match the pin and the card before you queue. Staff set these live.</p>
+      <div class="guide-states">
+        <article class="guide-state">
+          <div class="guide-state__art">
+            <svg class="guide-pin guide-pin--walkin" viewBox="0 0 40 52" aria-hidden="true">
+              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
+              <circle cx="20" cy="18" r="6.5" fill="#052e16"/>
+            </svg>
+            <article class="house-card house-card--sample status-open">
+              <div class="house-card__open">
+                <span class="house-card__short">T18A</span>
+                <strong>Aerohub Crypt</strong>
+                <span class="status-pill status-walkin">Walk-in</span>
+                <span class="wait">Walk in</span>
+                <span class="fresh muted">Just updated</span>
+              </div>
+            </article>
+          </div>
+          <h3>Walk-in</h3>
+          <p>Wait is 0 minutes and the house is open. Go now — nobody is queued. Tap <strong>Alert when walk-in</strong> on other houses if you want a ping when they hit this.</p>
+        </article>
+
+        <article class="guide-state">
+          <div class="guide-state__art">
+            <svg class="guide-pin guide-pin--open" viewBox="0 0 40 52" aria-hidden="true">
+              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
+              <circle cx="20" cy="18" r="6.5" fill="#052e16"/>
+            </svg>
+            <article class="house-card house-card--sample status-open">
+              <div class="house-card__open">
+                <span class="house-card__short">EW22</span>
+                <strong>Dover Gate Ghouls</strong>
+                <span class="status-pill">Open</span>
+                <span class="wait">8 min</span>
+                <span class="fresh muted">Updated 2 min ago</span>
+              </div>
+            </article>
+          </div>
+          <h3>Open</h3>
+          <p>The house is running and taking guests. The number is the wait staff last published. Queue as normal.</p>
+        </article>
+
+        <article class="guide-state">
+          <div class="guide-state__art">
+            <svg class="guide-pin guide-pin--busy" viewBox="0 0 40 52" aria-hidden="true">
+              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
+              <circle cx="20" cy="18" r="6.5" fill="#3b1a04"/>
+            </svg>
+            <article class="house-card house-card--sample status-busy">
+              <div class="house-card__open">
+                <span class="house-card__short">T12</span>
+                <strong>Atrium Abyss</strong>
+                <span class="status-pill">Busy</span>
+                <span class="wait">25 min</span>
+                <span class="fresh muted">Updated 4 min ago</span>
+              </div>
+            </article>
+          </div>
+          <h3>Busy</h3>
+          <p>Still open, but the wait is longer. The queue is moving. Check the minutes before you commit, or pick a shorter house.</p>
+        </article>
+
+        <article class="guide-state">
+          <div class="guide-state__art">
+            <svg class="guide-pin guide-pin--full" viewBox="0 0 40 52" aria-hidden="true">
+              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
+              <circle cx="20" cy="18" r="6.5" fill="#2e1064"/>
+            </svg>
+            <article class="house-card house-card--sample status-at_capacity">
+              <div class="house-card__open">
+                <span class="house-card__short">LIB</span>
+                <strong>Library of Lost Souls</strong>
+                <span class="status-pill">At Capacity</span>
+                <span class="wait">40 min · Full</span>
+                <span class="fresh muted">Updated 1 min ago</span>
+              </div>
+            </article>
+          </div>
+          <h3>At capacity</h3>
+          <p>The house is full. <strong>The queue stops</strong> — staff will not take new guests until people leave. Do not join a line. Come back later or choose another haunt.</p>
+        </article>
+
+        <article class="guide-state">
+          <div class="guide-state__art">
+            <svg class="guide-pin guide-pin--closed" viewBox="0 0 40 52" aria-hidden="true">
+              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
+              <circle cx="20" cy="18" r="6.5" fill="#450a0a"/>
+            </svg>
+            <article class="house-card house-card--sample status-closed">
+              <div class="house-card__open">
+                <span class="house-card__short">WSA</span>
+                <strong>West Coast Warehouse</strong>
+                <span class="status-pill">Closed</span>
+                <span class="wait">Closed</span>
+                <span class="fresh muted">Updated 10 min ago</span>
+              </div>
+            </article>
+          </div>
+          <h3>Closed</h3>
+          <p>Not running right now (reset, last entry, or a pause). Pins and cards go red. Don’t wait at the door until it shows Open, Busy, or Walk-in again.</p>
+        </article>
+      </div>
+
+      <h3 class="guide-heading">Using the rest of the site</h3>
+      <ol class="how-list">
+        <li>Use <strong>Event Map</strong> to tap pins or house cards. Times are Singapore time, published by staff.</li>
+        <li><strong>Sign in</strong> with your admin number and name to open your stamp card. Staff stamp you at booths — you cannot stamp yourself.</li>
+        <li>Six stamps unlock Fast Pass. Show it at the Fast Pass desk; staff mark it used on their side.</li>
+        <li><strong>Tonight</strong> is the programme. <strong>Games</strong> are optional. Send <strong>Feedback</strong> if a house or booth needs a note.</li>
+        <li>Tap <strong>Alert when walk-in</strong> on a house for a ping at 0 minutes. On iPhone, add this site to your Home Screen first.</li>
+        <li>Help desk, meetup, and skip-house notes live on <strong>Safety</strong>.</li>
+      </ol>
     </section>
 
     <section class="view" data-view="safety" hidden>
@@ -588,7 +718,7 @@
             </div>
             <p class="form-error" id="awardStampError" hidden></p>
             <p class="muted" id="awardStampBusy" hidden>Awarding stamp…</p>
-            <p class="muted" id="awardStampOk" hidden></p>
+            <p class="form-ok" id="awardStampOk" hidden></p>
             <button class="btn" id="awardStampSubmit" type="submit">Award stamp</button>
           </form>
         </div>
@@ -701,10 +831,10 @@
 
   <div class="modal" id="detailModal" hidden>
     <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="houseModalTitle">
       <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
       <p class="modal__code" data-modal-code></p>
-      <h3 data-modal-title></h3>
+      <h3 id="houseModalTitle" data-modal-title></h3>
       <div class="modal__meta">
         <span class="status-pill" data-modal-status></span>
         <strong data-modal-wait></strong>
@@ -721,10 +851,10 @@
 
   <div class="modal" id="boothsModal" hidden>
     <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="boothsModalTitle">
       <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
       <p class="modal__code">Eleven Square</p>
-      <h3>Booths</h3>
+      <h3 id="boothsModalTitle">Booths</h3>
       <p class="muted">Six stamp stations. Tap a booth for the brief.</p>
       <div class="booths-list" id="boothsPinList"></div>
     </div>
@@ -732,10 +862,10 @@
 
   <div class="modal" id="boothModal" hidden>
     <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="boothModalTitle">
       <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
       <p class="modal__code" data-booth-code></p>
-      <h3 data-booth-title></h3>
+      <h3 id="boothModalTitle" data-booth-title></h3>
       <p class="muted" data-booth-place></p>
       <p class="modal__story" data-booth-summary></p>
       <p data-booth-about></p>
@@ -746,7 +876,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map26"></script>
+  <script type="module" src="js/app.js?v=map30"></script>
 </div>
 </body>
 </html>
