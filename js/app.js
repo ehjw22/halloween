@@ -3,6 +3,7 @@ import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
+import { SAFETY } from "./safety.js";
 import { applyGhostPass } from "./ghost-pass.js";
 import { createStore } from "./store.js";
 import {
@@ -328,9 +329,8 @@ function setView(name, extra) {
   }
   if (name === "welcome") {
     document.documentElement.classList.add("event-welcome");
-  } else {
-    const leavingWelcome = document.querySelector('.view[data-view="welcome"]')?.classList.contains("is-active");
-    if (leavingWelcome) markWelcomeSeen();
+  } else if (document.documentElement.classList.contains("event-welcome")) {
+    markWelcomeSeen();
   }
   els.views.forEach((view) => {
     const active = view.dataset.view === name;
@@ -365,6 +365,8 @@ function setView(name, extra) {
     renderMyNight();
     requestAnimationFrame(() => fitMap());
   }
+  if (name === "safety") paintSafety();
+  if (name === "follow") paintClubs();
   if (name === "board") startBoard();
   else stopBoard();
   setMoreMenu(false);
