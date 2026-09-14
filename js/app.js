@@ -129,7 +129,7 @@ let staffTab = "waits";
 let feedbackKindFilter = "";
 let stampPoll = 0;
 let showPass = false;
-let waitSync = { liveOk: false, lastLiveAt: null };
+let waitSync = { liveOk: false, wasLive: false, lastLiveAt: null };
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
@@ -1062,7 +1062,7 @@ function formatPostedAt(iso) {
   const sec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
   let ago = "just now";
   if (sec >= 45 && sec < 90) ago = "1 min ago";
-  else if (sec < 3600) ago = `${Math.floor(sec / 60)} min ago`;
+  else if (sec >= 90 && sec < 3600) ago = `${Math.floor(sec / 60)} min ago`;
   else if (sec < 5400) ago = "1 hour ago";
   else if (sec < 86400) ago = `${Math.floor(sec / 3600)} hours ago`;
   else if (sec < 172800) ago = "1 day ago";
@@ -1903,29 +1903,53 @@ function paintWaitBanner(sync) {
   if (!note) return;
   if (sync) waitSync = sync;
   else if (store?.getSync) waitSync = store.getSync();
-  const live = waitSync.liveOk && navigator.onLine !== false;
-  if (live) {
+  if (waitSync.liveOk || !waitSync.wasLive) {
     note.hidden = true;
     note.classList.remove("is-stale");
     note.textContent = "";
     return;
   }
-  if (waitSync.lastLiveAt) {
-    note.hidden = false;
-    note.classList.add("is-stale");
-    const ago = freshnessLabel(waitSync.lastLiveAt).replace(/^Updated /, "updated ");
-    note.textContent = `Last known waits · ${ago}`;
-    return;
-  }
   note.hidden = false;
-  note.classList.remove("is-stale");
-  note.textContent = "Demo mode: this browser is not connected to the live event database.";
+  note.classList.add("is-stale");
+  const ago = waitSync.lastLiveAt
+    ? freshnessLabel(waitSync.lastLiveAt).replace(/^Updated /, "updated ")
+    : "connection lost";
+  note.textContent = `Last known waits · ${ago}`;
+}
+
+function paintConnectionUi(mode, error) {
+  const live = mode === "live" || Boolean(store?.getSync?.().liveOk);
+  const accounts = Boolean(window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.studentLogin);
+  const status = window.__CONFIG_STATUS || {};
+  if (els.liveMode) {
+    els.liveMode.textContent = live ? (accounts ? "Live · Supabase" : "Live · waits only") : "Demo · local sync";
+    els.liveMode.classList.toggle("is-live", live);
+  }
+  if (!els.dbBanner) return;
+  els.dbBanner.hidden = false;
+  els.dbBanner.classList.toggle("is-live", live);
+  const localHint = {
+    "no-api": " /api/config is missing. On Vercel, add SUPABASE_URL / supabaseUrl, the anon key, JWT_SECRET, then redeploy.",
+    "api-not-json": " /api/config did not return JSON, so Vercel is not running the API function. Redeploy with the api/ folder at the project root.",
+    "empty-keys": " /api/config loaded but SUPABASE_URL / SUPABASE_ANON_KEY are empty. Set them in .env (local) or Vercel env vars, then restart/redeploy.",
+    "api-404": " /api/config was not found.",
+    "api-500": " /api/config crashed.",
+    ok: "",
+  }[status.reason] || "";
+  els.dbBanner.textContent = live
+    ? (accounts
+      ? "LIVE. Wait times and stamps write to the database."
+      : "LIVE waits. Student sign-up needs SUPABASE_SERVICE_ROLE_KEY on Vercel (or run supabase/schema.sql), then redeploy.")
+    : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
 }
 
 function onStoreChange(next, sync) {
   notifyWatches(next);
   houses = next;
-  if (sync) paintWaitBanner(sync);
+  if (sync) {
+    paintWaitBanner(sync);
+    if (sync.liveOk) paintConnectionUi("live");
+  }
   renderDashboard();
   renderPins();
   if (document.querySelector('.view.is-active')?.dataset.view === "admin" && isAdminUnlocked()) {
@@ -1986,40 +2010,21 @@ async function init() {
     if (document.querySelector(".view.is-active")?.dataset.view === "tonight") renderTimeline();
   }, 20000);
 
-  const loadConfig = window.loadHalloweenConfig
-    ? window.loadHalloweenConfig()
-    : Promise.resolve();
-  const timeout = new Promise((resolve) => setTimeout(resolve, 4000));
-  await Promise.race([loadConfig, timeout]);
+  await (window.loadHalloweenConfig ? window.loadHalloweenConfig() : Promise.resolve());
 
   store = createStore(onStoreChange);
   const connected = store.connect();
-  const connectWait = new Promise((resolve) => setTimeout(() => resolve({ mode: "local", error: "Connection timed out." }), 6000));
+  const connectWait = new Promise((resolve) => setTimeout(() => resolve({ mode: "local", error: "Connection timed out." }), 12000));
   const { mode, error } = await Promise.race([connected, connectWait]);
-  const live = mode === "live";
-  const accounts = Boolean(window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.studentLogin);
-  const status = window.__CONFIG_STATUS || {};
-  els.liveMode.textContent = live ? (accounts ? "Live · Supabase" : "Live · waits only") : "Demo · local sync";
-  els.liveMode.classList.toggle("is-live", live);
-  if (els.dbBanner) {
-    els.dbBanner.hidden = false;
-    els.dbBanner.classList.toggle("is-live", live);
-    const localHint = {
-      "no-api": " /api/config is missing. On Vercel, add SUPABASE_URL / supabaseUrl, the anon key, JWT_SECRET, then redeploy.",
-      "api-not-json": " /api/config did not return JSON, so Vercel is not running the API function. Redeploy with the api/ folder at the project root.",
-      "empty-keys": " /api/config loaded but SUPABASE_URL / SUPABASE_ANON_KEY are empty. Set them in .env (local) or Vercel env vars, then restart/redeploy.",
-      "api-404": " /api/config was not found.",
-      "api-500": " /api/config crashed.",
-      ok: "",
-    }[status.reason] || "";
-    els.dbBanner.textContent = live
-      ? (accounts
-        ? "LIVE. Wait times and stamps write to the database."
-        : "LIVE waits. Student sign-up needs SUPABASE_SERVICE_ROLE_KEY on Vercel (or run supabase/schema.sql), then redeploy.")
-      : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
-  }
+  paintConnectionUi(mode, error);
   const note = document.getElementById("siteLiveNote");
-  if (note) paintWaitBanner(store.getSync ? store.getSync() : { liveOk: live, lastLiveAt: live ? new Date().toISOString() : null });
+  if (note) paintWaitBanner(store.getSync ? store.getSync() : { liveOk: mode === "live", wasLive: mode === "live", lastLiveAt: mode === "live" ? new Date().toISOString() : null });
+  connected.then((result) => {
+    if (result?.mode === "live") {
+      paintConnectionUi("live");
+      paintWaitBanner(store.getSync());
+    }
+  });
 }
 
 init().catch((error) => {

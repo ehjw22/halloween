@@ -50,19 +50,22 @@ function writeLastLiveAt(iso) {
 }
 
 export function createStore(onChange) {
-  const config = window.HALLOWEEN_CONFIG || {};
-  const hasRemote = Boolean(config.supabaseUrl && config.supabaseAnonKey);
+  const readConfig = () => window.HALLOWEEN_CONFIG || {};
   let rows = readLocal();
   let client = null;
   let channel = null;
   let pollTimer = null;
   let liveOk = false;
+  let wasLive = false;
+  let failStreak = 0;
 
-  const getSync = () => ({ liveOk, lastLiveAt: readLastLiveAt() });
+  const getSync = () => ({ liveOk, wasLive, lastLiveAt: readLastLiveAt() });
   const emit = () => onChange(rows.map((r) => ({ ...r })), getSync());
 
   function markLive() {
     liveOk = true;
+    wasLive = true;
+    failStreak = 0;
     writeLastLiveAt(new Date().toISOString());
   }
 
@@ -99,8 +102,11 @@ export function createStore(onChange) {
     if (!client) return;
     const { data, error } = await client.from("scare_houses").select("*");
     if (error || !data) {
-      markStale();
-      emit();
+      failStreak += 1;
+      if (failStreak >= 2) {
+        markStale();
+        emit();
+      }
       return;
     }
     markLive();
@@ -122,6 +128,8 @@ export function createStore(onChange) {
   }
 
   async function connect() {
+    const config = readConfig();
+    const hasRemote = Boolean(config.supabaseUrl && config.supabaseAnonKey);
     if (!hasRemote || !window.supabase) {
       emit();
       return {
@@ -182,7 +190,6 @@ export function createStore(onChange) {
       markStale();
       emit();
     });
-    if (typeof navigator !== "undefined" && navigator.onLine === false) markStale();
 
     emit();
     return { mode: liveOk ? "live" : "local" };
@@ -255,5 +262,5 @@ export function createStore(onChange) {
     if (channel && client) client.removeChannel(channel);
   }
 
-  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote, getSync };
+  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote: Boolean(readConfig().supabaseUrl && readConfig().supabaseAnonKey), getSync };
 }
