@@ -1,4 +1,4 @@
-export const GATES_AT = Date.parse("2026-09-14T11:45:00+08:00");
+export const GATES_AT = Date.parse("2026-09-14T13:45:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
 export const WELCOME_PENDING_KEY = "scream-welcome-pending";
 const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
@@ -59,6 +59,26 @@ function pulse(el, className, holdMs = 900) {
   void el.offsetWidth;
   el.classList.add(className);
   window.setTimeout(() => el.classList.remove(className), holdMs);
+}
+
+function setHand(id, deg) {
+  const hand = document.getElementById(id);
+  if (hand) hand.setAttribute("transform", `rotate(${deg} 60 74)`);
+}
+
+function paintAnalog(parts) {
+  const gate = document.getElementById("eventGate");
+  const analog = document.getElementById("gateAnalog");
+  const show = !parts.done && parts.totalSec < 86400 && parts.totalSec >= 60;
+  if (gate) gate.dataset.gateClock = show ? "on" : "off";
+  if (!show || !analog) return;
+  const elapsed = Math.max(0, 86400 - parts.totalSec);
+  const sec = elapsed % 60;
+  const min = Math.floor(elapsed / 60) % 60;
+  const hour = Math.floor(elapsed / 3600) % 12;
+  setHand("gateHandSecond", sec * 6);
+  setHand("gateHandMinute", min * 6 + sec * 0.1);
+  setHand("gateHandHour", hour * 30 + min * 0.5);
 }
 
 function applyGatePhase(parts) {
@@ -138,6 +158,7 @@ function paintClock() {
   set("cdMinutes", parts.minutes);
   set("cdSeconds", parts.seconds);
   applyGatePhase(parts);
+  paintAnalog(parts);
   paintLive(parts);
   return parts.done;
 }
@@ -242,6 +263,7 @@ export function openEventGate() {
     gate.setAttribute("aria-hidden", "true");
     gate.removeAttribute("data-gate-phase");
     gate.removeAttribute("data-gate-second");
+    gate.removeAttribute("data-gate-clock");
     gate.classList.remove("is-second-beat");
   }
   document.querySelectorAll("[data-event-app]").forEach((node) => {

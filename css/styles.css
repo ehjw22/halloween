@@ -64,18 +64,21 @@ html.event-open .event-gate {
   inset: 0;
   z-index: 80;
   display: grid;
-  place-items: center;
-  padding: 28px 20px;
+  place-items: start center;
+  padding: 28px 20px 56px;
   text-align: center;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background:
     radial-gradient(70% 55% at 50% 38%, rgba(255, 122, 24, 0.16), transparent 62%),
     radial-gradient(80% 50% at 50% 100%, rgba(40, 12, 8, 0.85), transparent 55%),
     #050208;
 }
 .event-gate__fx {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
 }
@@ -187,6 +190,8 @@ html.event-open .event-gate {
   justify-items: center;
   gap: 16px;
   max-width: 40rem;
+  width: 100%;
+  margin: auto;
 }
 .event-gate__core .btn--ghost {
   position: relative;
@@ -211,9 +216,9 @@ html.event-open .event-gate {
   color: var(--ink);
 }
 .trailer-modal {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 90;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -388,6 +393,116 @@ html.event-open .event-gate {
   font-size: 0.65rem;
   color: var(--muted);
   transition: opacity 0.45s ease, margin 0.7s ease, max-height 0.7s ease;
+}
+
+.gate-analog {
+  width: min(42vw, 168px);
+  margin: 0 auto;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: scale(0.88);
+  pointer-events: none;
+  transition:
+    opacity 0.7s ease,
+    max-height 0.7s ease,
+    margin 0.7s ease,
+    transform 0.7s ease;
+}
+.event-gate[data-gate-clock="on"] .gate-analog {
+  max-height: 200px;
+  margin: 0 auto 4px;
+  opacity: 1;
+  overflow: visible;
+  transform: scale(1);
+}
+.event-gate[data-gate-phase="finalmin"] .gate-analog,
+.event-gate[data-gate-phase="finale"] .gate-analog,
+.event-gate[data-gate-phase="sting"] .gate-analog {
+  max-height: 0;
+  margin: 0 auto;
+  opacity: 0;
+  overflow: hidden;
+  transform: scale(0.88);
+}
+.gate-analog__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 18px rgba(255, 122, 24, 0.22));
+}
+.gate-analog__stem,
+.gate-analog__crown {
+  fill: rgba(22, 10, 18, 0.95);
+  stroke: rgba(255, 122, 24, 0.28);
+  stroke-width: 0.8;
+}
+.gate-analog__case {
+  fill: rgba(10, 4, 12, 0.55);
+  stroke: rgba(180, 74, 255, 0.16);
+  stroke-width: 1;
+}
+.gate-analog__rim {
+  fill: none;
+  stroke: rgba(255, 122, 24, 0.38);
+  stroke-width: 1.6;
+}
+.gate-analog__face {
+  fill: url(#watchFace);
+  stroke: rgba(255, 122, 24, 0.22);
+  stroke-width: 0.8;
+}
+.gate-analog__ticks line {
+  stroke: rgba(255, 214, 170, 0.42);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+.gate-analog__num {
+  fill: #e0893a;
+  font-family: "Creepster", cursive;
+  font-size: 10px;
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+}
+.gate-analog__mark {
+  fill: rgba(255, 122, 24, 0.4);
+  font-family: "Creepster", cursive;
+  font-size: 8px;
+  text-anchor: middle;
+}
+#gateHandHour path {
+  fill: #ffe7b8;
+  stroke: rgba(255, 122, 24, 0.45);
+  stroke-width: 0.4;
+}
+#gateHandMinute path {
+  fill: #ff9a3c;
+  stroke: rgba(255, 122, 24, 0.35);
+  stroke-width: 0.35;
+}
+#gateHandSecond line {
+  stroke: #ff7a18;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+#gateHandSecond circle {
+  fill: #ff7a18;
+}
+.gate-analog__hub {
+  fill: #ffe7b8;
+  stroke: #ff7a18;
+  stroke-width: 0.7;
+}
+.event-gate[data-gate-clock="on"] .event-gate__unit:first-child {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
 }
 
 .event-gate[data-gate-phase="tenmin"] .event-gate__wash {
