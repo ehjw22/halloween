@@ -1,4 +1,4 @@
-export const GATES_AT = Date.parse("2026-09-14T00:00:00+08:00");
+export const GATES_AT = Date.parse("2026-09-14T11:45:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
 export const WELCOME_PENDING_KEY = "scream-welcome-pending";
 const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
@@ -10,6 +10,7 @@ let stingId = 0;
 let lastMinuteShown = null;
 let lastSecondShown = null;
 let lastLiveSecond = null;
+let lastPhase = null;
 let stingStarted = false;
 
 export function isEventOpen() {
@@ -47,7 +48,7 @@ function remainingParts() {
 function phaseFor(parts) {
   if (parts.done) return "sting";
   if (parts.totalSec <= 10) return "finale";
-  if (parts.totalSec <= 60) return "finalmin";
+  if (parts.totalSec < 60) return "finalmin";
   if (parts.totalSec <= 600) return "tenmin";
   return "calm";
 }
@@ -74,6 +75,7 @@ function applyGatePhase(parts) {
       phase === "finale" && parts.seconds > 0 ? String(parts.seconds) : "";
 
   const minutesEl = document.getElementById("cdMinutes")?.parentElement;
+  const secondsEl = document.getElementById("cdSeconds")?.parentElement;
   if (
     !prefersReducedMotion() &&
     phase === "tenmin" &&
@@ -84,6 +86,12 @@ function applyGatePhase(parts) {
     pulse(gate, "is-minute-flip", 900);
   }
   lastMinuteShown = parts.minutes;
+
+  if (lastPhase && lastPhase !== phase && !prefersReducedMotion() && phase === "finalmin") {
+    pulse(secondsEl, "is-handoff", 800);
+    pulse(gate, "is-minute-flip", 800);
+  }
+  lastPhase = phase;
 
   if (
     !prefersReducedMotion() &&
@@ -117,10 +125,13 @@ function paintLive(parts) {
 
 function paintClock() {
   const parts = remainingParts();
+  const phase = phaseFor(parts);
   const set = (id, value) => {
     const node = document.getElementById(id);
-    if (node)
-      node.textContent = id === "cdDays" ? String(parts.days) : pad(value);
+    if (!node) return;
+    if (id === "cdDays") node.textContent = String(parts.days);
+    else if (id === "cdSeconds" && phase === "finale") node.textContent = String(value);
+    else node.textContent = pad(value);
   };
   set("cdDays", parts.days);
   set("cdHours", parts.hours);
@@ -154,7 +165,6 @@ function finishUnlock() {
     /* private mode */
   }
   openEventGate();
-  window.dispatchEvent(new CustomEvent("scream-gates-opened", { detail: { welcome: true } }));
 }
 
 function beginSting() {
@@ -175,6 +185,7 @@ function startClock() {
   lastMinuteShown = null;
   lastSecondShown = null;
   lastLiveSecond = null;
+  lastPhase = null;
   if (paintClock()) {
     beginSting();
     return;
@@ -238,6 +249,9 @@ export function openEventGate() {
     node.removeAttribute("aria-hidden");
   });
   syncToggle();
+  window.dispatchEvent(
+    new CustomEvent("scream-gates-opened", { detail: { welcome: true } }),
+  );
 }
 
 export function lockEventGate() {

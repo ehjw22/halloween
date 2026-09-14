@@ -17,15 +17,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map34">
+  <link rel="stylesheet" href="css/styles.css?v=map37">
   <script>
     (function () {
-      var open = Date.now() >= Date.parse("2026-09-14T00:00:00+08:00");
+      var open = Date.now() >= Date.parse("2026-09-14T11:45:00+08:00");
       try {
         if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
         if (new URLSearchParams(location.search).get("preview") === "1") open = true;
       } catch (e) {}
-      if (open) document.documentElement.classList.add("event-open");
+      if (open) {
+        document.documentElement.classList.add("event-open");
+        try {
+          if (sessionStorage.getItem("scream-welcome-seen") !== "1") {
+            document.documentElement.classList.add("event-welcome");
+          }
+        } catch (e) {}
+      }
     })();
   </script>
 </head>
@@ -69,8 +76,8 @@
       <div class="event-gate__clock" aria-hidden="true">
         <div class="event-gate__unit"><span id="cdDays">0</span><small>Days</small></div>
         <div class="event-gate__unit"><span id="cdHours">00</span><small>Hours</small></div>
-        <div class="event-gate__unit"><span id="cdMinutes">00</span><small>Minutes</small></div>
-        <div class="event-gate__unit"><span id="cdSeconds">00</span><small>Seconds</small></div>
+        <div class="event-gate__unit event-gate__unit--minutes"><span id="cdMinutes">00</span><small>Minutes</small></div>
+        <div class="event-gate__unit event-gate__unit--seconds"><span id="cdSeconds">00</span><small>Seconds</small></div>
       </div>
       <ul class="event-gate__chips">
         <li>15 Scare Houses</li>
@@ -912,7 +919,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map34"></script>
+  <script type="module" src="js/app.js?v=map37"></script>
 </div>
 </body>
 </html>
