@@ -410,9 +410,19 @@ function renderDashboard() {
   const goNow = goNowHouses();
   if (els.shortWaits) {
     els.shortWaits.innerHTML = goNow.length
-      ? `<p class="short-waits__label">Go now</p><div class="short-waits__row">${goNow.map((row) => {
+      ? `<div class="short-waits__head">
+          <p class="short-waits__kicker">Shortest queues</p>
+          <h3>Go now</h3>
+          <p class="short-waits__hint">These houses are open with the shortest waits. Walk in if it says 0 minutes — tap a card to open it.</p>
+        </div>
+        <div class="short-waits__row">${goNow.map((row) => {
         const meta = houseMeta(row.id);
-        return `<button type="button" class="short-wait" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button>`;
+        const walkIn = row.status !== "closed" && row.status !== "at_capacity" && !(Number(row.wait_minutes) > 0);
+        return `<button type="button" class="short-wait${walkIn ? " short-wait--walkin" : ""}" data-open-house="${escapeHtml(row.id)}">
+          <span class="short-wait__code">${escapeHtml(meta?.short || "")}</span>
+          <strong class="short-wait__name">${escapeHtml(row.name)}</strong>
+          <span class="short-wait__wait">${escapeHtml(waitLabel(row.wait_minutes, row.status))}</span>
+        </button>`;
       }).join("")}</div>`
       : "";
   }

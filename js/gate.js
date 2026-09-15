@@ -1,4 +1,4 @@
-export const GATES_AT = Date.parse("2026-09-14T13:45:00+08:00");
+export const GATES_AT = Date.parse("2026-09-15T13:45:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
 export const WELCOME_PENDING_KEY = "scream-welcome-pending";
 const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
@@ -107,7 +107,12 @@ function applyGatePhase(parts) {
   }
   lastMinuteShown = parts.minutes;
 
-  if (lastPhase && lastPhase !== phase && !prefersReducedMotion() && phase === "finalmin") {
+  if (
+    lastPhase &&
+    lastPhase !== phase &&
+    !prefersReducedMotion() &&
+    phase === "finalmin"
+  ) {
     pulse(secondsEl, "is-handoff", 800);
     pulse(gate, "is-minute-flip", 800);
   }
@@ -150,7 +155,8 @@ function paintClock() {
     const node = document.getElementById(id);
     if (!node) return;
     if (id === "cdDays") node.textContent = String(parts.days);
-    else if (id === "cdSeconds" && phase === "finale") node.textContent = String(value);
+    else if (id === "cdSeconds" && phase === "finale")
+      node.textContent = String(value);
     else node.textContent = pad(value);
   };
   set("cdDays", parts.days);
