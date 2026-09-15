@@ -796,20 +796,22 @@ function renderSessionChip() {
   if (student && admin) {
     els.sessionChip.hidden = false;
     els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button><span>Staff · ${escapeHtml(admin.payload.staffId)}</span><button type="button" data-logout="admin">Staff out</button>`;
-    return;
-  }
-  if (student) {
+  } else if (student) {
     els.sessionChip.hidden = false;
     els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button>`;
-    return;
-  }
-  if (admin) {
+  } else if (admin) {
     els.sessionChip.hidden = false;
     els.sessionChip.innerHTML = `<span>Staff · ${escapeHtml(admin.payload.name || admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
-    return;
+  } else {
+    els.sessionChip.hidden = true;
+    els.sessionChip.innerHTML = "";
   }
-  els.sessionChip.hidden = true;
-  els.sessionChip.innerHTML = "";
+  paintLiveChip();
+}
+
+function paintLiveChip() {
+  if (!els.liveMode) return;
+  els.liveMode.hidden = !getAdminSession();
 }
 
 function stampCount(stamps = cardState.stamps) {
@@ -1438,10 +1440,11 @@ function bindUi() {
     }
   });
   document.getElementById("navMore")?.addEventListener("click", (event) => {
+    event.preventDefault();
     event.stopPropagation();
     const menu = document.getElementById("navMoreMenu");
     if (!menu) return;
-    setMoreMenu(menu.hidden);
+    setMoreMenu(Boolean(menu.hidden));
   });
   document.addEventListener("click", (event) => {
     const menu = document.getElementById("navMoreMenu");
@@ -1934,6 +1937,7 @@ function paintConnectionUi(mode, error) {
   if (els.liveMode) {
     els.liveMode.textContent = live ? (accounts ? "Live · Supabase" : "Live · waits only") : "Demo · local sync";
     els.liveMode.classList.toggle("is-live", live);
+    paintLiveChip();
   }
   if (!els.dbBanner) return;
   els.dbBanner.hidden = false;
@@ -2042,5 +2046,6 @@ init().catch((error) => {
   if (els.liveMode) {
     els.liveMode.textContent = "Demo · local sync";
     els.liveMode.classList.remove("is-live");
+    paintLiveChip();
   }
 });
