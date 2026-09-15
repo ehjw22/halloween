@@ -6,9 +6,10 @@ export const BOOTHS = [
     short: "Booth 01",
     code: "PG",
     place: "Gate 1 / Dover approach",
-    summary: "A carving station that kicks off the haunt trail.",
+    map: { x: 16, y: 58, side: "w", r: 32 },
+    summary: "A carving station near Dover Gate.",
     about:
-      "Students decorate mini pumpkins and learn the night’s route. Staff stamp this booth when you finish the carving or photo challenge.",
+      "Students decorate mini pumpkins and pick up the night’s route. Staff stamp this booth when you finish the carving or photo challenge. Visit booths in any order.",
   },
   {
     id: "2",
@@ -17,6 +18,7 @@ export const BOOTHS = [
     short: "Booth 02",
     code: "BAT",
     place: "Aerohub / T18A edge",
+    map: { x: 32, y: 18, side: "n", r: 28 },
     summary: "A reflex game under hanging silhouettes.",
     about:
       "Tap glowing bats before they vanish. Complete a round without dropping below the staff score line to earn this stamp.",
@@ -28,6 +30,7 @@ export const BOOTHS = [
     short: "Booth 03",
     code: "GH3",
     place: "Campus plaza",
+    map: { x: 50, y: 48, side: "n", r: 34 },
     summary: "A short ghost-story quiz at the fountain.",
     about:
       "Listen to a plaza tale, then answer three questions. Staff stamp when your group gets the haunt facts right.",
@@ -39,6 +42,7 @@ export const BOOTHS = [
     short: "Booth 04",
     code: "WEB",
     place: "T11 labs",
+    map: { x: 76, y: 20, side: "n", r: 28 },
     summary: "A hands-on web of string, UV paint, and puzzles.",
     about:
       "Follow the lab safety brief, then solve the web maze. This stamp marks a completed puzzle, not a scare-house walkthrough.",
@@ -50,6 +54,7 @@ export const BOOTHS = [
     short: "Booth 05",
     code: "CND",
     place: "Food court",
+    map: { x: 50, y: 84, side: "s", r: 28 },
     summary: "Treats, trivia, and a share-a-sweet challenge.",
     about:
       "Trade a fact about campus safety for candy, or complete the tasting card. Staff stamp once per student number.",
@@ -61,9 +66,10 @@ export const BOOTHS = [
     short: "Booth 06",
     code: "CRY",
     place: "WSA / warehouse edge",
-    summary: "The final checkpoint before Fast Pass.",
+    map: { x: 84, y: 64, side: "w", r: 30 },
+    summary: "A keepers’ riddle and a group photo at the warehouse.",
     about:
-      "A short keepers’ riddle and a group photo. Collect all six booth stamps on your card to unlock the Fast Pass.",
+      "A short keepers’ riddle and a group photo. Collect stamps from any six booths, in any order, to unlock Fast Pass.",
   },
 ];
 

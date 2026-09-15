@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map55">
+  <link rel="stylesheet" href="css/styles.css?v=map65">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-09-15T13:45:00+08:00");
@@ -240,7 +240,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>Connecting…</div>
-      <div class="version-chip" title="App version">v1.5.5</div>
+      <div class="version-chip" title="App version">v1.5.6</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -426,53 +426,93 @@
               <p class="passport__event">SP Scream Fest</p>
               <h2 id="stampHolderName">Student</h2>
               <p class="passport__idno" id="stampHolderId"></p>
-              <p class="stamp-progress" id="stampProgress">0 / 6 checkpoints</p>
+              <p class="stamp-progress" id="stampProgress">0 / 6 runes lit</p>
             </div>
-            <button class="btn" id="passToggle" type="button" hidden>Show Fast Pass</button>
           </div>
-          <div id="stampCardPanel">
-            <p class="passport__hint">Staff award stamps at each booth. Tap a stamp to read about that booth. You cannot stamp this card yourself.</p>
-            <div class="stamp-grid" id="stampGrid"></div>
-            <h3 class="roadmap__title">Haunt trail</h3>
-            <ol class="roadmap" id="stampRoadmap"></ol>
-          </div>
-        </article>
-
-        <div id="fastPassPanel" hidden>
+          <p class="passport__hint">Staff stamp you at each booth — you cannot stamp yourself. Light all six runes in any order, then show your name and admin number at the Fast Pass desk.</p>
           <article class="fast-pass" id="fastPassCard">
-            <p class="fast-pass__kicker" id="passKicker">Show this at Fast Pass</p>
-            <h3>SP Scream Fest Fast Pass</h3>
-            <button class="lantern" id="lanternRaise" type="button" data-raise-spirit aria-expanded="false" aria-controls="passPlate">
+            <div class="haunt-fx" aria-hidden="true">
+              <span class="haunt-fx__rays"></span>
+              <span class="haunt-fx__mist haunt-fx__mist--a"></span>
+              <span class="haunt-fx__mist haunt-fx__mist--b"></span>
+              <span class="haunt-fx__ground"></span>
+              <span class="haunt-fx__web haunt-fx__web--tl"></span>
+              <span class="haunt-fx__web haunt-fx__web--tr"></span>
+              <span class="haunt-fx__ember" style="--x:8%; --d:0s; --t:7s"></span>
+              <span class="haunt-fx__ember" style="--x:18%; --d:1.4s; --t:8.2s"></span>
+              <span class="haunt-fx__ember" style="--x:31%; --d:2.8s; --t:6.6s"></span>
+              <span class="haunt-fx__ember" style="--x:44%; --d:0.6s; --t:7.8s"></span>
+              <span class="haunt-fx__ember" style="--x:58%; --d:3.2s; --t:9s"></span>
+              <span class="haunt-fx__ember" style="--x:71%; --d:1.1s; --t:6.4s"></span>
+              <span class="haunt-fx__ember" style="--x:82%; --d:2.2s; --t:8.5s"></span>
+              <span class="haunt-fx__ember" style="--x:93%; --d:4s; --t:7.2s"></span>
+              <span class="haunt-fx__fly" style="--y:12%; --d:0s; --t:18s">🦇</span>
+              <span class="haunt-fx__fly haunt-fx__fly--rev" style="--y:28%; --d:5s; --t:22s">🍂</span>
+              <span class="haunt-fx__fly" style="--y:62%; --d:9s; --t:20s">🦇</span>
+              <span class="haunt-fx__fly haunt-fx__fly--rev" style="--y:78%; --d:3s; --t:26s">👻</span>
+            </div>
+            <p class="fast-pass__kicker" id="passKicker">Caged spirit</p>
+            <h3>Your spirit</h3>
+            <p class="lantern__spirit" id="spiritName" data-spirit-name>Ember Wisp</p>
+            <div class="lantern">
               <span class="lantern__handle" aria-hidden="true"></span>
-              <span class="lantern__cap" aria-hidden="true"></span>
-              <span class="lantern__glass">
-                <span class="lantern__flame" aria-hidden="true"></span>
-                <span class="ghost" aria-hidden="true">
-                  <span class="ghost__sheet">
-                    <span class="ghost__eye ghost__eye--l"></span>
-                    <span class="ghost__eye ghost__eye--r"></span>
-                    <span class="ghost__eye ghost__eye--m"></span>
+              <div class="lantern__core">
+                <span class="lantern__cap" aria-hidden="true"></span>
+                <button class="lantern__raise" id="lanternRaise" type="button" data-raise-spirit aria-expanded="false" aria-controls="passPlate">
+                  <span class="lantern__glass">
+                    <span class="lantern__ribs" aria-hidden="true"></span>
+                    <span class="lantern__flame" aria-hidden="true"></span>
+                    <span class="ghost" aria-hidden="true">
+                      <span class="ghost__sheet">
+                        <span class="ghost__eye ghost__eye--l"></span>
+                        <span class="ghost__eye ghost__eye--r"></span>
+                        <span class="ghost__eye ghost__eye--m"></span>
+                      </span>
+                      <span class="ghost__tail"></span>
+                    </span>
+                    <span class="lantern__cage" aria-hidden="true">
+                      <span></span><span></span><span></span><span></span><span></span>
+                      <i></i>
+                    </span>
+                    <span class="visually-hidden">Raise your spirit</span>
                   </span>
-                  <span class="ghost__tail"></span>
-                </span>
-                <span class="lantern__motes" aria-hidden="true">
-                  <i></i><i></i><i></i><i></i><i></i><i></i>
-                </span>
-              </span>
-              <span class="lantern__base" aria-hidden="true"></span>
-              <span class="lantern__hint" id="lanternHint">Tap to raise your spirit</span>
-            </button>
+                </button>
+                <span class="lantern__base" aria-hidden="true"></span>
+                <div class="lantern__orbit" aria-hidden="true">
+                  <span class="lantern__halo"></span>
+                  <span class="lantern__halo lantern__halo--outer"></span>
+                  <span class="lantern__motes">
+                    <i></i><i></i><i></i><i></i><i></i><i></i>
+                    <i></i><i></i><i></i><i></i><i></i><i></i>
+                  </span>
+                  <span class="lantern__sparks">
+                    <i></i><i></i><i></i><i></i><i></i><i></i>
+                    <i></i><i></i><i></i><i></i>
+                  </span>
+                </div>
+                <div class="lantern__runes" id="lanternRunes">
+                  <span class="lantern__rune-slot" style="--rune: 0"><button class="lantern__rune" type="button" data-stamp="1" aria-label="Pumpkin Gate">🎃</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 1"><button class="lantern__rune" type="button" data-stamp="2" aria-label="Bat Colony">🦇</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 2"><button class="lantern__rune" type="button" data-stamp="3" aria-label="Plaza Ghost">👻</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 3"><button class="lantern__rune" type="button" data-stamp="4" aria-label="Web Lab">🕸️</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 4"><button class="lantern__rune" type="button" data-stamp="5" aria-label="Candy Court">🍬</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 5"><button class="lantern__rune" type="button" data-stamp="6" aria-label="Crypt Keep">🕯️</button></span>
+                </div>
+              </div>
+              <p class="lantern__hint" id="lanternHint">The spirit is caged. Stamp booths to ink the spirit card</p>
+            </div>
             <div class="pass-plate" id="passPlate">
               <p class="pass-plate__name" id="passHolder"></p>
               <p class="pass-plate__admin" id="passAdmin"></p>
-              <p class="fast-pass__id" id="passId">SP-FP-00000000</p>
+              <p class="fast-pass__id is-locked" id="passId">Locked · 0 / 6 runes lit</p>
             </div>
             <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
-            <p class="fast-pass__rules">Valid tonight · skip the wait line · still subject to house capacity. One party per pass. Staff look up your admin number — they do not scan a code.</p>
-            <button class="btn btn--ghost" id="passBack" type="button">Back to stamp card</button>
             <p class="muted" id="redeemedNote" hidden></p>
           </article>
-        </div>
+          <h3 class="roadmap__title">Fast Pass ticket</h3>
+          <p class="station-map__lead">Any six booths, any order. Each stamp uncovers a piece of your ticket. Finish all six to see the whole Fast Pass.</p>
+          <div class="station-map" id="stampRoadmap"></div>
+        </article>
       </div>
     </section>
 
@@ -1023,7 +1063,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map54"></script>
+  <script type="module" src="js/app.js?v=map65"></script>
 </div>
 </body>
 </html>

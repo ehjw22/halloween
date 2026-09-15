@@ -57,9 +57,7 @@ const els = {
   zoomLabel: document.getElementById("zoomLabel"),
   liveMode: document.getElementById("liveMode"),
   modal: document.getElementById("detailModal"),
-  stampGrid: document.getElementById("stampGrid"),
   stampRoadmap: document.getElementById("stampRoadmap"),
-  passBack: document.getElementById("passBack"),
   stampModal: document.getElementById("stampModal"),
   boothModal: document.getElementById("boothModal"),
   boothsModal: document.getElementById("boothsModal"),
@@ -71,9 +69,6 @@ const els = {
   stampHolderId: document.getElementById("stampHolderId"),
   stampFill: document.getElementById("stampFill"),
   stampProgress: document.getElementById("stampProgress"),
-  stampView: document.getElementById("stampCardPanel"),
-  passView: document.getElementById("fastPassPanel"),
-  passToggle: document.getElementById("passToggle"),
   passId: document.getElementById("passId"),
   adminGate: document.getElementById("adminGate"),
   adminApp: document.getElementById("adminApp"),
@@ -128,7 +123,6 @@ let pendingStampId = null;
 let staffTab = "waits";
 let feedbackKindFilter = "";
 let stampPoll = 0;
-let showPass = false;
 let waitSync = { liveOk: false, wasLive: false, lastLiveAt: null };
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
@@ -859,83 +853,114 @@ function paintStampUi() {
 
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
+  const complete = filled === 6;
+  const justComplete = complete && lastFilled < 6;
+  lastFilled = filled;
+  if (justComplete && !isPassRedeemed(cardState.redeemedAt)) spiritRaised = true;
   const sessionName = cardState.fullName || session.payload.name;
   const sessionNum = cardState.studentNumber || session.payload.studentNumber;
   if (els.stampHolderName) els.stampHolderName.textContent = sessionName || "Student";
   if (els.stampHolderId) els.stampHolderId.textContent = sessionNum || "";
-  els.stampProgress.textContent = `${filled} / 6 checkpoints`;
+  if (els.stampProgress) els.stampProgress.textContent = `${filled} / 6 runes lit`;
   if (els.stampFill) {
     const offset = 100 - (filled / 6) * 100;
     els.stampFill.style.strokeDashoffset = String(offset);
   }
-  els.stampGrid.innerHTML = STAMP_SLOTS.map((slot) => {
-    const stamped = stamps[slot.id] || stamps[String(slot.id)];
-    return `
-      <button class="stamp-slot ${stamped ? "is-stamped" : ""}" type="button" data-stamp="${slot.id}">
-        <span class="stamp-slot__seal" aria-hidden="true">${slot.icon}</span>
-        <span class="stamp-slot__index">0${slot.id}</span>
-        <strong>${slot.label}</strong>
-        <small>${stamped ? `Collected · ${escapeHtml(stamped.by || "")}` : "Tap for booth info"}</small>
-      </button>`;
-  }).join("");
 
   if (els.stampRoadmap) {
-    els.stampRoadmap.innerHTML = STAMP_SLOTS.map((slot, index) => {
-      const stamped = stamps[slot.id] || stamps[String(slot.id)];
-      const nextUp = !stamped && STAMP_SLOTS.slice(0, index).every((s) => stamps[s.id] || stamps[String(s.id)]);
-      const state = stamped ? "is-done" : nextUp ? "is-next" : "";
+    const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
+    const litBooths = BOOTHS.filter((booth) => isLit(booth.id));
+    const pins = BOOTHS.map((booth) => {
+      const stamped = isLit(booth.id);
+      const side = booth.map.side || "s";
       return `
-        <li class="roadmap__stop ${state}">
-          <button class="roadmap__node" type="button" data-stamp="${slot.id}">
-            <span class="roadmap__icon">${slot.icon}</span>
-            <span class="roadmap__num">${index + 1}</span>
-            <strong>${slot.label}</strong>
-            <small>${stamped ? `Stamped · ${escapeHtml(stamped.by || "")}` : "Visit this booth"}</small>
-          </button>
-        </li>`;
+        <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" style="left:${booth.map.x}%;top:${booth.map.y}%" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
+          <span class="station-map__icon" aria-hidden="true">${booth.icon}</span>
+          <span class="station-map__name">${escapeHtml(booth.name)}</span>
+        </button>`;
     }).join("");
+    els.stampRoadmap.classList.toggle("is-complete", complete);
+    els.stampRoadmap.classList.toggle("is-inked", filled > 0);
+    els.stampRoadmap.innerHTML = `
+      <div class="station-map__board">
+        <div class="station-map__fog" aria-hidden="true"></div>
+        <img class="station-map__art" src="img/fast-pass-ticket.png?v=map65" alt="">
+        ${pins}
+      </div>`;
+    const art = els.stampRoadmap.querySelector(".station-map__art");
+    if (art) {
+      if (complete) {
+        art.style.maskImage = "none";
+        art.style.webkitMaskImage = "none";
+      } else if (!litBooths.length) {
+        const hidden = "linear-gradient(transparent, transparent)";
+        art.style.maskImage = hidden;
+        art.style.webkitMaskImage = hidden;
+      } else {
+        const spots = litBooths
+          .map((booth) => {
+            const r = booth.map.r || 28;
+            return `radial-gradient(circle at ${booth.map.x}% ${booth.map.y}%, #fff 0 ${r * 0.4}%, transparent ${r}%)`;
+          })
+          .join(", ");
+        art.style.maskImage = spots;
+        art.style.webkitMaskImage = spots;
+        art.style.maskRepeat = "no-repeat";
+        art.style.webkitMaskRepeat = "no-repeat";
+        art.style.maskSize = "100% 100%";
+        art.style.webkitMaskSize = "100% 100%";
+        art.style.maskComposite = "add";
+        art.style.webkitMaskComposite = "source-over";
+      }
+    }
   }
 
-  const complete = filled === 6;
-  if (complete && lastFilled < 6) showPass = true;
-  lastFilled = filled;
-  els.passToggle.hidden = !complete;
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
+  const redeemed = isPassRedeemed(cardState.redeemedAt);
+  if (redeemed) spiritRaised = false;
+  const lit = STAMP_SLOTS.filter((slot) => stamps[slot.id] || stamps[String(slot.id)]).map((slot) => slot.id);
   if (els.passHolder) {
     els.passHolder.textContent = cardState.fullName || session.payload.name || "";
   }
   if (els.passAdmin) els.passAdmin.textContent = adminNo;
-  if (complete && showPass) {
-    els.stampView.hidden = true;
-    els.passView.hidden = false;
-    els.passToggle.textContent = "Review stamp card";
-    els.passId.textContent = cardState.passId;
-    const redeemed = isPassRedeemed(cardState.redeemedAt);
-    if (redeemed) spiritRaised = false;
-    applyGhostPass(els.fastPassCard, {
-      seed: adminNo || cardState.passId,
-      raised: spiritRaised,
-      redeemed,
-    });
-    els.passKicker.textContent = redeemed ? "Laid to rest" : "Show this at Fast Pass";
-    if (els.lanternHint) {
-      els.lanternHint.textContent = redeemed
-        ? "This spirit has been laid to rest"
-        : spiritRaised
+  if (els.passId) {
+    els.passId.classList.toggle("is-locked", !complete);
+    els.passId.textContent = complete
+      ? cardState.passId
+      : `Locked · ${filled} / 6 runes lit`;
+  }
+  applyGhostPass(els.fastPassCard, {
+    seed: adminNo || cardState.passId,
+    raised: spiritRaised,
+    redeemed,
+    lit,
+    complete,
+  });
+  if (els.passKicker) {
+    els.passKicker.textContent = redeemed
+      ? "Laid to rest"
+      : complete
+        ? "Show this at Fast Pass"
+        : "Caged spirit";
+  }
+  if (els.lanternHint) {
+    els.lanternHint.textContent = redeemed
+      ? "This spirit has been laid to rest"
+      : complete
+        ? spiritRaised
           ? "Show your name and admin number to staff"
-          : "Tap to raise your spirit";
-    }
-    if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
+          : "Tap the pumpkin to raise your spirit"
+        : filled
+          ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
+          : "The spirit is caged. Stamp booths to ink the spirit card";
+  }
+  if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
+  if (els.redeemedNote) {
     els.redeemedNote.hidden = !redeemed;
     if (redeemed) {
       const when = new Date(cardState.redeemedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       els.redeemedNote.textContent = `Redeemed at ${when}${cardState.redeemedBy ? ` by ${cardState.redeemedBy}` : ""}.`;
     }
-  } else {
-    els.stampView.hidden = false;
-    els.passView.hidden = true;
-    els.passToggle.textContent = "Show Fast Pass";
-    if (!complete) els.passToggle.hidden = true;
   }
 }
 
@@ -1519,8 +1544,8 @@ function bindUi() {
         clearStudentSession();
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
-        showPass = false;
         lastFilled = 0;
+        spiritRaised = false;
         updateNav();
         renderStamps();
       } else {
@@ -1589,22 +1614,12 @@ function bindUi() {
   document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: false }));
   document.getElementById("staffLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: true }));
 
-  els.passToggle?.addEventListener("click", () => {
-    showPass = !showPass;
-    if (showPass) spiritRaised = false;
-    paintStampUi();
-  });
   els.lanternRaise?.addEventListener("click", () => {
     if (els.fastPassCard?.classList.contains("is-redeemed")) return;
+    if (!els.fastPassCard?.classList.contains("is-complete")) return;
     spiritRaised = !spiritRaised;
     paintStampUi();
   });
-  if (els.passBack) {
-    els.passBack.addEventListener("click", () => {
-      showPass = false;
-      paintStampUi();
-    });
-  }
 
   function resetStaffRedeemView() {
     const form = document.getElementById("staffRedeemLookupForm");
@@ -1691,7 +1706,6 @@ function bindUi() {
       showStaffUsedPass(result);
       if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
         await renderStamps({ refresh: true });
-        showPass = true;
         paintStampUi();
       }
     } catch (error) {
