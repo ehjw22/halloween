@@ -830,7 +830,6 @@ async function loadCardFromServer() {
 }
 
 let spiritRaised = false;
-let lastFilled = 0;
 
 function isPassRedeemed(value) {
   if (!value) return false;
@@ -854,9 +853,6 @@ function paintStampUi() {
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
   const complete = filled === 6;
-  const justComplete = complete && lastFilled < 6;
-  lastFilled = filled;
-  if (justComplete && !isPassRedeemed(cardState.redeemedAt)) spiritRaised = true;
   const sessionName = cardState.fullName || session.payload.name;
   const sessionNum = cardState.studentNumber || session.payload.studentNumber;
   if (els.stampHolderName) els.stampHolderName.textContent = sessionName || "Student";
@@ -884,7 +880,7 @@ function paintStampUi() {
     els.stampRoadmap.innerHTML = `
       <div class="station-map__board">
         <div class="station-map__fog" aria-hidden="true"></div>
-        <img class="station-map__art" src="img/fast-pass-ticket.png?v=map65" alt="">
+        <img class="station-map__art" src="img/fast-pass-ticket.png?v=map70" alt="">
         ${pins}
       </div>`;
     const art = els.stampRoadmap.querySelector(".station-map__art");
@@ -952,7 +948,7 @@ function paintStampUi() {
           : "Tap the pumpkin to raise your spirit"
         : filled
           ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
-          : "The spirit is caged. Stamp booths to ink the spirit card";
+          : "The spirit is caged. Stamp booths to uncover your ticket";
   }
   if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
   if (els.redeemedNote) {
@@ -1544,7 +1540,6 @@ function bindUi() {
         clearStudentSession();
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
-        lastFilled = 0;
         spiritRaised = false;
         updateNav();
         renderStamps();

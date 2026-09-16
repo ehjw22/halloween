@@ -2436,6 +2436,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .lantern__core {
   position: relative;
+  isolation: isolate;
   width: 176px;
   margin-top: -2px;
 }
@@ -2448,7 +2449,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   border-radius: 8px 8px 4px 4px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
   position: relative;
-  z-index: 4;
+  z-index: 5;
 }
 .lantern__cap::after {
   content: "";
@@ -2463,7 +2464,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .lantern__raise {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   display: block;
   width: 168px;
   margin: 0 auto;
@@ -2543,7 +2544,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   background: linear-gradient(180deg, hsl(var(--ghost-h) 55% 58%), hsl(var(--ghost-h) 48% 26%));
   border-radius: 4px 4px 12px 12px;
   position: relative;
-  z-index: 4;
+  z-index: 5;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
 }
 .lantern__hint {
@@ -2552,14 +2553,21 @@ html.event-welcome .view:not([data-view="welcome"]) {
   color: var(--muted);
 }
 .lantern__orbit,
+.lantern__sigil-wrap,
 .lantern__runes {
   position: absolute;
   left: 50%;
   top: 54%;
   width: 0;
   height: 0;
-  z-index: 5;
   pointer-events: none;
+}
+.lantern__orbit {
+  z-index: 2;
+}
+.lantern__sigil-wrap {
+  z-index: 1;
+  animation: rune-orbit 26s linear infinite;
 }
 .lantern__motes {
   position: absolute;
@@ -2601,8 +2609,9 @@ html.event-welcome .view:not([data-view="welcome"]) {
   height: 236px;
   margin: -118px;
   border-radius: 50%;
-  border: 1px dashed hsl(var(--ghost-h) 70% 70% / 0.35);
-  box-shadow: 0 0 18px hsl(var(--ghost-h) 80% 50% / 0.18);
+  border: 0;
+  background: radial-gradient(circle, transparent 58%, hsl(var(--ghost-h) 70% 50% / 0.14) 70%, transparent 74%);
+  box-shadow: 0 0 28px hsl(var(--ghost-h) 80% 50% / 0.12);
   animation: rune-orbit 28s linear infinite;
   pointer-events: none;
 }
@@ -2610,8 +2619,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   width: 312px;
   height: 312px;
   margin: -156px;
-  border-style: dotted;
-  border-color: hsl(var(--ghost-h) 60% 80% / 0.22);
+  background: radial-gradient(circle, transparent 72%, hsl(var(--ghost-h) 50% 40% / 0.08) 78%, transparent 82%);
   animation-duration: 40s;
   animation-direction: reverse;
 }
@@ -2641,47 +2649,170 @@ html.event-welcome .view:not([data-view="welcome"]) {
 
 .lantern__runes {
   z-index: 6;
-  animation: rune-orbit 22s linear infinite;
+  animation: rune-orbit 26s linear infinite;
+}
+.lantern__sigil {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 248px;
+  height: 248px;
+  margin: -124px;
+  overflow: visible;
+  pointer-events: none;
+  color: hsl(var(--ghost-h) 62% 62%);
+  filter: drop-shadow(0 0 10px hsl(var(--ghost-h) 80% 48% / 0.28));
+}
+.lantern__sigil circle,
+.lantern__sigil-orbit {
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-dasharray: 1.2 2.8 0.4 4.2;
+  opacity: 0.7;
+}
+.lantern__sigil-orbit--inner {
+  stroke-width: 0.7;
+  stroke-dasharray: 0.6 5.4;
+  opacity: 0.45;
+}
+.lantern__sigil-hex {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+}
+.lantern__sigil-hex--inner {
+  stroke-width: 0.85;
+  opacity: 0.55;
+  stroke-dasharray: 3 2.2;
+}
+.lantern__sigil-ticks path,
+.lantern__sigil-notches path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: square;
+  opacity: 0.85;
+}
+.lantern__sigil-notches path {
+  stroke-width: 1.1;
+  opacity: 0.55;
+}
+.fast-pass.is-complete .lantern__sigil {
+  color: hsl(var(--ghost-h) 78% 68%);
+  filter: drop-shadow(0 0 16px hsl(var(--ghost-h) 90% 55% / 0.55));
 }
 .lantern__rune-slot {
   position: absolute;
   left: 0;
   top: 0;
-  transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(118px);
+  transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(124px);
 }
 .lantern__rune {
   pointer-events: auto;
   position: absolute;
   left: 0;
   top: 0;
-  width: 44px;
-  height: 44px;
-  margin: -22px;
-  border: 1px solid rgba(255, 244, 214, 0.16);
-  border-radius: 50%;
-  background: rgba(10, 6, 10, 0.82);
-  font-size: 1.15rem;
-  line-height: 1;
-  filter: grayscale(1) brightness(0.55);
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.45);
+  width: 48px;
+  height: 54px;
+  margin: -27px -24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
   color: inherit;
+  transform: rotate(calc(90deg - var(--rune) * 60deg));
+  animation: rune-orbit 26s linear infinite reverse;
+}
+.lantern__rune-stone {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background:
+    radial-gradient(circle at 50% 38%, hsl(28 22% 24%), #0e0708 70%),
+    repeating-linear-gradient(90deg, transparent 0 3px, rgba(0, 0, 0, 0.22) 3px 4px),
+    repeating-linear-gradient(180deg, transparent 0 7px, rgba(210, 160, 90, 0.08) 7px 8px),
+    repeating-conic-gradient(from 18deg, transparent 0 26deg, rgba(210, 160, 90, 0.1) 26deg 28deg);
+  box-shadow:
+    0 0 0 1px hsl(28 30% 16%),
+    0 8px 14px rgba(0, 0, 0, 0.45);
+}
+.lantern__rune-stone::before {
+  content: "";
+  position: absolute;
+  inset: 5px 7px;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  box-shadow:
+    inset 0 0 0 1px hsl(38 40% 48% / 0.38),
+    inset 0 0 0 3px hsl(28 20% 10% / 0.55);
+}
+.lantern__rune-etch {
+  position: absolute;
+  inset: 6px 8px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+}
+.lantern__rune-etch svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: hsl(38 36% 58%);
+  stroke-width: 1.15;
+  stroke-linecap: square;
+  stroke-linejoin: bevel;
+}
+.lantern__rune-glyph {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.15rem;
+  line-height: 1;
+  filter: grayscale(0.9) brightness(0.62);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 .lantern__runes:hover,
-.lantern__runes:focus-within {
+.lantern__runes:focus-within,
+.lantern__runes:hover .lantern__rune,
+.lantern__runes:focus-within .lantern__rune,
+.lantern__core:has(.lantern__runes:hover) .lantern__sigil-wrap,
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-wrap {
   animation-play-state: paused;
 }
-.lantern__rune.is-lit {
-  filter: none;
-  border-color: hsl(var(--ghost-h) 70% 62%);
-  background: hsl(var(--ghost-h) 45% 18%);
+.lantern__rune.is-lit .lantern__rune-stone {
+  background:
+    radial-gradient(circle at 50% 32%, hsl(var(--ghost-h) 55% 36%), hsl(var(--ghost-h) 48% 14%) 72%),
+    repeating-linear-gradient(90deg, transparent 0 3px, rgba(0, 0, 0, 0.18) 3px 4px),
+    repeating-linear-gradient(180deg, transparent 0 7px, rgba(255, 190, 90, 0.14) 7px 8px);
   box-shadow:
-    0 0 14px hsl(var(--ghost-h) 80% 50% / 0.55),
-    inset 0 0 8px hsl(var(--ghost-h) 70% 50% / 0.35);
+    0 0 0 1px hsl(var(--ghost-h) 70% 52%),
+    0 0 18px hsl(var(--ghost-h) 90% 50% / 0.55),
+    0 8px 14px rgba(0, 0, 0, 0.4);
+}
+.lantern__rune.is-lit .lantern__rune-stone::before {
+  box-shadow:
+    inset 0 0 0 1px hsl(38 80% 62% / 0.75),
+    inset 0 0 0 3px hsl(var(--ghost-h) 40% 12% / 0.45);
+}
+.lantern__rune.is-lit .lantern__rune-etch {
+  opacity: 0.88;
+}
+.lantern__rune.is-lit .lantern__rune-etch svg {
+  stroke: hsl(38 82% 72%);
+  filter: drop-shadow(0 0 3px hsl(var(--ghost-h) 90% 55% / 0.7));
+}
+.lantern__rune.is-lit .lantern__rune-glyph {
+  filter: none;
+  text-shadow: 0 0 10px hsl(var(--ghost-h) 90% 60% / 0.7);
 }
 .lantern__rune:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 .ghost {
@@ -4058,7 +4189,12 @@ body.is-board { background: #050308; }
   .station-map__board { width: 100%; }
   .lantern { width: min(300px, 100%); padding-bottom: 36px; }
   .lantern__rune-slot {
-    transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(108px);
+    transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(112px);
+  }
+  .lantern__sigil {
+    width: 224px;
+    height: 224px;
+    margin: -112px;
   }
   .lantern__hint { margin-top: 52px; }
   .event-gate__unit { min-width: 4.15rem; padding: 12px 10px 11px; gap: 6px; }
@@ -4084,6 +4220,6 @@ body.is-board { background: #050308; }
     scroll-behavior: auto !important;
   }
   .house-card:hover, .club-card:hover { transform: none; }
-  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays { animation: none !important; }
+  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__sigil-wrap, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays { animation: none !important; }
 }
 

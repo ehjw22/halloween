@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map65">
+  <link rel="stylesheet" href="css/styles.css?v=map73">
   <script>
     (function () {
       var open = Date.now() >= Date.parse("2026-09-15T13:45:00+08:00");
@@ -240,7 +240,7 @@
     <div class="header-meta">
       <div class="session-chip" id="sessionChip" hidden></div>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>Connecting…</div>
-      <div class="version-chip" title="App version">v1.5.6</div>
+      <div class="version-chip" title="App version">v1.5.7</div>
     </div>
   </header>
   <div class="game-subnav" id="gameSubnav" hidden>
@@ -429,7 +429,10 @@
               <p class="stamp-progress" id="stampProgress">0 / 6 runes lit</p>
             </div>
           </div>
-          <p class="passport__hint">Staff stamp you at each booth — you cannot stamp yourself. Light all six runes in any order, then show your name and admin number at the Fast Pass desk.</p>
+          <p class="passport__hint">Staff stamp you at each booth — you cannot stamp yourself. Visit booths in any order, then show your name and admin number at the Fast Pass desk.</p>
+          <h3 class="roadmap__title">Fast Pass ticket</h3>
+          <p class="station-map__lead">Any six booths, any order. Each stamp uncovers a piece of your ticket. Six stamps uncage the lantern.</p>
+          <div class="station-map" id="stampRoadmap"></div>
           <article class="fast-pass" id="fastPassCard">
             <div class="haunt-fx" aria-hidden="true">
               <span class="haunt-fx__rays"></span>
@@ -490,16 +493,48 @@
                     <i></i><i></i><i></i><i></i>
                   </span>
                 </div>
+                <div class="lantern__sigil-wrap" aria-hidden="true">
+                  <svg class="lantern__sigil" viewBox="0 0 280 280">
+                    <defs>
+                      <mask id="lanternSigilClear">
+                        <rect width="280" height="280" fill="white" />
+                        <circle cx="140" cy="140" r="108" fill="black" />
+                      </mask>
+                    </defs>
+                    <g mask="url(#lanternSigilClear)">
+                      <circle class="lantern__sigil-orbit" cx="140" cy="140" r="140" fill="none" pathLength="96" />
+                      <circle class="lantern__sigil-orbit lantern__sigil-orbit--inner" cx="140" cy="140" r="126" fill="none" pathLength="48" />
+                      <polygon class="lantern__sigil-hex" points="140,0 261.2,70 261.2,210 140,280 18.8,210 18.8,70" />
+                      <polygon class="lantern__sigil-hex lantern__sigil-hex--inner" points="140,14 249.1,77 249.1,203 140,266 30.9,203 30.9,77" />
+                    </g>
+                    <g class="lantern__sigil-ticks">
+                      <path d="M140 4v16" />
+                      <path d="M258 68l-14 8" />
+                      <path d="M258 212l-14-8" />
+                      <path d="M140 276v-16" />
+                      <path d="M22 212l14-8" />
+                      <path d="M22 68l14 8" />
+                    </g>
+                    <g class="lantern__sigil-notches">
+                      <path d="M198 24l6-11 6 11" />
+                      <path d="M256 140h12" />
+                      <path d="M198 256l6 11 6-11" />
+                      <path d="M82 256l-6 11-6-11" />
+                      <path d="M12 140H0" />
+                      <path d="M82 24l-6-11-6 11" />
+                    </g>
+                  </svg>
+                </div>
                 <div class="lantern__runes" id="lanternRunes">
-                  <span class="lantern__rune-slot" style="--rune: 0"><button class="lantern__rune" type="button" data-stamp="1" aria-label="Pumpkin Gate">🎃</button></span>
-                  <span class="lantern__rune-slot" style="--rune: 1"><button class="lantern__rune" type="button" data-stamp="2" aria-label="Bat Colony">🦇</button></span>
-                  <span class="lantern__rune-slot" style="--rune: 2"><button class="lantern__rune" type="button" data-stamp="3" aria-label="Plaza Ghost">👻</button></span>
-                  <span class="lantern__rune-slot" style="--rune: 3"><button class="lantern__rune" type="button" data-stamp="4" aria-label="Web Lab">🕸️</button></span>
-                  <span class="lantern__rune-slot" style="--rune: 4"><button class="lantern__rune" type="button" data-stamp="5" aria-label="Candy Court">🍬</button></span>
-                  <span class="lantern__rune-slot" style="--rune: 5"><button class="lantern__rune" type="button" data-stamp="6" aria-label="Crypt Keep">🕯️</button></span>
+                  <span class="lantern__rune-slot" style="--rune: 0"><button class="lantern__rune" type="button" data-stamp="1" aria-label="Pumpkin Gate"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="9"/><path d="M20 2v7M20 31v7M2 20h7M31 20h7M6 6l5 5M29 29l5 5M34 6l-5 5M6 34l5-5M20 11v18M11 20h18"/></svg></span><span class="lantern__rune-glyph">🎃</span></button></span>
+                  <span class="lantern__rune-slot" style="--rune: 1"><button class="lantern__rune" type="button" data-stamp="2" aria-label="Bat Colony"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M20 5v30M7 14l13 9 13-9M7 26l13-9 13 9M12 8h16M12 32h16M20 14l-6 16M20 14l6 16"/></svg></span><span class="lantern__rune-glyph">🦇</span></button></span>
+                  <span class="lantern__rune-slot" style="--rune: 2"><button class="lantern__rune" type="button" data-stamp="3" aria-label="Plaza Ghost"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="10"/><circle cx="20" cy="20" r="5"/><path d="M8 12h24M8 28h24M14 6v28M26 6v28"/></svg></span><span class="lantern__rune-glyph">👻</span></button></span>
+                  <span class="lantern__rune-slot" style="--rune: 3"><button class="lantern__rune" type="button" data-stamp="4" aria-label="Web Lab"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M20 4l16 16-16 16L4 20zM20 4v32M4 20h32M8 8l24 24M32 8 8 32M20 10l10 10-10 10L10 20z"/></svg></span><span class="lantern__rune-glyph">🕸️</span></button></span>
+                  <span class="lantern__rune-slot" style="--rune: 4"><button class="lantern__rune" type="button" data-stamp="5" aria-label="Candy Court"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M7 10c9 5 17 5 26 0M7 20h26M7 30c9-5 17-5 26 0M13 7v26M27 7v26M10 15l10 5 10-5M10 25l10-5 10 5"/></svg></span><span class="lantern__rune-glyph">🍬</span></button></span>
+                  <span class="lantern__rune-slot" style="--rune: 5"><button class="lantern__rune" type="button" data-stamp="6" aria-label="Crypt Keep"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M12 32V16c0-6 16-6 16 0v16M12 32h16M20 8v8M14 12h12M16 32v-9h8v9M20 23v9"/></svg></span><span class="lantern__rune-glyph">🕯️</span></button></span>
                 </div>
               </div>
-              <p class="lantern__hint" id="lanternHint">The spirit is caged. Stamp booths to ink the spirit card</p>
+              <p class="lantern__hint" id="lanternHint">The spirit is caged. Stamp booths to uncover your ticket</p>
             </div>
             <div class="pass-plate" id="passPlate">
               <p class="pass-plate__name" id="passHolder"></p>
@@ -509,9 +544,6 @@
             <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
             <p class="muted" id="redeemedNote" hidden></p>
           </article>
-          <h3 class="roadmap__title">Fast Pass ticket</h3>
-          <p class="station-map__lead">Any six booths, any order. Each stamp uncovers a piece of your ticket. Finish all six to see the whole Fast Pass.</p>
-          <div class="station-map" id="stampRoadmap"></div>
         </article>
       </div>
     </section>
@@ -1063,7 +1095,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
   <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map65"></script>
+  <script type="module" src="js/app.js?v=map73"></script>
 </div>
 </body>
 </html>
