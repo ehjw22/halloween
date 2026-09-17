@@ -44,6 +44,15 @@ create table if not exists public.students (
   created_at timestamptz not null default now()
 );
 
+alter table public.students add column if not exists role text not null default 'student';
+alter table public.students drop constraint if exists students_role_check;
+alter table public.students add constraint students_role_check
+  check (role in ('student', 'admin', 'stamps', 'waits'));
+
+-- Grant staff tools (then they still type ADMIN_PASSCODE on sign-in):
+-- update public.students set role = 'admin' where student_number = 'P1234567';
+-- Booth-only: role = 'stamps'. Wait-times only: role = 'waits'.
+
 create table if not exists public.stamp_cards (
   student_number text primary key references public.students (student_number) on delete cascade,
   stamps jsonb not null default '{}'::jsonb,
@@ -185,14 +194,20 @@ begin
     insert into public.stamp_cards (student_number, stamps)
     values (n, '{}'::jsonb)
     on conflict (student_number) do nothing;
-    return jsonb_build_object('ok', true, 'created', false, 'student_number', n, 'full_name', existing.full_name);
+    return jsonb_build_object(
+      'ok', true,
+      'created', false,
+      'student_number', n,
+      'full_name', existing.full_name,
+      'role', coalesce(existing.role, 'student')
+    );
   end if;
 
   insert into public.students (student_number, full_name) values (n, nm);
   insert into public.stamp_cards (student_number, stamps)
   values (n, '{}'::jsonb)
   on conflict (student_number) do nothing;
-  return jsonb_build_object('ok', true, 'created', true, 'student_number', n, 'full_name', nm);
+  return jsonb_build_object('ok', true, 'created', true, 'student_number', n, 'full_name', nm, 'role', 'student');
 end;
 $$;
 
@@ -453,6 +468,7 @@ begin
     'ok', true,
     'student_number', student.student_number,
     'full_name', student.full_name,
+    'role', coalesce(student.role, 'student'),
     'stamps', coalesce(card.stamps, '{}'::jsonb),
     'redeemed_at', card.redeemed_at,
     'redeemed_by', card.redeemed_by

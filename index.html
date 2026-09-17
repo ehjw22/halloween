@@ -29,8 +29,8 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map84" />
-    <script src="js/boot.js?v=map84"></script>
+    <link rel="stylesheet" href="css/styles.css?v=map89" />
+    <script src="js/boot.js?v=map89"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -514,29 +514,6 @@
               ></span>
               Sign in
             </button>
-            <button
-              class="nav__btn"
-              type="button"
-              data-nav="admin"
-              data-nav-show="admin"
-              hidden
-            >
-              <span class="nav__icon" aria-hidden="true"
-                ><svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"
-                  />
-                  <path d="M9 12.2 11 14l4-4" /></svg
-              ></span>
-              Staff
-            </button>
           </div>
           <button class="nav__btn nav__wide" type="button" data-nav="games">
             <span class="nav__icon" aria-hidden="true"
@@ -636,7 +613,7 @@
             Sign in
           </button>
           <button
-            class="nav__btn nav__wide"
+            class="nav__btn"
             type="button"
             data-nav="admin"
             data-nav-show="admin"
@@ -664,7 +641,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.5.8</div>
+          <div class="version-chip" title="App version">v1.6.2</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -884,106 +861,57 @@
             <div class="section-head">
               <h2>Sign in</h2>
               <p>
-                Pick the form that matches you. Admin number is
-                <strong>P</strong> plus seven digits, for example
-                <strong>P1234567</strong>. The 7 digits alone also work.
+                Admin number is <strong>P</strong> plus seven digits, for
+                example <strong>P1234567</strong>. The 7 digits alone also work.
+                First visit creates your stamp card. Come back with the same
+                name. Staff also get a Staff tab; the night password is asked
+                there, not on this form.
               </p>
             </div>
-            <div class="login-split">
-              <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on">
-                <p class="auth-card__kicker">Students</p>
-                <h2>Open your stamp card</h2>
-                <p class="muted">
-                  No student password. First visit creates your card. Come back
-                  with the same admin number and name.
-                </p>
-                <label>
-                  Admin number
-                  <input
-                    id="studentLoginId"
-                    name="adminNumber"
-                    type="text"
-                    inputmode="text"
-                    autocomplete="username"
-                    maxlength="16"
-                    placeholder="P1234567"
-                    spellcheck="false"
-                    required
-                  />
-                  <span class="field-hint"
-                    >P plus 7 digits, or just the 7 digits</span
-                  >
-                </label>
-                <label>
-                  Full name
-                  <input
-                    id="studentLoginName"
-                    name="fullName"
-                    type="text"
-                    autocomplete="name"
-                    maxlength="80"
-                    placeholder="Full name on your card"
-                    required
-                  />
-                </label>
-                <label class="check-row">
-                  <input id="studentNotifyOptIn" type="checkbox" />
-                  <span
-                    >Notify this phone when a house I watch hits 0 minutes
-                    (walk-in). iPhone: Add to Home Screen first.</span
-                  >
-                </label>
-                <p class="form-error" id="studentLoginError" hidden></p>
-                <button class="btn" type="submit">Open stamp card</button>
-              </form>
-              <form class="auth-card auth-card--staff" id="staffLoginForm" method="post" action="#" autocomplete="on">
-                <p class="auth-card__kicker">Staff</p>
-                <h2>Facilitator access</h2>
-                <p class="muted">
-                  Same admin number format, plus the staff password. Wait-time,
-                  stamp, and full-admin passwords can differ in production.
-                </p>
-                <label>
-                  Admin number
-                  <input
-                    id="staffLoginId"
-                    name="adminNumber"
-                    type="text"
-                    inputmode="text"
-                    autocomplete="username"
-                    maxlength="16"
-                    placeholder="P1234567"
-                    spellcheck="false"
-                    required
-                  />
-                </label>
-                <label>
-                  Full name
-                  <input
-                    id="staffLoginName"
-                    name="fullName"
-                    type="text"
-                    autocomplete="name"
-                    maxlength="80"
-                    placeholder="Your name"
-                    required
-                  />
-                </label>
-                <label>
-                  Staff password
-                  <input
-                    id="staffLoginPassword"
-                    name="password"
-                    type="password"
-                    autocomplete="current-password"
-                    maxlength="80"
-                    required
-                  />
-                </label>
-                <p class="form-error" id="staffLoginError" hidden></p>
-                <button class="btn" type="submit">Staff sign in</button>
-              </form>
-            </div>
+            <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on">
+              <p class="auth-card__kicker">SP Scream Fest</p>
+              <h2>Open your night</h2>
+              <p class="muted">
+                Use your admin number and full name. Facilitators use the same
+                fields, then open the Staff tab to enter the night password.
+              </p>
+              <label>
+                Admin number
+                <input
+                  id="studentLoginId"
+                  name="adminNumber"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="username"
+                  maxlength="16"
+                  placeholder="P1234567"
+                  spellcheck="false"
+                  required
+                />
+                <span class="field-hint">P plus 7 digits, or just the 7 digits</span>
+              </label>
+              <label>
+                Full name
+                <input
+                  id="studentLoginName"
+                  name="fullName"
+                  type="text"
+                  autocomplete="name"
+                  maxlength="80"
+                  placeholder="Full name on your card"
+                  required
+                />
+              </label>
+              <label class="check-row">
+                <input id="studentNotifyOptIn" type="checkbox" />
+                <span
+                  >Notify this phone when a house I watch hits 0 minutes
+                  (walk-in). iPhone: Add to Home Screen first.</span
+                >
+              </label>
+              <p class="form-error" id="studentLoginError" hidden></p>
+              <button class="btn" type="submit" id="loginSubmitBtn">Sign in</button>
+            </form>
           </div>
         </section>
 
@@ -1167,7 +1095,6 @@
                           <span class="ghost__sheet">
                             <span class="ghost__eye ghost__eye--l"></span>
                             <span class="ghost__eye ghost__eye--r"></span>
-                            <span class="ghost__eye ghost__eye--m"></span>
                           </span>
                           <span class="ghost__tail"></span>
                         </span>
@@ -1891,15 +1818,27 @@
 
         <section class="view" data-view="admin" hidden>
           <div id="adminGate" class="auth-card">
-            <p class="auth-card__kicker">SP Scream Fest</p>
-            <h2>Staff tools</h2>
-            <p>
-              Use the same Sign in page as students. Enter your admin number (P
-              plus 7 digits), full name, and staff password.
+            <p class="auth-card__kicker">Staff</p>
+            <h2>Unlock staff tools</h2>
+            <p class="muted">
+              You are signed in. Enter the night staff password to open wait
+              times, stamps, and the rest of the desk.
             </p>
-            <button class="btn" type="button" data-nav="login">
-              Go to Sign in
-            </button>
+            <form id="staffUnlockForm" method="post" action="#">
+              <label>
+                Staff password
+                <input
+                  id="staffUnlockPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  maxlength="80"
+                  required
+                />
+              </label>
+              <p class="form-error" id="staffUnlockError" hidden></p>
+              <button class="btn" type="submit">Unlock</button>
+            </form>
           </div>
 
           <div id="adminApp" hidden>
@@ -2306,8 +2245,8 @@
       </div>
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
-      <script src="js/config.js?v=map84"></script>
-      <script type="module" src="js/app.js?v=map84"></script>
+      <script src="js/config.js?v=map89"></script>
+      <script type="module" src="js/app.js?v=map89"></script>
     </div>
   </body>
 </html>

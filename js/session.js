@@ -94,6 +94,14 @@ export function getStudentSession() {
     localStorage.removeItem(STUDENT_META);
     return null;
   }
+  const meta = readMeta(STUDENT_META, "student");
+  if (meta) {
+    session.payload = {
+      ...session.payload,
+      staffChallenge: Boolean(session.payload.staffChallenge || meta.staffChallenge),
+      accountRole: session.payload.accountRole || meta.accountRole,
+    };
+  }
   return session;
 }
 
@@ -208,21 +216,70 @@ function writeLocalCard(studentNumber, card) {
   localStorage.setItem(stampsKey(studentNumber), JSON.stringify(card));
 }
 
+function isStaffRoleName(value) {
+  const role = String(value || "").toLowerCase().trim();
+  return role === "admin" || role === "stamps" || role === "waits";
+}
+
+export function applyStaffFlags(data) {
+  if (!data) return;
+  const challenge = Boolean(data.staffChallenge) || isStaffRoleName(data.accountRole);
+  if (!challenge) return;
+  const session = getStudentSession();
+  if (!session) return;
+  const prev = readMeta(STUDENT_META, "student") || { ...session.payload, role: "student" };
+  writeMeta(STUDENT_META, {
+    ...prev,
+    role: "student",
+    studentNumber: prev.studentNumber || session.payload.studentNumber,
+    name: prev.name || session.payload.name,
+    staffChallenge: true,
+    accountRole: data.accountRole || prev.accountRole || "admin",
+    exp: prev.exp || session.payload.exp,
+  });
+}
+
+function applyRemoteSession(data) {
+  const exp = Math.floor(Date.now() / 1000) + Number(data.expiresIn || 8 * 60 * 60);
+  if (data.student) {
+    localStorage.removeItem(STUDENT_KEY);
+    writeMeta(STUDENT_META, {
+      role: "student",
+      studentNumber: data.student.studentNumber,
+      name: data.student.fullName,
+      staffChallenge: Boolean(data.staffChallenge) || isStaffRoleName(data.accountRole),
+      accountRole: data.accountRole || "student",
+      exp,
+    });
+    if (data.studentToken) setStudentToken(data.studentToken);
+    else if (data.token && !data.staff) setStudentToken(data.token);
+  }
+  if (data.staff) {
+    localStorage.removeItem(ADMIN_KEY);
+    writeMeta(ADMIN_META, {
+      role: "admin",
+      staffId: data.staff.staffId,
+      name: data.staff.fullName,
+      staffScope: data.staff.staffScope || "admin",
+      exp,
+    });
+    if (data.staffToken) setAdminToken(data.staffToken);
+    else if (data.token && data.staff) setAdminToken(data.token);
+  }
+}
+
 function localSignIn({ id, fullName, password }) {
   if (!isBrowserLocal()) {
     throw new Error("Sign-in is unavailable. Try again in a moment.");
   }
   const pass = String(password || "");
-  if (pass) {
-    if (pass !== "SP2026") {
-      throw new Error("Staff password is incorrect.");
-    }
-    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName, staffScope: "admin" });
-    setAdminToken(token);
-    return { staff: true, token, local: true };
-  }
-  const token = mintLocalJwt({ role: "student", studentNumber: id, name: fullName });
-  setStudentToken(token);
+  const studentToken = mintLocalJwt({
+    role: "student",
+    studentNumber: id,
+    name: fullName,
+    staffChallenge: true,
+  });
+  setStudentToken(studentToken);
   if (!readLocalCard(id)) {
     writeLocalCard(id, {
       stamps: {},
@@ -233,7 +290,21 @@ function localSignIn({ id, fullName, password }) {
       passId: `SP-FP-${id}`,
     });
   }
-  return { staff: false, token, local: true };
+  if (pass) {
+    if (pass !== "SP2026") {
+      throw new Error("Staff password is incorrect.");
+    }
+    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName, staffScope: "admin" });
+    setAdminToken(token);
+    return { staff: { staffId: id, fullName, staffScope: "admin" }, student: { studentNumber: id, fullName }, token, local: true };
+  }
+  return {
+    staff: false,
+    student: { studentNumber: id, fullName },
+    token: studentToken,
+    staffChallenge: true,
+    local: true,
+  };
 }
 
 function emptyCard(session) {
@@ -264,39 +335,15 @@ export async function signIn({ adminNumber, fullName, password }) {
       body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && (data.token || data.student || data.staff)) {
-      const exp = Math.floor(Date.now() / 1000) + Number(data.expiresIn || 8 * 60 * 60);
-      if (data.staff) {
-        localStorage.removeItem(ADMIN_KEY);
-        writeMeta(ADMIN_META, {
-          role: "admin",
-          staffId: data.staff.staffId,
-          name: data.staff.fullName,
-          staffScope: data.staff.staffScope || "admin",
-          exp,
-        });
-        if (data.token) setAdminToken(data.token);
-      } else if (data.student) {
-        localStorage.removeItem(STUDENT_KEY);
-        writeMeta(STUDENT_META, {
-          role: "student",
-          studentNumber: data.student.studentNumber,
-          name: data.student.fullName,
-          exp,
-        });
-        if (data.token) setStudentToken(data.token);
-      } else if (data.token) {
-        const payload = decodePayload(data.token);
-        if (payload?.role === "admin") setAdminToken(data.token);
-        else setStudentToken(data.token);
-      }
+    if (res.ok && (data.token || data.student || data.staff || data.staffChallenge)) {
+      applyRemoteSession(data);
       return data;
     }
     if (res.ok) {
       throw new Error("Sign-in did not return a session. Try again.");
     }
     const apiError = String(data.error || "").trim();
-    if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
+    if (res.status === 401 || res.status === 400 || res.status === 403 || res.status === 429 || res.status === 503) {
       throw new Error(apiError || "Sign-in failed.");
     }
     if (isBrowserLocal()) {
@@ -322,7 +369,10 @@ export async function fetchStamps() {
   try {
     const res = await apiFetch(apiUrl("stamps"));
     const data = await res.json().catch(() => ({}));
-    if (res.ok) return data;
+    if (res.ok) {
+      applyStaffFlags(data);
+      return data;
+    }
   } catch {
     /* use local card */
   }

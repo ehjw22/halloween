@@ -1125,19 +1125,20 @@ html.event-open .header-meta {
   background: transparent;
   color: var(--orange-2);
 }
-.login-page { max-width: 920px; margin: 0 auto 32px; }
+.login-page { max-width: 520px; margin: 0 auto 32px; }
 .login-page .auth-card { max-width: none; }
 .login-split {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
-}
-@media (max-width: 800px) {
-  .login-split { grid-template-columns: 1fr; }
 }
 .login-how h3 { margin: 14px 0 6px; font-size: 1.05rem; }
 .login-how p { color: var(--muted); margin: 0 0 8px; }
-.nav__btn[hidden] { display: none; }
+.nav__btn[hidden] { display: none !important; }
+.nav__btn[data-nav="admin"]:not([hidden]) {
+  color: var(--orange-2);
+  font-weight: 700;
+}
 .award-stamp-form {
   max-width: 640px;
 }
@@ -3123,15 +3124,6 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .ghost__eye--l { left: 24%; }
 .ghost__eye--r { right: 24%; }
-.ghost__eye--m {
-  display: none;
-  left: 50%;
-  top: 22%;
-  width: 8px;
-  height: 8px;
-  transform: translateX(-50%);
-}
-.fast-pass[data-eyes="3"] .ghost__eye--m { display: block; }
 
 .fast-pass.is-complete {
   box-shadow: 0 0 48px hsl(var(--ghost-h) 85% 48% / 0.38);

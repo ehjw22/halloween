@@ -292,6 +292,10 @@ function setHash(view, extra) {
   if (location.hash !== next) history.replaceState(null, "", next);
 }
 
+function canSeeStaffTab() {
+  return Boolean(getAdminSession() || getStudentSession());
+}
+
 function setView(name, extra) {
   if (!isEventOpen()) {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
@@ -299,7 +303,7 @@ function setView(name, extra) {
   }
   const student = getStudentSession();
   const admin = getAdminSession();
-  if (name === "admin" && !admin) name = "login";
+  if (name === "admin" && !admin && !canSeeStaffTab()) name = "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
   if (name === "house") {
@@ -332,6 +336,7 @@ function setView(name, extra) {
     else setHash(name);
   }
   setView.skipHash = false;
+  updateNav();
   if (name === "admin") renderAdmin();
   if (name === "tonight") {
     renderTimeline();
@@ -339,7 +344,6 @@ function setView(name, extra) {
   }
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
-    updateNav();
     paintStampUi();
   }
   if (name === "map") {
@@ -763,10 +767,11 @@ function isAdminUnlocked() {
 function updateNav() {
   const student = Boolean(getStudentSession());
   const admin = Boolean(getAdminSession());
+  const staffTab = canSeeStaffTab();
   document.querySelectorAll("[data-nav]").forEach((btn) => {
     const show = btn.dataset.navShow;
     if (show === "guest") btn.hidden = student || admin;
-    else if (show === "admin") btn.hidden = !admin;
+    else if (show === "admin") btn.hidden = !staffTab;
     else btn.hidden = false;
   });
   renderSessionChip();
@@ -776,15 +781,12 @@ function renderSessionChip() {
   const student = getStudentSession();
   const admin = getAdminSession();
   if (!els.sessionChip) return;
-  if (student && admin) {
-    els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button><span>Staff · ${escapeHtml(admin.payload.staffId)}</span><button type="button" data-logout="admin">Staff out</button>`;
-  } else if (student) {
+  if (student) {
     els.sessionChip.hidden = false;
     els.sessionChip.innerHTML = `<span>${escapeHtml(student.payload.name)}</span><button type="button" data-logout="student">Log out</button>`;
   } else if (admin) {
     els.sessionChip.hidden = false;
-    els.sessionChip.innerHTML = `<span>Staff · ${escapeHtml(admin.payload.name || admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
+    els.sessionChip.innerHTML = `<span>${escapeHtml(admin.payload.name || admin.payload.staffId)}</span><button type="button" data-logout="admin">Log out</button>`;
   } else {
     els.sessionChip.hidden = true;
     els.sessionChip.innerHTML = "";
@@ -1386,6 +1388,7 @@ function renderAdmin() {
     els.adminGate.hidden = false;
     els.adminApp.hidden = true;
     updateNav();
+    queueMicrotask(() => document.getElementById("staffUnlockPassword")?.focus());
     return;
   }
   els.adminGate.hidden = true;
@@ -1715,19 +1718,21 @@ function bindUi() {
         flushGameProgress();
         disablePushNotifications();
         clearStudentSession();
+        clearAdminSession();
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
         spiritRaised = false;
         stopGhostRoam();
         updateNav();
         renderStamps();
+        if (document.querySelector(".view.is-active")?.dataset.view === "admin") setView("login");
       } else {
         flushGameProgress();
         clearAdminSession();
         applyGameAccount();
         updateNav();
         const onStaff = document.querySelector(".view.is-active")?.dataset.view === "admin";
-        if (onStaff) setView("login");
+        if (onStaff) setView(getStudentSession() ? "stamps" : "login");
         else renderAdmin();
       }
     }
@@ -1735,35 +1740,28 @@ function bindUi() {
     if (event.target.closest("[data-close-modal]")) closeModals();
   });
 
-  ["studentLoginId", "staffLoginId", "awardStudentNumber"].forEach((id) => {
+  ["studentLoginId", "awardStudentNumber"].forEach((id) => {
     document.getElementById(id)?.addEventListener("blur", (event) => {
       event.target.value = normalizeAdminNumber(event.target.value);
     });
   });
 
-  async function handleAuthSubmit(event, { staff }) {
+  async function handleAuthSubmit(event) {
     event.preventDefault();
-    const err = document.getElementById(staff ? "staffLoginError" : "studentLoginError");
+    const err = document.getElementById("studentLoginError");
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     if (err) err.hidden = true;
     if (submit) submit.disabled = true;
     try {
       flushGameProgress();
       const data = await signIn({
-        adminNumber: document.getElementById(staff ? "staffLoginId" : "studentLoginId").value,
-        fullName: document.getElementById(staff ? "staffLoginName" : "studentLoginName").value,
-        password: staff ? document.getElementById("staffLoginPassword").value : "",
+        adminNumber: document.getElementById("studentLoginId").value,
+        fullName: document.getElementById("studentLoginName").value,
       });
-      if (staff && !data.staff) {
-        throw new Error("Staff password is required for this form.");
-      }
-      if (!staff && data.staff) {
-        throw new Error("Use the staff form for facilitator sign-in.");
-      }
       applyGameAccount();
       updateNav();
-      setView(data.staff ? "admin" : "stamps");
-      if (!data.staff) {
+      setView("stamps");
+      if (data.student) {
         cardState.studentNumber = "";
         renderStamps({ refresh: true }).catch(() => paintStampUi());
         const notify = document.getElementById("studentNotifyOptIn");
@@ -1784,8 +1782,36 @@ function bindUi() {
     }
   }
 
-  document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: false }));
-  document.getElementById("staffLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event, { staff: true }));
+  document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event));
+
+  document.getElementById("staffUnlockForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const err = document.getElementById("staffUnlockError");
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    const student = getStudentSession();
+    if (err) err.hidden = true;
+    if (submit) submit.disabled = true;
+    try {
+      if (!student) throw new Error("Sign in with your admin number first.");
+      await signIn({
+        adminNumber: student.payload.studentNumber,
+        fullName: student.payload.name,
+        password: document.getElementById("staffUnlockPassword").value,
+      });
+      const pass = document.getElementById("staffUnlockPassword");
+      if (pass) pass.value = "";
+      applyGameAccount();
+      updateNav();
+      renderAdmin();
+    } catch (error) {
+      if (err) {
+        err.hidden = false;
+        err.textContent = error.message;
+      }
+    } finally {
+      if (submit) submit.disabled = false;
+    }
+  });
 
   els.lanternRaise?.addEventListener("click", () => {
     if (els.fastPassCard?.classList.contains("is-redeemed")) return;
@@ -1906,7 +1932,7 @@ function bindUi() {
   document.getElementById("adminLock")?.addEventListener("click", () => {
     clearAdminSession();
     updateNav();
-    setView("login");
+    setView(getStudentSession() ? "admin" : "login");
   });
 
   els.autoSave?.addEventListener("change", () => {

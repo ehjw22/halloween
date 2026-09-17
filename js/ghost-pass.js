@@ -28,7 +28,7 @@ function ghostTraits(seed) {
   const title = TITLES[(hash >>> 11) % TITLES.length];
   return {
     palette,
-    eyes: (hash >>> 3) % 5 === 0 ? 3 : 2,
+    eyes: 2,
     body: ["round", "tall", "wide"][(hash >>> 5) % 3],
     tilt: ((hash >>> 8) % 9) - 4,
     name: `${titleCase(palette.name)} ${title}`,
