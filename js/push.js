@@ -1,18 +1,17 @@
-import { apiUrl } from "./session.js";
+import { apiUrl, apiFetch } from "./session.js";
 
 const WANT_KEY = "scream-push-wanted";
-const SUB_KEY = "scream-push-endpoint";
 
 function isIos() {
   const ua = navigator.userAgent || "";
   return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-export function isStandalone() {
+function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
-export function wantsPush() {
+function wantsPush() {
   try {
     return localStorage.getItem(WANT_KEY) === "1";
   } catch {
@@ -41,7 +40,7 @@ function urlBase64ToUint8Array(base64String) {
 async function vapidKey() {
   const fromConfig = window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.vapidPublicKey;
   if (fromConfig) return fromConfig;
-  const res = await fetch(apiUrl("push"), { cache: "no-store" });
+  const res = await apiFetch(apiUrl("push"), { cache: "no-store", skipAuth: true });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.vapidPublicKey) return "";
   if (window.HALLOWEEN_CONFIG) window.HALLOWEEN_CONFIG.vapidPublicKey = data.vapidPublicKey;
@@ -58,10 +57,7 @@ export async function registerPushWorker() {
 }
 
 function authHeaders() {
-  const token = localStorage.getItem("sp-student-jwt") || localStorage.getItem("sp-admin-jwt");
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
+  return { "Content-Type": "application/json" };
 }
 
 async function currentSubscription() {
@@ -82,9 +78,10 @@ export async function syncPushWatch(watchIds) {
   const sub = await currentSubscription();
   if (!sub) return { ok: false };
   try {
-    const res = await fetch(apiUrl("push"), {
+    const res = await apiFetch(apiUrl("push"), {
       method: "PATCH",
       headers: authHeaders(),
+      asRole: "student",
       body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
     });
     if (res.status === 404) return enablePushNotifications(watchIds);
@@ -117,14 +114,10 @@ export async function enablePushNotifications(watchIds = []) {
       applicationServerKey: urlBase64ToUint8Array(key),
     });
   }
-  try {
-    localStorage.setItem(SUB_KEY, sub.endpoint);
-  } catch {
-    /* ignore */
-  }
-  const res = await fetch(apiUrl("push"), {
+  const res = await apiFetch(apiUrl("push"), {
     method: "POST",
     headers: authHeaders(),
+    asRole: "student",
     body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
   });
   const data = await res.json().catch(() => ({}));
@@ -139,9 +132,10 @@ export async function disablePushNotifications() {
   try {
     const sub = await currentSubscription();
     if (sub) {
-      await fetch(apiUrl("push"), {
+      await apiFetch(apiUrl("push"), {
         method: "DELETE",
         headers: authHeaders(),
+        asRole: "student",
         body: JSON.stringify({ subscription: sub.toJSON() }),
       }).catch(() => {});
       await sub.unsubscribe().catch(() => {});

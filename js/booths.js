@@ -73,8 +73,6 @@ export const BOOTHS = [
   },
 ];
 
-export const BOOTH_IDS = BOOTHS.map((b) => b.id);
-
 export function boothById(id) {
   return BOOTHS.find((b) => String(b.id) === String(id));
 }

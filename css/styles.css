@@ -1,9 +1,7 @@
 :root {
   --bg: #07040a;
-  --bg-2: #120814;
   --panel: rgba(22, 10, 18, 0.92);
   --surface: #1a0d16;
-  --field: #10070c;
   --ink: #f7efe6;
   --muted: #d5c2cc;
   --orange: #ff7a18;
@@ -15,25 +13,16 @@
   --closed: #f87171;
   --full: #c084fc;
   --success: #86efac;
-  --danger: #f87171;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius: 18px;
-  --radius-lg: 22px;
   --radius-pill: 999px;
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
   --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.28);
-  --shadow-glow: 0 0 28px rgba(255, 122, 24, 0.16);
   --ease: 160ms ease;
   --tap: 44px;
   --focus: #ffe0b0;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
   --type-kicker: 0.72rem;
-  --type-body: 1rem;
   font-family: "Outfit", system-ui, sans-serif;
   line-height: 1.45;
   color-scheme: dark;
@@ -1322,61 +1311,6 @@ html.event-open .header-meta {
 }
 .progress-ring__fill { transition: stroke-dashoffset 0.4s ease; }
 
-.stamp-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (min-width: 800px) {
-  .stamp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-.stamp-slot {
-  min-height: 168px;
-  border-radius: 22px;
-  border: 2px dashed rgba(255, 122, 24, 0.45);
-  background: rgba(20, 8, 16, 0.7);
-  color: inherit;
-  display: grid;
-  place-items: center;
-  gap: 4px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-.stamp-slot__index {
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  font-family: "Special Elite", ui-monospace, monospace;
-  font-size: 0.7rem;
-  color: var(--muted);
-}
-.stamp-slot__seal {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 1.7rem;
-  background: radial-gradient(circle at 30% 30%, #3a1420, #1a080e);
-  border: 2px solid rgba(255, 122, 24, 0.35);
-  transform: rotate(0deg);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-.stamp-slot.is-stamped {
-  border-style: solid;
-  border-color: var(--orange);
-  background:
-    radial-gradient(circle at 70% 20%, rgba(255, 122, 24, 0.25), transparent 45%),
-    #1b0c12;
-}
-.stamp-slot.is-stamped .stamp-slot__seal {
-  transform: rotate(-8deg);
-  border-color: var(--orange-2);
-  box-shadow: 0 0 18px rgba(255, 122, 24, 0.45);
-}
-.stamp-slot:disabled { cursor: default; opacity: 0.95; }
-
 .staff-tabs, .feedback-filters {
   display: flex;
   flex-wrap: wrap;
@@ -1760,18 +1694,6 @@ html.event-open .header-meta {
 .game-panel[hidden] { display: none; }
 .game-panel .section-head { text-align: center; }
 .game-panel .game-actions { justify-content: center; }
-.memory-grid {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 520px;
-}
-.memory-grid[data-diff="hard"] {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  max-width: 640px;
-}
-@media (max-width: 640px) {
-  .memory-grid[data-diff="hard"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 
 .roadmap__title {
   font-family: "Special Elite", ui-monospace, monospace;
@@ -2418,7 +2340,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   color: var(--muted);
 }
 
-.stamp-toolbar, .admin-toolbar {
+.admin-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -3538,33 +3460,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   font-size: 0.75rem;
 }
 .modal__meta { display: flex; gap: 10px; align-items: center; margin: 8px 0 14px; }
-.trailer {
-  margin-top: 16px;
-  display: grid;
-  gap: 8px;
-}
-.trailer__screen {
-  min-height: 180px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  background:
-    linear-gradient(180deg, rgba(180, 74, 255, 0.2), rgba(0, 0, 0, 0.4)),
-    #09060c;
-  border: 1px solid var(--line);
-}
-.trailer__play {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--orange);
-  color: #14080c;
-  font-weight: 700;
-}
-.trailer__video { width: 100%; border-radius: 12px; display: none; }
 
 @media (min-width: 720px) {
   .modal { place-items: center; }
@@ -3590,12 +3485,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .game-subnav .nav__btn:last-child { border-right: 0; }
 .game-subnav[hidden] { display: none; }
-.game-panel[hidden] { display: none; }
 .game-meta { color: var(--muted); }
 .game-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
-.clicker-pumpkin {
-  display: none;
-}
 .catch-canvas {
   display: block;
   width: 100%;
@@ -3618,6 +3509,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .memory-grid[data-diff="hard"] {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   max-width: 640px;
+}
+@media (max-width: 640px) {
+  .memory-grid[data-diff="hard"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .memory-card {
   aspect-ratio: 1;
@@ -3659,7 +3553,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .guide-heading {
   max-width: 980px;
   margin: 8px auto 6px;
-  font-size: 1.05rem;
+  font-family: "Special Elite", ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--orange-2);
+  font-size: 0.9rem;
 }
 .guide-lead {
   max-width: 980px;
@@ -4408,9 +4306,6 @@ body.is-board { background: #050308; }
   min-height: 44px;
 }
 
-.game-subnav {
-  justify-content: stretch;
-}
 .club-card {
   transition: border-color var(--ease), transform var(--ease);
 }
@@ -4486,13 +4381,6 @@ body.is-board { background: #050308; }
   background: var(--open);
   box-shadow: 0 0 8px var(--open);
   vertical-align: middle;
-}
-
-.stamp-slot {
-  transition: border-color var(--ease), background var(--ease), transform var(--ease);
-}
-.stamp-slot:hover {
-  border-color: var(--orange-2);
 }
 
 .ops-card span {
@@ -4651,12 +4539,6 @@ body.is-board { background: #050308; }
   scrollbar-width: thin;
 }
 .staff-tabs .nav__btn { white-space: nowrap; }
-.ops-card span {
-  color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
 .ops-card strong { font-variant-numeric: tabular-nums; }
 .welcome-night { padding: 24px 12px 48px; }
 .welcome-night__actions .btn { min-width: 9.5rem; }
@@ -4678,15 +4560,6 @@ body.is-board { background: #050308; }
   background: rgba(7, 4, 10, 0.55);
 }
 li.empty-state { list-style: none; }
-.guide-heading {
-  max-width: 980px;
-  margin: 8px auto 6px;
-  font-family: "Special Elite", ui-monospace, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--orange-2);
-  font-size: 0.9rem;
-}
 .night-stop time { font-variant-numeric: tabular-nums; }
 .short-waits {
   padding: 14px;

@@ -7,6 +7,7 @@ const {
   handleGameSave,
   handleLogin,
   handleLookupStudent,
+  handleLogout,
   handleOps,
   handlePush,
   handleRedeem,
@@ -14,6 +15,7 @@ const {
   handleStamps,
   handleStudentAuth,
   handleWaitTimes,
+  sameOrigin,
   studentLoginReady,
 } = require("../lib/server-auth");
 
@@ -80,6 +82,7 @@ const HANDLERS = {
   "game-save": handleGameSave,
   "student-auth": handleStudentAuth,
   "admin-auth": handleAdminAuth,
+  logout: handleLogout,
   push: async (req, res) => {
     try {
       return await handlePush(req, res);
@@ -99,6 +102,11 @@ module.exports = async function handler(req, res) {
       res.status(204).end();
       return;
     }
+    const mutating = req.method !== "GET" && req.method !== "HEAD";
+    if (mutating && !sameOrigin(req)) {
+      res.status(403).json({ error: "Request origin is not allowed." });
+      return;
+    }
     const name = routeName(req);
     if (name === "config") {
       if (req.method !== "GET" && req.method !== "HEAD") {
@@ -109,7 +117,7 @@ module.exports = async function handler(req, res) {
     }
     const fn = HANDLERS[name];
     if (!fn) {
-      res.status(404).json({ error: "Unknown API route.", code: "unknown-route", detail: `path=${name || "(empty)"}` });
+      res.status(404).json({ error: "Unknown API route.", code: "unknown-route" });
       return;
     }
     return await fn(req, res);
@@ -119,7 +127,6 @@ module.exports = async function handler(req, res) {
       res.status(500).json({
         error: "Something went wrong. Try again.",
         code: "unhandled",
-        detail: String((error && error.message) || "").slice(0, 280),
       });
     }
   }

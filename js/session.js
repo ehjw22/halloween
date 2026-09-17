@@ -2,6 +2,8 @@ import { boothById } from "./booths.js";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
+const STUDENT_META = "sp-student-session";
+const ADMIN_META = "sp-admin-session";
 
 export function apiUrl(name, params = {}) {
   const q = new URLSearchParams();
@@ -51,32 +53,56 @@ function decodePayload(token) {
   }
 }
 
-function readSession(storageKey) {
-  const token = localStorage.getItem(storageKey);
-  if (!token) return null;
-  const payload = decodePayload(token);
-  if (!payload?.exp || payload.exp * 1000 < Date.now()) {
-    localStorage.removeItem(storageKey);
+function readMeta(key, role) {
+  try {
+    const payload = JSON.parse(localStorage.getItem(key) || "null");
+    if (!payload || payload.role !== role) return null;
+    if (!payload.exp || payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return payload;
+  } catch {
     return null;
   }
-  return { token, payload };
+}
+
+function writeMeta(key, payload) {
+  localStorage.setItem(key, JSON.stringify(payload));
+}
+
+function readSession(storageKey, metaKey, role) {
+  const token = localStorage.getItem(storageKey);
+  if (token) {
+    const payload = decodePayload(token);
+    if (!payload?.exp || payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem(storageKey);
+    } else if (payload.role === role) {
+      return { token, payload };
+    }
+  }
+  const meta = readMeta(metaKey, role);
+  if (!meta) return null;
+  return { token: "", payload: meta };
 }
 
 export function getStudentSession() {
-  const session = readSession(STUDENT_KEY);
+  const session = readSession(STUDENT_KEY, STUDENT_META, "student");
   if (!session || session.payload.role !== "student") return null;
   if (session.payload.local && !isBrowserLocal()) {
     localStorage.removeItem(STUDENT_KEY);
+    localStorage.removeItem(STUDENT_META);
     return null;
   }
   return session;
 }
 
 export function getAdminSession() {
-  const session = readSession(ADMIN_KEY);
+  const session = readSession(ADMIN_KEY, ADMIN_META, "admin");
   if (!session || session.payload.role !== "admin") return null;
   if (session.payload.local && !isBrowserLocal()) {
     localStorage.removeItem(ADMIN_KEY);
+    localStorage.removeItem(ADMIN_META);
     return null;
   }
   return session;
@@ -90,12 +116,41 @@ export function setAdminToken(token) {
   localStorage.setItem(ADMIN_KEY, token);
 }
 
+function logoutRemote(role) {
+  apiFetch(apiUrl("logout"), {
+    method: "POST",
+    skipAuth: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  }).catch(() => {});
+}
+
 export function clearStudentSession() {
   localStorage.removeItem(STUDENT_KEY);
+  localStorage.removeItem(STUDENT_META);
+  logoutRemote("student");
 }
 
 export function clearAdminSession() {
   localStorage.removeItem(ADMIN_KEY);
+  localStorage.removeItem(ADMIN_META);
+  logoutRemote("admin");
+}
+
+export function apiFetch(url, options = {}) {
+  const { skipAuth = false, asRole, ...rest } = options;
+  const headers = { ...(rest.headers || {}) };
+  if (!skipAuth && !headers.Authorization) {
+    const admin = getAdminSession();
+    const student = getStudentSession();
+    let token = "";
+    if (asRole === "admin") token = (admin && admin.token) || "";
+    else if (asRole === "student") token = (student && student.token) || "";
+    else if (admin && admin.token && student && student.token) token = "";
+    else token = (admin && admin.token) || (student && student.token) || "";
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return fetch(url, { ...rest, credentials: "same-origin", headers });
 }
 
 async function parseError(res) {
@@ -116,7 +171,7 @@ export function normalizeAdminNumber(value) {
   return id;
 }
 
-export function isAdminNumber(value) {
+function isAdminNumber(value) {
   return /^P[0-9]{7}$/.test(normalizeAdminNumber(value));
 }
 
@@ -202,15 +257,39 @@ export async function signIn({ adminNumber, fullName, password }) {
     throw new Error("Enter your full name.");
   }
   try {
-    const res = await fetch(apiUrl("login"), {
+    const res = await apiFetch(apiUrl("login"), {
       method: "POST",
+      skipAuth: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.token) {
-      if (data.staff) setAdminToken(data.token);
-      else setStudentToken(data.token);
+    if (res.ok && (data.token || data.student || data.staff)) {
+      const exp = Math.floor(Date.now() / 1000) + Number(data.expiresIn || 8 * 60 * 60);
+      if (data.staff) {
+        localStorage.removeItem(ADMIN_KEY);
+        writeMeta(ADMIN_META, {
+          role: "admin",
+          staffId: data.staff.staffId,
+          name: data.staff.fullName,
+          staffScope: data.staff.staffScope || "admin",
+          exp,
+        });
+        if (data.token) setAdminToken(data.token);
+      } else if (data.student) {
+        localStorage.removeItem(STUDENT_KEY);
+        writeMeta(STUDENT_META, {
+          role: "student",
+          studentNumber: data.student.studentNumber,
+          name: data.student.fullName,
+          exp,
+        });
+        if (data.token) setStudentToken(data.token);
+      } else if (data.token) {
+        const payload = decodePayload(data.token);
+        if (payload?.role === "admin") setAdminToken(data.token);
+        else setStudentToken(data.token);
+      }
       return data;
     }
     if (res.ok) {
@@ -235,23 +314,13 @@ export async function signIn({ adminNumber, fullName, password }) {
   }
 }
 
-export async function studentSignIn(studentNumber, fullName) {
-  return signIn({ adminNumber: studentNumber, fullName, password: "" });
-}
-
-export async function adminSignIn(staffId, fullName, passcode) {
-  return signIn({ adminNumber: staffId, fullName, password: passcode });
-}
-
 export async function fetchStamps() {
   const session = getStudentSession();
   if (!session) throw new Error("Sign in to open your stamp card.");
   const local = readLocalCard(session.payload.studentNumber) || emptyCard(session);
   if (session.payload.local) return local;
   try {
-    const res = await fetch(apiUrl("stamps"), {
-      headers: { Authorization: `Bearer ${session.token}` },
-    });
+    const res = await apiFetch(apiUrl("stamps"));
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data;
   } catch {
@@ -264,8 +333,10 @@ export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch(apiUrl("lookup-student", { studentNumber: normalizeAdminNumber(studentNumber) }), {
-      headers: { Authorization: `Bearer ${session.token}` },
+    const res = await apiFetch(apiUrl("lookup-student"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentNumber: normalizeAdminNumber(studentNumber) }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -302,9 +373,7 @@ export async function lookupStudent(studentNumber) {
 export async function fetchOps() {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const res = await fetch(apiUrl("ops"), {
-    headers: { Authorization: `Bearer ${session.token}` },
-  });
+  const res = await apiFetch(apiUrl("ops"));
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw apiFail(data, res, "Could not load command post.");
   return data;
@@ -314,9 +383,7 @@ export async function fetchClickerSave() {
   const session = getStudentSession();
   if (!session) return null;
   try {
-    const res = await fetch(apiUrl("game-save"), {
-      headers: { Authorization: `Bearer ${session.token}` },
-    });
+    const res = await apiFetch(apiUrl("game-save"));
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return null;
     return data.state || null;
@@ -328,11 +395,10 @@ export async function fetchClickerSave() {
 export async function saveClickerRemote(state) {
   const session = getStudentSession();
   if (!session) return;
-  await fetch(apiUrl("game-save"), {
+  await apiFetch(apiUrl("game-save"), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.token}`,
     },
     body: JSON.stringify({ state }),
   });
@@ -352,11 +418,10 @@ export async function awardStamp(studentNumber, boothId) {
     return awardStampLocal(session, num, booth);
   }
 
-  const res = await fetch(apiUrl("award-stamp"), {
+  const res = await apiFetch(apiUrl("award-stamp"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.token}`,
     },
     body: JSON.stringify({ studentNumber: num, boothId: booth.id }),
   });
@@ -397,12 +462,9 @@ function awardStampLocal(session, num, booth) {
 }
 
 export async function submitFeedback(kind, targetId, message, rating) {
-  const session = getStudentSession();
-  const headers = { "Content-Type": "application/json" };
-  if (session) headers.Authorization = `Bearer ${session.token}`;
-  const res = await fetch(apiUrl("feedback"), {
+  const res = await apiFetch(apiUrl("feedback"), {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ kind, targetId, message, rating }),
   });
   const data = await res.json().catch(() => ({}));
@@ -413,9 +475,7 @@ export async function submitFeedback(kind, targetId, message, rating) {
 export async function fetchFeedback(kind, targetId) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const res = await fetch(apiUrl("feedback", { kind, target: targetId }), {
-    headers: { Authorization: `Bearer ${session.token}` },
-  });
+  const res = await apiFetch(apiUrl("feedback", { kind, target: targetId }));
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw apiFail(data, res, "Could not load feedback.");
   return data;
@@ -436,11 +496,8 @@ function writeLocalAnnouncements(rows) {
 }
 
 export async function fetchAnnouncements({ all = false } = {}) {
-  const session = getAdminSession();
-  const headers = {};
-  if (session) headers.Authorization = `Bearer ${session.token}`;
   try {
-    const res = await fetch(apiUrl("announcements", all ? { all: "1" } : {}), { headers });
+    const res = await apiFetch(apiUrl("announcements", all ? { all: "1" } : {}));
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw apiFail(data, res, "Could not load announcements.");
     return data.announcements || [];
@@ -456,7 +513,7 @@ export async function postAnnouncement(message, extra = {}) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch(apiUrl("announcements"), {
+    const res = await apiFetch(apiUrl("announcements"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -495,7 +552,7 @@ export async function setAnnouncementActive(id, active) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   try {
-    const res = await fetch(apiUrl("announcements"), {
+    const res = await apiFetch(apiUrl("announcements"), {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -515,10 +572,7 @@ export async function setAnnouncementActive(id, active) {
 }
 
 export async function fetchLeaderboard(gameId) {
-  const session = getStudentSession();
-  const headers = {};
-  if (session) headers.Authorization = `Bearer ${session.token}`;
-  const res = await fetch(apiUrl("scores", { game: gameId }), { headers });
+  const res = await apiFetch(apiUrl("scores", { game: gameId }));
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw apiFail(data, res, "Could not load scores.");
   return data;
@@ -527,11 +581,10 @@ export async function fetchLeaderboard(gameId) {
 export async function submitScore(gameId, score) {
   const session = getStudentSession();
   if (!session) return null;
-  const res = await fetch(apiUrl("scores"), {
+  const res = await apiFetch(apiUrl("scores"), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.token}`,
     },
     body: JSON.stringify({ gameId, score }),
   });
@@ -543,11 +596,10 @@ export async function submitScore(gameId, score) {
 export async function redeemPass(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  const res = await fetch(apiUrl("redeem"), {
+  const res = await apiFetch(apiUrl("redeem"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.token}`,
     },
     body: JSON.stringify({ studentNumber }),
   });

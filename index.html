@@ -29,25 +29,8 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map82" />
-    <script>
-      (function () {
-        var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
-        try {
-          if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
-          if (new URLSearchParams(location.search).get("preview") === "1")
-            open = true;
-        } catch (e) {}
-        if (open) {
-          document.documentElement.classList.add("event-open");
-          try {
-            if (sessionStorage.getItem("scream-welcome-seen") !== "1") {
-              document.documentElement.classList.add("event-welcome");
-            }
-          } catch (e) {}
-        }
-      })();
-    </script>
+    <link rel="stylesheet" href="css/styles.css?v=map84" />
+    <script src="js/boot.js?v=map84"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -907,7 +890,7 @@
               </p>
             </div>
             <div class="login-split">
-              <form class="auth-card" id="studentLoginForm">
+              <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on">
                 <p class="auth-card__kicker">Students</p>
                 <h2>Open your stamp card</h2>
                 <p class="muted">
@@ -953,7 +936,7 @@
                 <p class="form-error" id="studentLoginError" hidden></p>
                 <button class="btn" type="submit">Open stamp card</button>
               </form>
-              <form class="auth-card auth-card--staff" id="staffLoginForm">
+              <form class="auth-card auth-card--staff" id="staffLoginForm" method="post" action="#" autocomplete="on">
                 <p class="auth-card__kicker">Staff</p>
                 <h2>Facilitator access</h2>
                 <p class="muted">
@@ -1017,7 +1000,6 @@
               <li>Staff stamp you at the booth — you cannot stamp yourself</li>
               <li>Come back with the same admin number and name</li>
             </ul>
-            <p class="form-error" id="studentAuthError" hidden></p>
             <button class="btn" type="button" data-nav="login">
               Go to Sign in
             </button>
@@ -2323,9 +2305,9 @@
         </div>
       </div>
 
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
-      <script src="js/config.js"></script>
-      <script type="module" src="js/app.js?v=map82"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
+      <script src="js/config.js?v=map84"></script>
+      <script type="module" src="js/app.js?v=map84"></script>
     </div>
   </body>
 </html>

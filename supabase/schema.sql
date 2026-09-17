@@ -231,8 +231,10 @@ $$;
 
 revoke all on function public.register_scream_student(text, text) from public;
 revoke all on function public.get_scream_card(text) from public;
-grant execute on function public.register_scream_student(text, text) to anon, authenticated, service_role;
-grant execute on function public.get_scream_card(text) to anon, authenticated, service_role;
+revoke all on function public.register_scream_student(text, text) from anon, authenticated;
+revoke all on function public.get_scream_card(text) from anon, authenticated;
+grant execute on function public.register_scream_student(text, text) to service_role;
+grant execute on function public.get_scream_card(text) to service_role;
 
 create or replace function public.set_scare_house_wait(p_id text, p_wait integer, p_status text)
 returns jsonb
@@ -270,7 +272,8 @@ end;
 $$;
 
 revoke all on function public.set_scare_house_wait(text, integer, text) from public;
-grant execute on function public.set_scare_house_wait(text, integer, text) to anon, authenticated, service_role;
+revoke all on function public.set_scare_house_wait(text, integer, text) from anon, authenticated;
+grant execute on function public.set_scare_house_wait(text, integer, text) to service_role;
 
 alter table public.push_subscriptions alter column student_number drop not null;
 alter table public.push_subscriptions drop constraint if exists push_subscriptions_student_number_fkey;
@@ -332,9 +335,12 @@ $$;
 revoke all on function public.upsert_push_subscription(text, text, text, text, jsonb) from public;
 revoke all on function public.list_push_watchers(text) from public;
 revoke all on function public.delete_push_subscription(text) from public;
-grant execute on function public.upsert_push_subscription(text, text, text, text, jsonb) to anon, authenticated, service_role;
-grant execute on function public.list_push_watchers(text) to anon, authenticated, service_role;
-grant execute on function public.delete_push_subscription(text) to anon, authenticated, service_role;
+revoke all on function public.upsert_push_subscription(text, text, text, text, jsonb) from anon, authenticated;
+revoke all on function public.list_push_watchers(text) from anon, authenticated;
+revoke all on function public.delete_push_subscription(text) from anon, authenticated;
+grant execute on function public.upsert_push_subscription(text, text, text, text, jsonb) to service_role;
+grant execute on function public.list_push_watchers(text) to service_role;
+grant execute on function public.delete_push_subscription(text) to service_role;
 
 create or replace function public.award_scream_stamp(p_number text, p_booth text, p_staff text)
 returns jsonb
@@ -412,7 +418,8 @@ end;
 $$;
 
 revoke all on function public.award_scream_stamp(text, text, text) from public;
-grant execute on function public.award_scream_stamp(text, text, text) to anon, authenticated, service_role;
+revoke all on function public.award_scream_stamp(text, text, text) from anon, authenticated;
+grant execute on function public.award_scream_stamp(text, text, text) to service_role;
 
 create or replace function public.lookup_scream_student(p_number text)
 returns jsonb
@@ -454,7 +461,8 @@ end;
 $$;
 
 revoke all on function public.lookup_scream_student(text) from public;
-grant execute on function public.lookup_scream_student(text) to anon, authenticated, service_role;
+revoke all on function public.lookup_scream_student(text) from anon, authenticated;
+grant execute on function public.lookup_scream_student(text) to service_role;
 
 
 

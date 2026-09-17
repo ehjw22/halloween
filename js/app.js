@@ -7,6 +7,7 @@ import { SAFETY } from "./safety.js";
 import { applyGhostPass } from "./ghost-pass.js";
 import { createStore } from "./store.js";
 import {
+  apiFetch,
   apiUrl,
   awardStamp,
   clearAdminSession,
@@ -40,11 +41,6 @@ let flushGameProgress = () => {};
 let applyGameAccount = () => {};
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
-const STAMP_SLOTS = BOOTHS.map((b) => ({
-  id: Number(b.id),
-  icon: b.icon,
-  label: b.name,
-}));
 
 const els = {
   views: [...document.querySelectorAll(".view")],
@@ -59,13 +55,8 @@ const els = {
   modal: document.getElementById("detailModal"),
   stampRoadmap: document.getElementById("stampRoadmap"),
   stampGrid: document.getElementById("stampGrid"),
-  stampModal: document.getElementById("stampModal"),
   boothModal: document.getElementById("boothModal"),
   boothsModal: document.getElementById("boothsModal"),
-  stampForm: document.getElementById("stampForm"),
-  stampBy: document.getElementById("stampBy"),
-  stampPass: document.getElementById("stampPass"),
-  stampError: document.getElementById("stampError"),
   stampHolderName: document.getElementById("stampHolderName"),
   stampHolderId: document.getElementById("stampHolderId"),
   stampFill: document.getElementById("stampFill"),
@@ -73,15 +64,12 @@ const els = {
   passId: document.getElementById("passId"),
   adminGate: document.getElementById("adminGate"),
   adminApp: document.getElementById("adminApp"),
-  adminForm: document.getElementById("adminPassForm"),
   adminTable: document.getElementById("adminTable"),
   autoSave: document.getElementById("autoSave"),
   publishAll: document.getElementById("publishAll"),
   waitSaveStatus: document.getElementById("waitSaveStatus"),
   dbBanner: document.getElementById("dbBanner"),
   studentAuth: document.getElementById("studentAuth"),
-  studentAuthForm: document.getElementById("studentAuthForm"),
-  studentAuthError: document.getElementById("studentAuthError"),
   stampApp: document.getElementById("stampApp"),
   sessionChip: document.getElementById("sessionChip"),
   passHolder: document.getElementById("passHolder"),
@@ -91,7 +79,6 @@ const els = {
   passKicker: document.getElementById("passKicker"),
   passUsedMark: document.getElementById("passUsedMark"),
   redeemedNote: document.getElementById("redeemedNote"),
-  adminAuthError: document.getElementById("adminAuthError"),
   fastPassCard: document.getElementById("fastPassCard"),
   feedbackForm: document.getElementById("feedbackForm"),
   feedbackKind: document.getElementById("feedbackKind"),
@@ -120,7 +107,6 @@ let houses = HOUSES.map((h) => ({
   wait_minutes: h.wait,
   status: h.status,
 }));
-let pendingStampId = null;
 let staffTab = "waits";
 let feedbackKindFilter = "";
 let stampPoll = 0;
@@ -576,7 +562,7 @@ async function startBoard() {
     const games = ["clicker", "memory", "catch"];
     const blocks = await Promise.all(games.map(async (id) => {
       try {
-        const res = await fetch(apiUrl("scores", { game: id }));
+        const res = await apiFetch(apiUrl("scores", { game: id }));
         const data = await res.json().catch(() => ({}));
         const title = id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats";
         const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
@@ -621,7 +607,8 @@ function renderPins() {
   const housePins = HOUSES.map((house) => {
     const { cx, cy } = pctToSvg(house.x, house.y);
     const row = houses.find((h) => h.id === house.id) || house;
-    const status = row.status || house.status || "open";
+    const allowed = { open: 1, busy: 1, closed: 1, at_capacity: 1 };
+    const status = allowed[row.status] ? row.status : allowed[house.status] ? house.status : "open";
     const label = escapeHtml(house.short || house.name);
     const match = houseMatchesFilter(row);
     const dim = filtering && !match;
@@ -767,8 +754,6 @@ function closeModals() {
   if (els.modal) els.modal.hidden = true;
   if (els.boothModal) els.boothModal.hidden = true;
   if (els.boothsModal) els.boothsModal.hidden = true;
-  if (els.stampModal) els.stampModal.hidden = true;
-  pendingStampId = null;
 }
 
 function isAdminUnlocked() {
@@ -813,7 +798,7 @@ function paintLiveChip() {
 }
 
 function stampCount(stamps = cardState.stamps) {
-  return STAMP_SLOTS.filter((slot) => stamps[slot.id] || stamps[String(slot.id)]).length;
+  return BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).length;
 }
 
 async function loadCardFromServer() {
@@ -1103,7 +1088,7 @@ function paintStampUi() {
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
   const redeemed = isPassRedeemed(cardState.redeemedAt);
   if (redeemed) spiritRaised = false;
-  const lit = STAMP_SLOTS.filter((slot) => stamps[slot.id] || stamps[String(slot.id)]).map((slot) => slot.id);
+  const lit = BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).map((booth) => booth.id);
   if (els.passHolder) {
     els.passHolder.textContent = cardState.fullName || session.payload.name || "";
   }
@@ -1198,7 +1183,8 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function feedbackLabel(row) {

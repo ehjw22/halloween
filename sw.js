@@ -1,3 +1,14 @@
+function safeClientUrl(url) {
+  try {
+    const parsed = new URL(String(url || "/#map"), self.location.origin);
+    if (parsed.origin !== self.location.origin) return "/#map";
+    if (!parsed.pathname.startsWith("/")) return "/#map";
+    return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/#map";
+  } catch {
+    return "/#map";
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
@@ -22,14 +33,14 @@ self.addEventListener("push", (event) => {
     renotify: true,
     requireInteraction: Boolean(data.walkIn),
     vibrate: data.walkIn ? [200, 80, 200] : [120],
-    data: { url: data.url || "/#map" },
+    data: { url: safeClientUrl(data.url || "/#map") },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || "/#map";
+  const target = safeClientUrl((event.notification.data && event.notification.data.url) || "/#map");
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {

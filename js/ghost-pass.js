@@ -12,7 +12,7 @@ function titleCase(value) {
     .replace(/^\w/, (ch) => ch.toUpperCase());
 }
 
-export function hashSeed(value) {
+function hashSeed(value) {
   let hash = 2166136261;
   const text = String(value || "scream");
   for (let i = 0; i < text.length; i += 1) {
@@ -22,7 +22,7 @@ export function hashSeed(value) {
   return hash >>> 0;
 }
 
-export function ghostTraits(seed) {
+function ghostTraits(seed) {
   const hash = hashSeed(seed);
   const palette = PALETTES[hash % PALETTES.length];
   const title = TITLES[(hash >>> 11) % TITLES.length];
