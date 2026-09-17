@@ -1,1101 +1,2299 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>SP Scream Fest</title>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Scream Fest">
-  <meta name="theme-color" content="#ff7a18">
-  <meta name="description" content="Singapore Polytechnic Scream Fest — wait times, stamp card, tonight’s programme, and safety.">
-  <meta property="og:title" content="SP Scream Fest">
-  <meta property="og:description" content="Campus haunt map, wait times, and stamp card for Singapore Polytechnic Scream Fest.">
-  <meta property="og:image" content="sp_map.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=map73">
-  <script>
-    (function () {
-      var open = Date.now() >= Date.parse("2026-09-15T13:45:00+08:00");
-      try {
-        if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
-        if (new URLSearchParams(location.search).get("preview") === "1") open = true;
-      } catch (e) {}
-      if (open) {
-        document.documentElement.classList.add("event-open");
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>SP Scream Fest</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Scream Fest" />
+    <meta name="theme-color" content="#ff7a18" />
+    <meta
+      name="description"
+      content="Singapore Polytechnic Scream Fest — wait times, stamp card, tonight’s programme, and safety."
+    />
+    <meta property="og:title" content="SP Scream Fest" />
+    <meta
+      property="og:description"
+      content="Campus haunt map, wait times, and stamp card for Singapore Polytechnic Scream Fest."
+    />
+    <meta property="og:image" content="sp_map.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css?v=map80" />
+    <script>
+      (function () {
+        var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
         try {
-          if (sessionStorage.getItem("scream-welcome-seen") !== "1") {
-            document.documentElement.classList.add("event-welcome");
-          }
+          if (sessionStorage.getItem("scream-gate-open") === "1") open = true;
+          if (new URLSearchParams(location.search).get("preview") === "1")
+            open = true;
         } catch (e) {}
-      }
-    })();
-  </script>
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <div class="fog" aria-hidden="true"></div>
-  <button class="event-view-toggle" type="button" id="eventViewToggle" hidden aria-pressed="false">View site</button>
-  <div id="eventGate" class="event-gate" role="dialog" aria-modal="true" aria-labelledby="eventGateTitle">
-    <div class="event-gate__fx" aria-hidden="true">
-      <div class="event-gate__wash"></div>
-      <div class="event-gate__mist event-gate__mist--a"></div>
-      <div class="event-gate__mist event-gate__mist--b"></div>
-      <div class="event-gate__wisp event-gate__wisp--a"></div>
-      <div class="event-gate__wisp event-gate__wisp--b"></div>
-      <div class="event-gate__wisp event-gate__wisp--c"></div>
-      <div class="event-gate__haze"></div>
-      <div class="event-gate__vignette"></div>
-      <div class="event-gate__grain"></div>
-      <span class="event-gate__ember" style="--x:8%; --d:0.4s"></span>
-      <span class="event-gate__ember" style="--x:12%; --d:0s"></span>
-      <span class="event-gate__ember" style="--x:28%; --d:1.4s"></span>
-      <span class="event-gate__ember" style="--x:41%; --d:3.2s"></span>
-      <span class="event-gate__ember" style="--x:47%; --d:0.7s"></span>
-      <span class="event-gate__ember" style="--x:63%; --d:2.1s"></span>
-      <span class="event-gate__ember" style="--x:72%; --d:4s"></span>
-      <span class="event-gate__ember" style="--x:81%; --d:1.1s"></span>
-      <span class="event-gate__ember" style="--x:91%; --d:2.8s"></span>
-      <span class="event-gate__fly event-gate__fly--bat" style="--y:8%; --d:0s; --t:22s">🦇</span>
-      <span class="event-gate__fly event-gate__fly--ghost" style="--y:22%; --d:4s; --t:28s">👻</span>
-      <span class="event-gate__fly event-gate__fly--pump" style="--y:38%; --d:8s; --t:26s">🎃</span>
-      <span class="event-gate__fly event-gate__fly--bat event-gate__fly--rev" style="--y:54%; --d:2s; --t:20s">🦇</span>
-      <span class="event-gate__fly event-gate__fly--ghost event-gate__fly--rev" style="--y:70%; --d:6s; --t:32s">👻</span>
-      <span class="event-gate__fly event-gate__fly--pump" style="--y:84%; --d:11s; --t:24s">🎃</span>
-    </div>
-    <div class="event-gate__core">
-      <p class="event-gate__kicker">Singapore Polytechnic</p>
-      <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
-      <p class="event-gate__when">Opens 24 October 2026 · 6:00pm Singapore time</p>
-      <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
-      <div class="event-gate__finale" id="gateFinaleCount" aria-hidden="true"></div>
-      <div class="gate-analog" id="gateAnalog" aria-hidden="true">
-        <svg class="gate-analog__svg" viewBox="0 0 120 134" focusable="false">
-          <defs>
-            <radialGradient id="watchFace" cx="42%" cy="34%" r="72%">
-              <stop offset="0%" stop-color="#2a1218"></stop>
-              <stop offset="55%" stop-color="#120814"></stop>
-              <stop offset="100%" stop-color="#050208"></stop>
-            </radialGradient>
-          </defs>
-          <rect class="gate-analog__stem" x="54" y="4" width="12" height="12" rx="2"></rect>
-          <rect class="gate-analog__crown" x="49" y="0" width="22" height="7" rx="2"></rect>
-          <circle class="gate-analog__case" cx="60" cy="74" r="58"></circle>
-          <circle class="gate-analog__rim" cx="60" cy="74" r="52"></circle>
-          <circle class="gate-analog__face" cx="60" cy="74" r="46"></circle>
-          <g class="gate-analog__ticks" aria-hidden="true">
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(0 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(6 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(12 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(18 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(24 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(30 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(60 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(90 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(120 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(150 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(180 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(210 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(240 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(270 60 74)"></line>
-            <line x1="60" y1="34" x2="60" y2="38" transform="rotate(300 60 74)"></line>
-            <line x1="60" y1="32" x2="60" y2="38" transform="rotate(330 60 74)"></line>
-          </g>
-          <text class="gate-analog__num" x="60" y="48">XII</text>
-          <text class="gate-analog__num" x="90" y="79">III</text>
-          <text class="gate-analog__num" x="60" y="108">VI</text>
-          <text class="gate-analog__num" x="32" y="79">IX</text>
-          <text class="gate-analog__mark" x="60" y="62">SP</text>
-          <g id="gateHandHour">
-            <path d="M60 82 L56.5 54 L60 46 L63.5 54 Z"></path>
-          </g>
-          <g id="gateHandMinute">
-            <path d="M60 84 L57.4 44 L60 34 L62.6 44 Z"></path>
-          </g>
-          <g id="gateHandSecond">
-            <line x1="60" y1="88" x2="60" y2="36"></line>
-            <circle cx="60" cy="74" r="1.2"></circle>
-          </g>
-          <circle class="gate-analog__hub" cx="60" cy="74" r="3.2"></circle>
-        </svg>
+        if (open) {
+          document.documentElement.classList.add("event-open");
+          try {
+            if (sessionStorage.getItem("scream-welcome-seen") !== "1") {
+              document.documentElement.classList.add("event-welcome");
+            }
+          } catch (e) {}
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="fog" aria-hidden="true"></div>
+    <button
+      class="event-view-toggle"
+      type="button"
+      id="eventViewToggle"
+      hidden
+      aria-pressed="false"
+    >
+      View site
+    </button>
+    <div
+      id="eventGate"
+      class="event-gate"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="eventGateTitle"
+    >
+      <div class="event-gate__fx" aria-hidden="true">
+        <div class="event-gate__wash"></div>
+        <div class="event-gate__mist event-gate__mist--a"></div>
+        <div class="event-gate__mist event-gate__mist--b"></div>
+        <div class="event-gate__wisp event-gate__wisp--a"></div>
+        <div class="event-gate__wisp event-gate__wisp--b"></div>
+        <div class="event-gate__wisp event-gate__wisp--c"></div>
+        <div class="event-gate__haze"></div>
+        <div class="event-gate__vignette"></div>
+        <div class="event-gate__grain"></div>
+        <span class="event-gate__ember" style="--x: 8%; --d: 0.4s"></span>
+        <span class="event-gate__ember" style="--x: 12%; --d: 0s"></span>
+        <span class="event-gate__ember" style="--x: 28%; --d: 1.4s"></span>
+        <span class="event-gate__ember" style="--x: 41%; --d: 3.2s"></span>
+        <span class="event-gate__ember" style="--x: 47%; --d: 0.7s"></span>
+        <span class="event-gate__ember" style="--x: 63%; --d: 2.1s"></span>
+        <span class="event-gate__ember" style="--x: 72%; --d: 4s"></span>
+        <span class="event-gate__ember" style="--x: 81%; --d: 1.1s"></span>
+        <span class="event-gate__ember" style="--x: 91%; --d: 2.8s"></span>
+        <span
+          class="event-gate__fly event-gate__fly--bat"
+          style="--y: 8%; --d: 0s; --t: 22s"
+          >🦇</span
+        >
+        <span
+          class="event-gate__fly event-gate__fly--ghost"
+          style="--y: 22%; --d: 4s; --t: 28s"
+          >👻</span
+        >
+        <span
+          class="event-gate__fly event-gate__fly--pump"
+          style="--y: 38%; --d: 8s; --t: 26s"
+          >🎃</span
+        >
+        <span
+          class="event-gate__fly event-gate__fly--bat event-gate__fly--rev"
+          style="--y: 54%; --d: 2s; --t: 20s"
+          >🦇</span
+        >
+        <span
+          class="event-gate__fly event-gate__fly--ghost event-gate__fly--rev"
+          style="--y: 70%; --d: 6s; --t: 32s"
+          >👻</span
+        >
+        <span
+          class="event-gate__fly event-gate__fly--pump"
+          style="--y: 84%; --d: 11s; --t: 24s"
+          >🎃</span
+        >
       </div>
-      <div class="event-gate__clock" aria-hidden="true">
-        <div class="event-gate__unit"><span id="cdDays">0</span><small>Days</small></div>
-        <div class="event-gate__unit"><span id="cdHours">00</span><small>Hours</small></div>
-        <div class="event-gate__unit event-gate__unit--minutes"><span id="cdMinutes">00</span><small>Minutes</small></div>
-        <div class="event-gate__unit event-gate__unit--seconds"><span id="cdSeconds">00</span><small>Seconds</small></div>
-      </div>
-      <ul class="event-gate__chips">
-        <li>15 Scare Houses</li>
-        <li>6 Booths</li>
-        <li>1 Free Admission</li>
-      </ul>
-      <button class="btn" type="button" id="watchTrailer">Watch trailer</button>
-      <p class="event-gate__by">Brought to you by</p>
-      <p class="event-gate__clubs" id="clubCredits">SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC · SMAC</p>
-      <button class="btn btn--ghost" type="button" id="eventGateLocal">Skip to the site</button>
-    </div>
-    <div class="trailer-modal" id="trailerModal" hidden>
-      <div class="trailer-modal__backdrop" data-close-trailer></div>
-      <div class="trailer-modal__panel" role="dialog" aria-modal="true" aria-labelledby="trailerTitle">
-        <div class="trailer-modal__bar">
-          <h2 id="trailerTitle">Scream Fest trailer</h2>
-          <button class="modal__close" type="button" data-close-trailer aria-label="Close trailer">×</button>
+      <div class="event-gate__core">
+        <p class="event-gate__kicker">Singapore Polytechnic</p>
+        <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
+        <p class="event-gate__when">
+          Opens 24 October 2026 · 6:00pm Singapore time
+        </p>
+        <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
+        <div
+          class="event-gate__finale"
+          id="gateFinaleCount"
+          aria-hidden="true"
+        ></div>
+        <div class="gate-analog" id="gateAnalog" aria-hidden="true">
+          <svg class="gate-analog__svg" viewBox="0 0 120 134" focusable="false">
+            <defs>
+              <radialGradient id="watchFace" cx="42%" cy="34%" r="72%">
+                <stop offset="0%" stop-color="#2a1218"></stop>
+                <stop offset="55%" stop-color="#120814"></stop>
+                <stop offset="100%" stop-color="#050208"></stop>
+              </radialGradient>
+            </defs>
+            <rect
+              class="gate-analog__stem"
+              x="54"
+              y="4"
+              width="12"
+              height="12"
+              rx="2"
+            ></rect>
+            <rect
+              class="gate-analog__crown"
+              x="49"
+              y="0"
+              width="22"
+              height="7"
+              rx="2"
+            ></rect>
+            <circle class="gate-analog__case" cx="60" cy="74" r="58"></circle>
+            <circle class="gate-analog__rim" cx="60" cy="74" r="52"></circle>
+            <circle class="gate-analog__face" cx="60" cy="74" r="46"></circle>
+            <g class="gate-analog__ticks" aria-hidden="true">
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(0 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(6 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(12 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(18 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(24 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(30 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(60 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(90 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(120 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(150 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(180 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(210 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(240 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(270 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="34"
+                x2="60"
+                y2="38"
+                transform="rotate(300 60 74)"
+              ></line>
+              <line
+                x1="60"
+                y1="32"
+                x2="60"
+                y2="38"
+                transform="rotate(330 60 74)"
+              ></line>
+            </g>
+            <text class="gate-analog__num" x="60" y="48">XII</text>
+            <text class="gate-analog__num" x="90" y="79">III</text>
+            <text class="gate-analog__num" x="60" y="108">VI</text>
+            <text class="gate-analog__num" x="32" y="79">IX</text>
+            <text class="gate-analog__mark" x="60" y="62">SP</text>
+            <g id="gateHandHour">
+              <path d="M60 82 L56.5 54 L60 46 L63.5 54 Z"></path>
+            </g>
+            <g id="gateHandMinute">
+              <path d="M60 84 L57.4 44 L60 34 L62.6 44 Z"></path>
+            </g>
+            <g id="gateHandSecond">
+              <line x1="60" y1="88" x2="60" y2="36"></line>
+              <circle cx="60" cy="74" r="1.2"></circle>
+            </g>
+            <circle class="gate-analog__hub" cx="60" cy="74" r="3.2"></circle>
+          </svg>
         </div>
-        <div class="trailer-modal__frame">
-          <iframe id="trailerFrame" title="Scream Fest trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <div class="event-gate__clock" aria-hidden="true">
+          <div class="event-gate__unit">
+            <span id="cdDays">0</span><small>Days</small>
+          </div>
+          <div class="event-gate__unit">
+            <span id="cdHours">00</span><small>Hours</small>
+          </div>
+          <div class="event-gate__unit event-gate__unit--minutes">
+            <span id="cdMinutes">00</span><small>Minutes</small>
+          </div>
+          <div class="event-gate__unit event-gate__unit--seconds">
+            <span id="cdSeconds">00</span><small>Seconds</small>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-  <div id="eventApp" data-event-app>
-  <header class="site-header">
-    <div class="brand">
-      <span class="brand__mark">SP</span>
-      <div>
-        <p class="brand__kicker">Singapore Polytechnic</p>
-        <h1>Scream Fest</h1>
-      </div>
-    </div>
-    <nav class="nav" aria-label="Primary">
-      <button class="nav__btn is-active" type="button" data-nav="map">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span>
-        <span class="nav__full">Event Map</span><span class="nav__short">Map</span>
-      </button>
-      <button class="nav__btn" type="button" data-nav="tonight">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>
-        Tonight
-      </button>
-      <button class="nav__btn" type="button" data-nav="stamps">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 9h8M8 13h5"/><circle cx="16" cy="16.5" r="1.6"/></svg></span>
-        <span class="nav__full">Stamp Card</span><span class="nav__short">Stamps</span>
-      </button>
-      <button class="nav__btn nav__more" type="button" id="navMore" aria-expanded="false" aria-controls="navMoreMenu">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/></svg></span>
-        More
-      </button>
-      <div class="nav-more-menu" id="navMoreMenu" hidden>
-        <button class="nav__btn" type="button" data-nav="games">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg></span>
-          Games
-        </button>
-        <button class="nav__btn" type="button" data-nav="feedback">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3.2z"/></svg></span>
-          Feedback
-        </button>
-        <button class="nav__btn" type="button" data-nav="safety">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"/></svg></span>
-          Safety
-        </button>
-        <button class="nav__btn" type="button" data-nav="guide">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z"/><path d="M8 19V5.5"/></svg></span>
-          <span class="nav__full">How to</span><span class="nav__short">Guide</span>
-        </button>
-        <button class="nav__btn" type="button" data-nav="follow">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="2.4"/><circle cx="16" cy="9" r="2"/><path d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"/></svg></span>
-          Follow us
-        </button>
-        <button class="nav__btn" type="button" data-nav="login" data-nav-show="guest">
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="2.6"/><path d="M6.5 19c.7-3.2 2.8-5 5.5-5s4.8 1.8 5.5 5"/></svg></span>
-          Sign in
-        </button>
-        <button class="nav__btn" type="button" data-nav="admin" data-nav-show="admin" hidden>
-          <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"/><path d="M9 12.2 11 14l4-4"/></svg></span>
-          Staff
-        </button>
-      </div>
-      <button class="nav__btn nav__wide" type="button" data-nav="games">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg></span>
-        Games
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="feedback">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3.2z"/></svg></span>
-        Feedback
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="safety">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"/></svg></span>
-        Safety
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="guide">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z"/><path d="M8 19V5.5"/></svg></span>
-        How to
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="follow">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="2.4"/><circle cx="16" cy="9" r="2"/><path d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"/></svg></span>
-        Follow us
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="login" data-nav-show="guest">
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="2.6"/><path d="M6.5 19c.7-3.2 2.8-5 5.5-5s4.8 1.8 5.5 5"/></svg></span>
-        Sign in
-      </button>
-      <button class="nav__btn nav__wide" type="button" data-nav="admin" data-nav-show="admin" hidden>
-        <span class="nav__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"/><path d="M9 12.2 11 14l4-4"/></svg></span>
-        Staff
-      </button>
-    </nav>
-    <div class="header-meta">
-      <div class="session-chip" id="sessionChip" hidden></div>
-      <div class="live-chip" id="liveMode" aria-live="polite" hidden>Connecting…</div>
-      <div class="version-chip" title="App version">v1.5.7</div>
-    </div>
-  </header>
-  <div class="game-subnav" id="gameSubnav" hidden>
-    <button class="nav__btn is-active" type="button" data-game="clicker">Clicker</button>
-    <button class="nav__btn" type="button" data-game="memory">Memory</button>
-    <button class="nav__btn" type="button" data-game="catch">Catch</button>
-  </div>
-
-  <div class="wait-toasts" id="waitToasts" aria-live="polite"></div>
-  <p class="push-install-hint" id="pushInstallHint" hidden>
-    iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that icon, then tap <strong>Alert when walk-in</strong> on a house. Safari tabs cannot show phone alerts.
-  </p>
-  <p class="site-live-note" id="siteLiveNote" hidden></p>
-  <main id="main">
-    <section class="view welcome-view" data-view="welcome" hidden>
-      <div class="welcome-night">
-        <p class="welcome-night__kicker">Singapore Polytechnic</p>
-        <h2 class="welcome-night__title">The gates are open</h2>
-        <p class="welcome-night__lead">Scream Fest is live. Fifteen scare houses, six booths, free admission — start on the map, or read How to if it is your first time.</p>
-        <ul class="event-gate__chips welcome-night__chips">
+        <ul class="event-gate__chips">
           <li>15 Scare Houses</li>
           <li>6 Booths</li>
           <li>1 Free Admission</li>
         </ul>
-        <div class="welcome-night__actions">
-          <button class="btn" type="button" data-nav="map">Enter the map</button>
-          <button class="btn btn--ghost" type="button" data-nav="guide">How to</button>
-        </div>
+        <button class="btn" type="button" id="watchTrailer">
+          Watch trailer
+        </button>
+        <p class="event-gate__by">Brought to you by</p>
+        <p class="event-gate__clubs" id="clubCredits">
+          SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC ·
+          SMAC
+        </p>
+        <button class="btn btn--ghost" type="button" id="eventGateLocal">
+          Skip to the site
+        </button>
       </div>
-    </section>
-    <section class="view is-active" data-view="map">
-      <div class="section-head section-head--map">
-        <h2>Campus Haunt Map</h2>
-        <p>Pinch, scroll, or use the controls. Tap a pin for the storyline.</p>
-      </div>
-      <div class="map-shell">
-        <div class="map-controls" role="group" aria-label="Map zoom">
-          <button id="zoomIn" type="button">+</button>
-          <button id="zoomOut" type="button">−</button>
-          <button id="zoomReset" type="button">Reset</button>
-          <span id="zoomLabel">100%</span>
-        </div>
-        <label class="map-pin-fade">
-          <span>Pins</span>
-          <span class="map-pin-fade__track">
-            <input id="pinOpacity" type="range" min="0" max="100" value="100" step="1" aria-label="Pin visibility">
-          </span>
-          <span>Map</span>
-        </label>
-        <div class="map-viewport" id="mapViewport">
-          <div class="map-world" id="mapWorld">
-            <div class="map-stage" id="mapStage">
-              <img src="sp_map.png" alt="Singapore Polytechnic campus map" draggable="false">
-              <svg id="mapPinLayer" class="map-pin-svg" viewBox="0 0 2301 1405" preserveAspectRatio="none" aria-label="Haunt locations"></svg>
-            </div>
+      <div class="trailer-modal" id="trailerModal" hidden>
+        <div class="trailer-modal__backdrop" data-close-trailer></div>
+        <div
+          class="trailer-modal__panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trailerTitle"
+        >
+          <div class="trailer-modal__bar">
+            <h2 id="trailerTitle">Scream Fest trailer</h2>
+            <button
+              class="modal__close"
+              type="button"
+              data-close-trailer
+              aria-label="Close trailer"
+            >
+              ×
+            </button>
+          </div>
+          <div class="trailer-modal__frame">
+            <iframe
+              id="trailerFrame"
+              title="Scream Fest trailer"
+              allow="
+                accelerometer;
+                autoplay;
+                clipboard-write;
+                encrypted-media;
+                gyroscope;
+                picture-in-picture;
+                web-share;
+              "
+              allowfullscreen
+            ></iframe>
           </div>
         </div>
       </div>
-      <div class="short-waits" id="shortWaits"></div>
-      <details class="announce-panel" id="announceDetails">
-        <summary class="announce-panel__summary">
-          <h2>Staff announcements</h2>
-          <p>Official updates from facilitators — house closures, last entry, and stage notes.</p>
-        </summary>
-        <ul class="announce-list" id="announceStrip"></ul>
-      </details>
-      <div class="section-head">
-        <h2>Scare House Wait Times</h2>
-        <p>Fifteen haunts across campus. Sorted by wait. Times show when staff last published.</p>
-      </div>
-      <div class="house-filters" id="houseFilters">
-        <label class="house-filters__search">
-          <span class="visually-hidden">Search scare houses</span>
-          <input id="houseSearch" type="search" placeholder="Search name or code (T11, library)" autocomplete="off">
-        </label>
-        <div class="house-filters__chips" role="group" aria-label="Wait status">
-          <button type="button" class="filter-chip" data-filter-status="walkin">Walk-in</button>
-          <button type="button" class="filter-chip" data-filter-status="queue">Open / busy</button>
-          <button type="button" class="filter-chip" data-filter-status="at_capacity">At capacity</button>
-          <button type="button" class="filter-chip" data-filter-status="closed">Closed</button>
-        </div>
-        <div class="house-filters__chips" role="group" aria-label="Access">
-          <button type="button" class="filter-chip" data-filter-tag="strobe">Strobe</button>
-          <button type="button" class="filter-chip" data-filter-tag="stairs">Stairs</button>
-          <button type="button" class="filter-chip" data-filter-tag="jumpscare">Jumpscare</button>
-          <button type="button" class="filter-chip" data-filter-tag="outdoors">Outdoors</button>
-        </div>
-      </div>
-      <div class="house-grid" id="houseGrid"></div>
-      <div class="my-night-panel" id="myNightPanel">
-        <h3 class="roadmap__title">My night</h3>
-        <p class="muted" id="myNightHint">Open a house from the map or list, then tap Add to my night.</p>
-        <ol class="my-night-list" id="myNightList"></ol>
-      </div>
-    </section>
-
-    <section class="view" data-view="tonight" hidden>
-      <div class="section-head">
-        <h2>Tonight at Scream Fest</h2>
-        <p id="scheduleDateLabel">Performances and house hours for the night. Times are Singapore time.</p>
-      </div>
-      <div class="announce-board">
-        <h3 class="roadmap__title">Staff announcements</h3>
-        <p class="muted announce-board__hint">Official updates from facilitators. Newest first.</p>
-        <ul class="announce-list" id="announceList"></ul>
-      </div>
-      <h3 class="roadmap__title">Night programme</h3>
-      <ol class="night-timeline" id="nightTimeline"></ol>
-    </section>
-
-    <section class="view" data-view="login" hidden>
-      <div class="login-page">
-        <div class="section-head">
-          <h2>Sign in</h2>
-          <p>Pick the form that matches you. Admin number is <strong>P</strong> plus seven digits, for example <strong>P1234567</strong>. The 7 digits alone also work.</p>
-        </div>
-        <div class="login-split">
-          <form class="auth-card" id="studentLoginForm">
-            <p class="auth-card__kicker">Students</p>
-            <h2>Open your stamp card</h2>
-            <p class="muted">No student password. First visit creates your card. Come back with the same admin number and name.</p>
-            <label>
-              Admin number
-              <input id="studentLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-              <span class="field-hint">P plus 7 digits, or just the 7 digits</span>
-            </label>
-            <label>
-              Full name
-              <input id="studentLoginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Full name on your card" required>
-            </label>
-            <label class="check-row">
-              <input id="studentNotifyOptIn" type="checkbox">
-              <span>Notify this phone when a house I watch hits 0 minutes (walk-in). iPhone: Add to Home Screen first.</span>
-            </label>
-            <p class="form-error" id="studentLoginError" hidden></p>
-            <button class="btn" type="submit">Open stamp card</button>
-          </form>
-          <form class="auth-card auth-card--staff" id="staffLoginForm">
-            <p class="auth-card__kicker">Staff</p>
-            <h2>Facilitator access</h2>
-            <p class="muted">Same admin number format, plus the staff password. Wait-time, stamp, and full-admin passwords can differ in production.</p>
-            <label>
-              Admin number
-              <input id="staffLoginId" name="adminNumber" type="text" inputmode="text" autocomplete="username" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-            </label>
-            <label>
-              Full name
-              <input id="staffLoginName" name="fullName" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required>
-            </label>
-            <label>
-              Staff password
-              <input id="staffLoginPassword" name="password" type="password" autocomplete="current-password" maxlength="80" required>
-            </label>
-            <p class="form-error" id="staffLoginError" hidden></p>
-            <button class="btn" type="submit">Staff sign in</button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <section class="view" data-view="stamps" hidden>
-      <div id="studentAuth" class="auth-card">
-        <p class="auth-card__kicker">SP Scream Fest</p>
-        <h2>Sign in to open your card</h2>
-        <p>Stamp cards are tied to your admin number (P followed by 7 digits). Use the same Sign in page as the rest of the night.</p>
-        <ul class="stamp-gate-points">
-          <li>Six booth stamps unlock Fast Pass</li>
-          <li>Staff stamp you at the booth — you cannot stamp yourself</li>
-          <li>Come back with the same admin number and name</li>
-        </ul>
-        <p class="form-error" id="studentAuthError" hidden></p>
-        <button class="btn" type="button" data-nav="login">Go to Sign in</button>
-      </div>
-
-      <div id="stampApp" hidden>
-        <article class="passport">
-          <div class="passport__id">
-            <svg class="progress-ring" viewBox="0 0 42 42" aria-hidden="true">
-              <circle cx="21" cy="21" r="16" fill="none" stroke="rgba(255,122,24,.2)" stroke-width="4"></circle>
-              <circle id="stampFill" class="progress-ring__fill" cx="21" cy="21" r="16" fill="none" stroke="#ff7a18" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"></circle>
-            </svg>
-            <div>
-              <p class="passport__event">SP Scream Fest</p>
-              <h2 id="stampHolderName">Student</h2>
-              <p class="passport__idno" id="stampHolderId"></p>
-              <p class="stamp-progress" id="stampProgress">0 / 6 runes lit</p>
-            </div>
+    </div>
+    <div id="eventApp" data-event-app>
+      <header class="site-header">
+        <div class="brand">
+          <span class="brand__mark">SP</span>
+          <div>
+            <p class="brand__kicker">Singapore Polytechnic</p>
+            <h1>Scream Fest</h1>
           </div>
-          <p class="passport__hint">Staff stamp you at each booth — you cannot stamp yourself. Visit booths in any order, then show your name and admin number at the Fast Pass desk.</p>
-          <h3 class="roadmap__title">Fast Pass ticket</h3>
-          <p class="station-map__lead">Any six booths, any order. Each stamp uncovers a piece of your ticket. Six stamps uncage the lantern.</p>
-          <div class="station-map" id="stampRoadmap"></div>
-          <article class="fast-pass" id="fastPassCard">
-            <div class="haunt-fx" aria-hidden="true">
-              <span class="haunt-fx__rays"></span>
-              <span class="haunt-fx__mist haunt-fx__mist--a"></span>
-              <span class="haunt-fx__mist haunt-fx__mist--b"></span>
-              <span class="haunt-fx__ground"></span>
-              <span class="haunt-fx__web haunt-fx__web--tl"></span>
-              <span class="haunt-fx__web haunt-fx__web--tr"></span>
-              <span class="haunt-fx__ember" style="--x:8%; --d:0s; --t:7s"></span>
-              <span class="haunt-fx__ember" style="--x:18%; --d:1.4s; --t:8.2s"></span>
-              <span class="haunt-fx__ember" style="--x:31%; --d:2.8s; --t:6.6s"></span>
-              <span class="haunt-fx__ember" style="--x:44%; --d:0.6s; --t:7.8s"></span>
-              <span class="haunt-fx__ember" style="--x:58%; --d:3.2s; --t:9s"></span>
-              <span class="haunt-fx__ember" style="--x:71%; --d:1.1s; --t:6.4s"></span>
-              <span class="haunt-fx__ember" style="--x:82%; --d:2.2s; --t:8.5s"></span>
-              <span class="haunt-fx__ember" style="--x:93%; --d:4s; --t:7.2s"></span>
-              <span class="haunt-fx__fly" style="--y:12%; --d:0s; --t:18s">🦇</span>
-              <span class="haunt-fx__fly haunt-fx__fly--rev" style="--y:28%; --d:5s; --t:22s">🍂</span>
-              <span class="haunt-fx__fly" style="--y:62%; --d:9s; --t:20s">🦇</span>
-              <span class="haunt-fx__fly haunt-fx__fly--rev" style="--y:78%; --d:3s; --t:26s">👻</span>
-            </div>
-            <p class="fast-pass__kicker" id="passKicker">Caged spirit</p>
-            <h3>Your spirit</h3>
-            <p class="lantern__spirit" id="spiritName" data-spirit-name>Ember Wisp</p>
-            <div class="lantern">
-              <span class="lantern__handle" aria-hidden="true"></span>
-              <div class="lantern__core">
-                <span class="lantern__cap" aria-hidden="true"></span>
-                <button class="lantern__raise" id="lanternRaise" type="button" data-raise-spirit aria-expanded="false" aria-controls="passPlate">
-                  <span class="lantern__glass">
-                    <span class="lantern__ribs" aria-hidden="true"></span>
-                    <span class="lantern__flame" aria-hidden="true"></span>
-                    <span class="ghost" aria-hidden="true">
-                      <span class="ghost__sheet">
-                        <span class="ghost__eye ghost__eye--l"></span>
-                        <span class="ghost__eye ghost__eye--r"></span>
-                        <span class="ghost__eye ghost__eye--m"></span>
-                      </span>
-                      <span class="ghost__tail"></span>
-                    </span>
-                    <span class="lantern__cage" aria-hidden="true">
-                      <span></span><span></span><span></span><span></span><span></span>
-                      <i></i>
-                    </span>
-                    <span class="visually-hidden">Raise your spirit</span>
-                  </span>
-                </button>
-                <span class="lantern__base" aria-hidden="true"></span>
-                <div class="lantern__orbit" aria-hidden="true">
-                  <span class="lantern__halo"></span>
-                  <span class="lantern__halo lantern__halo--outer"></span>
-                  <span class="lantern__motes">
-                    <i></i><i></i><i></i><i></i><i></i><i></i>
-                    <i></i><i></i><i></i><i></i><i></i><i></i>
-                  </span>
-                  <span class="lantern__sparks">
-                    <i></i><i></i><i></i><i></i><i></i><i></i>
-                    <i></i><i></i><i></i><i></i>
-                  </span>
-                </div>
-                <div class="lantern__sigil-wrap" aria-hidden="true">
-                  <svg class="lantern__sigil" viewBox="0 0 280 280">
-                    <defs>
-                      <mask id="lanternSigilClear">
-                        <rect width="280" height="280" fill="white" />
-                        <circle cx="140" cy="140" r="108" fill="black" />
-                      </mask>
-                    </defs>
-                    <g mask="url(#lanternSigilClear)">
-                      <circle class="lantern__sigil-orbit" cx="140" cy="140" r="140" fill="none" pathLength="96" />
-                      <circle class="lantern__sigil-orbit lantern__sigil-orbit--inner" cx="140" cy="140" r="126" fill="none" pathLength="48" />
-                      <polygon class="lantern__sigil-hex" points="140,0 261.2,70 261.2,210 140,280 18.8,210 18.8,70" />
-                      <polygon class="lantern__sigil-hex lantern__sigil-hex--inner" points="140,14 249.1,77 249.1,203 140,266 30.9,203 30.9,77" />
-                    </g>
-                    <g class="lantern__sigil-ticks">
-                      <path d="M140 4v16" />
-                      <path d="M258 68l-14 8" />
-                      <path d="M258 212l-14-8" />
-                      <path d="M140 276v-16" />
-                      <path d="M22 212l14-8" />
-                      <path d="M22 68l14 8" />
-                    </g>
-                    <g class="lantern__sigil-notches">
-                      <path d="M198 24l6-11 6 11" />
-                      <path d="M256 140h12" />
-                      <path d="M198 256l6 11 6-11" />
-                      <path d="M82 256l-6 11-6-11" />
-                      <path d="M12 140H0" />
-                      <path d="M82 24l-6-11-6 11" />
-                    </g>
-                  </svg>
-                </div>
-                <div class="lantern__runes" id="lanternRunes">
-                  <span class="lantern__rune-slot" style="--rune: 0"><button class="lantern__rune" type="button" data-stamp="1" aria-label="Pumpkin Gate"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="9"/><path d="M20 2v7M20 31v7M2 20h7M31 20h7M6 6l5 5M29 29l5 5M34 6l-5 5M6 34l5-5M20 11v18M11 20h18"/></svg></span><span class="lantern__rune-glyph">🎃</span></button></span>
-                  <span class="lantern__rune-slot" style="--rune: 1"><button class="lantern__rune" type="button" data-stamp="2" aria-label="Bat Colony"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M20 5v30M7 14l13 9 13-9M7 26l13-9 13 9M12 8h16M12 32h16M20 14l-6 16M20 14l6 16"/></svg></span><span class="lantern__rune-glyph">🦇</span></button></span>
-                  <span class="lantern__rune-slot" style="--rune: 2"><button class="lantern__rune" type="button" data-stamp="3" aria-label="Plaza Ghost"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="10"/><circle cx="20" cy="20" r="5"/><path d="M8 12h24M8 28h24M14 6v28M26 6v28"/></svg></span><span class="lantern__rune-glyph">👻</span></button></span>
-                  <span class="lantern__rune-slot" style="--rune: 3"><button class="lantern__rune" type="button" data-stamp="4" aria-label="Web Lab"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M20 4l16 16-16 16L4 20zM20 4v32M4 20h32M8 8l24 24M32 8 8 32M20 10l10 10-10 10L10 20z"/></svg></span><span class="lantern__rune-glyph">🕸️</span></button></span>
-                  <span class="lantern__rune-slot" style="--rune: 4"><button class="lantern__rune" type="button" data-stamp="5" aria-label="Candy Court"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M7 10c9 5 17 5 26 0M7 20h26M7 30c9-5 17-5 26 0M13 7v26M27 7v26M10 15l10 5 10-5M10 25l10-5 10 5"/></svg></span><span class="lantern__rune-glyph">🍬</span></button></span>
-                  <span class="lantern__rune-slot" style="--rune: 5"><button class="lantern__rune" type="button" data-stamp="6" aria-label="Crypt Keep"><span class="lantern__rune-stone"></span><span class="lantern__rune-etch"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M12 32V16c0-6 16-6 16 0v16M12 32h16M20 8v8M14 12h12M16 32v-9h8v9M20 23v9"/></svg></span><span class="lantern__rune-glyph">🕯️</span></button></span>
-                </div>
-              </div>
-              <p class="lantern__hint" id="lanternHint">The spirit is caged. Stamp booths to uncover your ticket</p>
-            </div>
-            <div class="pass-plate" id="passPlate">
-              <p class="pass-plate__name" id="passHolder"></p>
-              <p class="pass-plate__admin" id="passAdmin"></p>
-              <p class="fast-pass__id is-locked" id="passId">Locked · 0 / 6 runes lit</p>
-            </div>
-            <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
-            <p class="muted" id="redeemedNote" hidden></p>
-          </article>
-        </article>
-      </div>
-    </section>
-
-    <section class="view" data-view="games" hidden>
-      <article class="game-panel game-panel--arcade" data-game-panel="clicker">
-        <div class="section-head">
-          <h2>Pumpkin clicker</h2>
-          <p>Tap the core for candy. Install systems for idle production, chain taps for combos, and prestige for a lasting curse multiplier.</p>
         </div>
-        <div class="clicker-layout">
-          <div class="clicker-core">
-            <div class="arcade-hud arcade-hud--clicker" aria-live="polite">
-              <div class="arcade-stat">
-                <span>Candy</span>
-                <strong id="clickerCount">0</strong>
-              </div>
-              <div class="arcade-stat">
-                <span>Output</span>
-                <strong id="clickerRate">0/s</strong>
-              </div>
-              <div class="arcade-stat">
-                <span>Curses</span>
-                <strong id="clickerPrestige">0</strong>
-              </div>
-              <div class="arcade-stat">
-                <span>Best</span>
-                <strong data-best="clicker">0</strong>
-              </div>
-              <div class="arcade-stat arcade-stat--combo">
-                <span>Combo</span>
-                <strong id="clickerCombo">x1</strong>
-              </div>
-            </div>
-            <div class="orb-stage">
-              <canvas id="clickerFx" class="clicker-fx" width="280" height="280" aria-hidden="true"></canvas>
-              <button class="clicker-orb" id="clickerPumpkin" type="button" aria-label="Tap pumpkin">
-                <span class="clicker-orb__halo" aria-hidden="true"></span>
-                <span class="clicker-orb__ring" aria-hidden="true"></span>
-                <span class="clicker-orb__core" aria-hidden="true">🎃</span>
+        <nav class="nav" aria-label="Primary">
+          <button class="nav__btn is-active" type="button" data-nav="map">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
+                <circle cx="12" cy="10" r="2.2" /></svg
+            ></span>
+            <span class="nav__full">Event Map</span
+            ><span class="nav__short">Map</span>
+          </button>
+          <button class="nav__btn" type="button" data-nav="tonight">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="4" y="5" width="16" height="15" rx="2" />
+                <path d="M8 3v4M16 3v4M4 10h16" /></svg
+            ></span>
+            Tonight
+          </button>
+          <button class="nav__btn" type="button" data-nav="stamps">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="5" y="4" width="14" height="16" rx="2" />
+                <path d="M8 9h8M8 13h5" />
+                <circle cx="16" cy="16.5" r="1.6" /></svg
+            ></span>
+            <span class="nav__full">Stamp Card</span
+            ><span class="nav__short">Stamps</span>
+          </button>
+          <button
+            class="nav__btn nav__more"
+            type="button"
+            id="navMore"
+            aria-expanded="false"
+            aria-controls="navMoreMenu"
+          >
+            <span class="nav__icon" aria-hidden="true"
+              ><svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="6" cy="12" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="18" cy="12" r="1.8" /></svg
+            ></span>
+            More
+          </button>
+          <div class="nav-more-menu" id="navMoreMenu" hidden>
+            <button class="nav__btn" type="button" data-nav="games">
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M12 8v8M8 12h8" /></svg
+              ></span>
+              Games
+            </button>
+            <button class="nav__btn" type="button" data-nav="feedback">
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M5 16.5V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3.2z"
+                  /></svg
+              ></span>
+              Feedback
+            </button>
+            <button class="nav__btn" type="button" data-nav="safety">
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"
+                  /></svg
+              ></span>
+              Safety
+            </button>
+            <button class="nav__btn" type="button" data-nav="guide">
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z" />
+                  <path d="M8 19V5.5" /></svg
+              ></span>
+              <span class="nav__full">How to</span
+              ><span class="nav__short">Guide</span>
+            </button>
+            <button class="nav__btn" type="button" data-nav="follow">
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <circle cx="9" cy="8" r="2.4" />
+                  <circle cx="16" cy="9" r="2" />
+                  <path
+                    d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"
+                  /></svg
+              ></span>
+              Follow us
+            </button>
+            <button
+              class="nav__btn"
+              type="button"
+              data-nav="login"
+              data-nav-show="guest"
+            >
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <circle cx="12" cy="8" r="2.6" />
+                  <path d="M6.5 19c.7-3.2 2.8-5 5.5-5s4.8 1.8 5.5 5" /></svg
+              ></span>
+              Sign in
+            </button>
+            <button
+              class="nav__btn"
+              type="button"
+              data-nav="admin"
+              data-nav-show="admin"
+              hidden
+            >
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"
+                  />
+                  <path d="M9 12.2 11 14l4-4" /></svg
+              ></span>
+              Staff
+            </button>
+          </div>
+          <button class="nav__btn nav__wide" type="button" data-nav="games">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 8v8M8 12h8" /></svg
+            ></span>
+            Games
+          </button>
+          <button class="nav__btn nav__wide" type="button" data-nav="feedback">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M5 16.5V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3.2z"
+                /></svg
+            ></span>
+            Feedback
+          </button>
+          <button class="nav__btn nav__wide" type="button" data-nav="safety">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"
+                /></svg
+            ></span>
+            Safety
+          </button>
+          <button class="nav__btn nav__wide" type="button" data-nav="guide">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z" />
+                <path d="M8 19V5.5" /></svg
+            ></span>
+            How to
+          </button>
+          <button class="nav__btn nav__wide" type="button" data-nav="follow">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
+                <circle cx="9" cy="8" r="2.4" />
+                <circle cx="16" cy="9" r="2" />
+                <path
+                  d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"
+                /></svg
+            ></span>
+            Follow us
+          </button>
+          <button
+            class="nav__btn nav__wide"
+            type="button"
+            data-nav="login"
+            data-nav-show="guest"
+          >
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
+                <circle cx="12" cy="8" r="2.6" />
+                <path d="M6.5 19c.7-3.2 2.8-5 5.5-5s4.8 1.8 5.5 5" /></svg
+            ></span>
+            Sign in
+          </button>
+          <button
+            class="nav__btn nav__wide"
+            type="button"
+            data-nav="admin"
+            data-nav-show="admin"
+            hidden
+          >
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"
+                />
+                <path d="M9 12.2 11 14l4-4" /></svg
+            ></span>
+            Staff
+          </button>
+        </nav>
+        <div class="header-meta">
+          <div class="session-chip" id="sessionChip" hidden></div>
+          <div class="live-chip" id="liveMode" aria-live="polite" hidden>
+            Connecting…
+          </div>
+          <div class="version-chip" title="App version">v1.5.7</div>
+        </div>
+      </header>
+      <div class="game-subnav" id="gameSubnav" hidden>
+        <button class="nav__btn is-active" type="button" data-game="clicker">
+          Clicker
+        </button>
+        <button class="nav__btn" type="button" data-game="memory">
+          Memory
+        </button>
+        <button class="nav__btn" type="button" data-game="catch">Catch</button>
+      </div>
+
+      <div class="wait-toasts" id="waitToasts" aria-live="polite"></div>
+      <p class="push-install-hint" id="pushInstallHint" hidden>
+        iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that
+        icon, then tap <strong>Alert when walk-in</strong> on a house. Safari
+        tabs cannot show phone alerts.
+      </p>
+      <p class="site-live-note" id="siteLiveNote" hidden></p>
+      <main id="main">
+        <section class="view welcome-view" data-view="welcome" hidden>
+          <div class="welcome-night">
+            <p class="welcome-night__kicker">Singapore Polytechnic</p>
+            <h2 class="welcome-night__title">The gates are open</h2>
+            <p class="welcome-night__lead">
+              Scream Fest is live. Fifteen scare houses, six booths, free
+              admission — start on the map, or read How to if it is your first
+              time.
+            </p>
+            <ul class="event-gate__chips welcome-night__chips">
+              <li>15 Scare Houses</li>
+              <li>6 Booths</li>
+              <li>1 Free Admission</li>
+            </ul>
+            <div class="welcome-night__actions">
+              <button class="btn" type="button" data-nav="map">
+                Enter the map
               </button>
-              <div id="clickerFloats" class="clicker-floats" aria-hidden="true"></div>
-            </div>
-            <div class="clicker-frenzy" id="clickerFrenzy" hidden>
-              <span>Frenzy</span>
-              <div class="clicker-frenzy__bar"><i id="clickerFrenzyFill"></i></div>
-            </div>
-            <div class="clicker-progress">
-              <div class="clicker-progress__meta">
-                <span id="clickerProgressLabel">Next milestone</span>
-                <span id="clickerTier">Tier 1</span>
-              </div>
-              <div class="clicker-progress__track"><i id="clickerProgressFill"></i></div>
-            </div>
-            <p class="muted clicker-flavor" id="clickerFlavor">Tap the core. Buy systems. Keep the streak alive.</p>
-            <div class="game-actions clicker-core-actions">
-              <button class="btn" id="clickerPrestigeBtn" type="button">Prestige</button>
+              <button class="btn btn--ghost" type="button" data-nav="guide">
+                How to
+              </button>
             </div>
           </div>
-          <div class="clicker-shop-wrap">
-            <h3 class="roadmap__title">Systems</h3>
-            <div class="clicker-shop" id="clickerShop"></div>
+        </section>
+        <section class="view is-active" data-view="map">
+          <div class="section-head section-head--map">
+            <h2>Campus Haunt Map</h2>
+            <p>
+              Pinch, scroll, or use the controls. Tap a pin for the storyline.
+            </p>
           </div>
-        </div>
-        <p class="game-toast" id="clickerToast" hidden></p>
-        <h3 class="roadmap__title">Milestones</h3>
-        <ul class="achieve-list" id="clickerAchievements"></ul>
-        <h3 class="roadmap__title">Top scores</h3>
-        <ol class="scoreboard" data-scoreboard="clicker"></ol>
-      </article>
-
-      <article class="game-panel" data-game-panel="memory" hidden>
-        <div class="section-head">
-          <h2>Memory match</h2>
-          <p>Flip two cards at a time and match every Halloween pair. Easy uses a smaller set; Difficult uses a larger board. The timer starts when you press Start and resets each new round.</p>
-        </div>
-        <p class="game-meta">Best: <strong data-best="memory">0</strong> · Time: <strong id="memoryTimer">0:00</strong></p>
-        <p id="memoryStatus" class="muted"></p>
-        <div class="game-actions">
-          <label class="diff-label">
-            Difficulty
-            <select id="memoryDifficulty">
-              <option value="easy">Easy</option>
-              <option value="medium" selected>Medium</option>
-              <option value="hard">Difficult</option>
-            </select>
-          </label>
-          <button class="btn" id="memoryStart" type="button">Start round</button>
-        </div>
-        <div class="memory-grid" id="memoryGrid" data-diff="medium"></div>
-        <h3 class="roadmap__title">Top scores</h3>
-        <ol class="scoreboard" data-scoreboard="memory"></ol>
-      </article>
-
-      <article class="game-panel game-panel--arcade" data-game-panel="catch" hidden>
-        <div class="section-head">
-          <h2>Catch the treats</h2>
-          <p>Steer the catcher. Treats score, rares pay more, cores start a bonus window. Hazards cut your combo. Pause freezes the round; leaving Games pauses automatically.</p>
-        </div>
-        <div class="catch-stage">
-          <div class="arcade-hud arcade-hud--catch" aria-live="polite">
-            <div class="arcade-stat">
-              <span>Score</span>
-              <strong id="catchScore">0</strong>
+          <div class="map-shell">
+            <div class="map-controls" role="group" aria-label="Map zoom">
+              <button id="zoomIn" type="button">+</button>
+              <button id="zoomOut" type="button">−</button>
+              <button id="zoomReset" type="button">Reset</button>
+              <span id="zoomLabel">100%</span>
             </div>
-            <div class="arcade-stat">
-              <span>Best</span>
-              <strong data-best="catch">0</strong>
-            </div>
-            <div class="arcade-stat arcade-stat--combo">
-              <span>Combo</span>
-              <strong id="catchCombo">x1</strong>
-            </div>
-            <div class="arcade-stat">
-              <span>Mult</span>
-              <strong id="catchMult">x1</strong>
-            </div>
-            <div class="arcade-stat">
-              <span>Wave</span>
-              <strong id="catchLevel">1</strong>
-            </div>
-            <div class="arcade-stat">
-              <span>Time</span>
-              <strong id="catchTime">0:45</strong>
-            </div>
-          </div>
-          <p id="catchStatus" class="catch-status">Press start, then drag or use the arrow keys.</p>
-          <div class="game-actions catch-actions">
-            <button class="btn" id="catchStart" type="button">Start round</button>
-            <button class="btn btn--ghost" id="catchPause" type="button" hidden>Pause</button>
-          </div>
-          <div class="catch-frame">
-            <canvas id="catchCanvas" class="catch-canvas" width="360" height="480"></canvas>
-          </div>
-          <ul class="catch-legend">
-            <li><span>🍬</span> Treat</li>
-            <li><span>🎃</span> Rare</li>
-            <li><span>✦</span> Bonus</li>
-            <li><span>💀</span> Hazard</li>
-          </ul>
-        </div>
-        <h3 class="roadmap__title">Top scores</h3>
-        <ol class="scoreboard" data-scoreboard="catch"></ol>
-      </article>
-    </section>
-
-    <section class="view" data-view="feedback" hidden>
-      <div class="section-head">
-        <h2>Night feedback</h2>
-        <p>Tell staff how a scare house or booth went. Keep it short and useful.</p>
-      </div>
-      <form class="auth-card feedback-form" id="feedbackForm">
-        <label>
-          About
-          <select id="feedbackKind" required>
-            <option value="scare_house">Scare Houses</option>
-            <option value="booth">Booths</option>
-          </select>
-        </label>
-        <label>
-          Which one
-          <select id="feedbackTarget" required></select>
-        </label>
-        <label>
-          Rating
-          <select id="feedbackRating">
-            <option value="">No stars — comment only</option>
-            <option value="5">5 — excellent</option>
-            <option value="4">4 — good</option>
-            <option value="3">3 — okay</option>
-            <option value="2">2 — weak</option>
-            <option value="1">1 — poor</option>
-          </select>
-        </label>
-        <label>
-          Your feedback
-          <textarea id="feedbackMessage" rows="4" maxlength="1000" placeholder="Optional if you pick a rating. What worked, what to fix…"></textarea>
-        </label>
-        <p class="form-error" id="feedbackError" hidden></p>
-        <p class="form-ok" id="feedbackOk" hidden>Thanks — staff can read this on the Staff page.</p>
-        <button class="btn" type="submit">Send feedback</button>
-      </form>
-    </section>
-
-    <section class="view" data-view="guide" hidden>
-      <div class="section-head">
-        <h2>How to use this site</h2>
-        <p>Keep this tab open — wait times update on their own. Pins and house cards use the same colours.</p>
-      </div>
-
-      <h3 class="guide-heading">House states</h3>
-      <p class="guide-lead">Match the pin and the card before you queue. Staff set these live.</p>
-      <div class="guide-states">
-        <article class="guide-state">
-          <div class="guide-state__art">
-            <svg class="guide-pin guide-pin--walkin" viewBox="0 0 40 52" aria-hidden="true">
-              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
-              <circle cx="20" cy="18" r="6.5" fill="#052e16"/>
-            </svg>
-            <article class="house-card house-card--sample status-open">
-              <div class="house-card__open">
-                <span class="house-card__short">T18A</span>
-                <strong>Aerohub Crypt</strong>
-                <span class="status-pill status-walkin">Walk-in</span>
-                <span class="wait">Walk in</span>
-                <span class="fresh muted">Just updated</span>
-              </div>
-            </article>
-          </div>
-          <h3>Walk-in</h3>
-          <p>Wait is 0 minutes and the house is open. Go now — nobody is queued. Tap <strong>Alert when walk-in</strong> on other houses if you want a ping when they hit this.</p>
-        </article>
-
-        <article class="guide-state">
-          <div class="guide-state__art">
-            <svg class="guide-pin guide-pin--open" viewBox="0 0 40 52" aria-hidden="true">
-              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
-              <circle cx="20" cy="18" r="6.5" fill="#052e16"/>
-            </svg>
-            <article class="house-card house-card--sample status-open">
-              <div class="house-card__open">
-                <span class="house-card__short">EW22</span>
-                <strong>Dover Gate Ghouls</strong>
-                <span class="status-pill">Open</span>
-                <span class="wait">8 min</span>
-                <span class="fresh muted">Updated 2 min ago</span>
-              </div>
-            </article>
-          </div>
-          <h3>Open</h3>
-          <p>The house is running and taking guests. The number is the wait staff last published. Queue as normal.</p>
-        </article>
-
-        <article class="guide-state">
-          <div class="guide-state__art">
-            <svg class="guide-pin guide-pin--busy" viewBox="0 0 40 52" aria-hidden="true">
-              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
-              <circle cx="20" cy="18" r="6.5" fill="#3b1a04"/>
-            </svg>
-            <article class="house-card house-card--sample status-busy">
-              <div class="house-card__open">
-                <span class="house-card__short">T12</span>
-                <strong>Atrium Abyss</strong>
-                <span class="status-pill">Busy</span>
-                <span class="wait">25 min</span>
-                <span class="fresh muted">Updated 4 min ago</span>
-              </div>
-            </article>
-          </div>
-          <h3>Busy</h3>
-          <p>Still open, but the wait is longer. The queue is moving. Check the minutes before you commit, or pick a shorter house.</p>
-        </article>
-
-        <article class="guide-state">
-          <div class="guide-state__art">
-            <svg class="guide-pin guide-pin--full" viewBox="0 0 40 52" aria-hidden="true">
-              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
-              <circle cx="20" cy="18" r="6.5" fill="#2e1064"/>
-            </svg>
-            <article class="house-card house-card--sample status-at_capacity">
-              <div class="house-card__open">
-                <span class="house-card__short">LIB</span>
-                <strong>Library of Lost Souls</strong>
-                <span class="status-pill">At Capacity</span>
-                <span class="wait">40 min · Full</span>
-                <span class="fresh muted">Updated 1 min ago</span>
-              </div>
-            </article>
-          </div>
-          <h3>At capacity</h3>
-          <p>The house is full. <strong>The queue stops</strong> — staff will not take new guests until people leave. Do not join a line. Come back later or choose another haunt.</p>
-        </article>
-
-        <article class="guide-state">
-          <div class="guide-state__art">
-            <svg class="guide-pin guide-pin--closed" viewBox="0 0 40 52" aria-hidden="true">
-              <path class="guide-pin__mark" d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"/>
-              <circle cx="20" cy="18" r="6.5" fill="#450a0a"/>
-            </svg>
-            <article class="house-card house-card--sample status-closed">
-              <div class="house-card__open">
-                <span class="house-card__short">WSA</span>
-                <strong>West Coast Warehouse</strong>
-                <span class="status-pill">Closed</span>
-                <span class="wait">Closed</span>
-                <span class="fresh muted">Updated 10 min ago</span>
-              </div>
-            </article>
-          </div>
-          <h3>Closed</h3>
-          <p>Not running right now (reset, last entry, or a pause). Pins and cards go red. Don’t wait at the door until it shows Open, Busy, or Walk-in again.</p>
-        </article>
-      </div>
-
-      <h3 class="guide-heading">Using the rest of the site</h3>
-      <ol class="how-list">
-        <li>Use <strong>Event Map</strong> to tap pins or house cards. Times are Singapore time, published by staff.</li>
-        <li><strong>Sign in</strong> with your admin number and name to open your stamp card. Staff stamp you at booths — you cannot stamp yourself.</li>
-        <li>Six stamps unlock Fast Pass. Show it at the Fast Pass desk; staff mark it used on their side.</li>
-        <li><strong>Tonight</strong> is the programme. <strong>Games</strong> are optional. Send <strong>Feedback</strong> if a house or booth needs a note.</li>
-        <li>Tap <strong>Alert when walk-in</strong> on a house for a ping at 0 minutes. On iPhone, add this site to your Home Screen first.</li>
-        <li>Help desk, meetup, and skip-house notes live on <strong>Safety</strong>.</li>
-      </ol>
-    </section>
-
-    <section class="view" data-view="safety" hidden>
-      <div class="section-head">
-        <h2>Stay safe tonight</h2>
-        <p>General notes for SP Scream Fest. Follow staff instructions on the ground.</p>
-      </div>
-      <ul class="safety-list" id="safetyList"></ul>
-    </section>
-
-    <section class="view" data-view="follow" hidden>
-      <div class="section-head">
-        <h2>Follow us</h2>
-        <p>Scream Fest is brought to you by these SP student clubs. Instagram and email links are placeholders until the official accounts are confirmed.</p>
-      </div>
-      <div class="club-grid" id="clubFollowList"></div>
-    </section>
-
-    <section class="view" data-view="admin" hidden>
-      <div id="adminGate" class="auth-card">
-        <p class="auth-card__kicker">SP Scream Fest</p>
-        <h2>Staff tools</h2>
-        <p>Use the same Sign in page as students. Enter your admin number (P plus 7 digits), full name, and staff password.</p>
-        <button class="btn" type="button" data-nav="login">Go to Sign in</button>
-      </div>
-
-      <div id="adminApp" hidden>
-        <p class="db-banner" id="dbBanner" hidden></p>
-        <details class="staff-log">
-          <summary>Error log</summary>
-          <p class="muted">Newest first. When a staff action fails, the full message lands here.</p>
-          <ul class="staff-log__list" id="staffErrorLog"></ul>
-          <button class="btn btn--ghost" id="staffLogClear" type="button">Clear log</button>
-        </details>
-        <div class="staff-tabs" role="tablist" aria-label="Staff sections">
-          <button class="nav__btn is-active" type="button" data-staff-tab="waits" data-staff-scope="waits">Wait times</button>
-          <button class="nav__btn" type="button" data-staff-tab="stamps" data-staff-scope="stamps">Award stamps</button>
-          <button class="nav__btn" type="button" data-staff-tab="redeem" data-staff-scope="stamps">Redeem Fast Pass</button>
-          <button class="nav__btn" type="button" data-staff-tab="ops" data-staff-scope="admin">Command post</button>
-          <button class="nav__btn" type="button" data-staff-tab="feedback" data-staff-scope="admin">Feedback</button>
-          <button class="nav__btn" type="button" data-staff-tab="announce" data-staff-scope="admin">Announcements</button>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="waits">
-        <div class="section-head">
-          <h2>Wait-Time Control</h2>
-          <p>Edits sync to every open map when auto-save is on, or hit Publish.</p>
-          <div class="admin-toolbar">
-            <label class="toggle">
-              <input id="autoSave" type="checkbox" checked>
-              Instant auto-save
+            <label class="map-pin-fade">
+              <span>Pins</span>
+              <span class="map-pin-fade__track">
+                <input
+                  id="pinOpacity"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="100"
+                  step="1"
+                  aria-label="Pin visibility"
+                />
+              </span>
+              <span>Map</span>
             </label>
-            <button class="btn" id="publishAll" type="button">Publish all</button>
-            <button class="btn btn--ghost" id="adminLock" type="button">Sign out</button>
-          </div>
-          <p class="form-error" id="waitSaveStatus" hidden></p>
-        </div>
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Scare house</th>
-                <th>Wait (min)</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="adminTable"></tbody>
-          </table>
-        </div>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="stamps" hidden>
-          <div class="section-head">
-            <h2>Award a booth stamp</h2>
-            <p>Enter the student admin number, pick the booth, and award.</p>
-          </div>
-          <form class="auth-card award-stamp-form" id="awardStampForm">
-            <div class="award-stamp-fields">
-              <label>
-                Admin number
-                <input id="awardStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-                <span class="field-hint">P followed by 7 digits</span>
-              </label>
-              <label>
-                Booth
-                <select id="awardBooth" required></select>
-              </label>
+            <div class="map-viewport" id="mapViewport">
+              <div class="map-world" id="mapWorld">
+                <div class="map-stage" id="mapStage">
+                  <img
+                    src="sp_map.png"
+                    alt="Singapore Polytechnic campus map"
+                    draggable="false"
+                  />
+                  <svg
+                    id="mapPinLayer"
+                    class="map-pin-svg"
+                    viewBox="0 0 2301 1405"
+                    preserveAspectRatio="none"
+                    aria-label="Haunt locations"
+                  ></svg>
+                </div>
+              </div>
             </div>
-            <p class="form-error" id="awardStampError" hidden></p>
-            <p class="muted" id="awardStampBusy" hidden>Awarding stamp…</p>
-            <p class="form-ok" id="awardStampOk" hidden></p>
-            <button class="btn" id="awardStampSubmit" type="submit">Award stamp</button>
-          </form>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="redeem" hidden>
-          <div class="section-head">
-            <h2>Redeem Fast Pass</h2>
-            <p>Enter the student admin number. Staff mark the pass used here — not on the student’s phone.</p>
           </div>
-          <form class="auth-card award-stamp-form" id="staffRedeemLookupForm">
+          <div class="short-waits" id="shortWaits"></div>
+          <details class="announce-panel" id="announceDetails">
+            <summary class="announce-panel__summary">
+              <h2>Staff announcements</h2>
+              <p>
+                Official updates from facilitators — house closures, last entry,
+                and stage notes.
+              </p>
+            </summary>
+            <ul class="announce-list" id="announceStrip"></ul>
+          </details>
+          <div class="section-head">
+            <h2>Scare House Wait Times</h2>
+            <p>
+              Fifteen haunts across campus. Sorted by wait. Times show when
+              staff last published.
+            </p>
+          </div>
+          <div class="house-filters" id="houseFilters">
+            <label class="house-filters__search">
+              <span class="visually-hidden">Search scare houses</span>
+              <input
+                id="houseSearch"
+                type="search"
+                placeholder="Search name or code (T11, library)"
+                autocomplete="off"
+              />
+            </label>
+            <div
+              class="house-filters__chips"
+              role="group"
+              aria-label="Wait status"
+            >
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-status="walkin"
+              >
+                Walk-in
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-status="queue"
+              >
+                Open / busy
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-status="at_capacity"
+              >
+                At capacity
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-status="closed"
+              >
+                Closed
+              </button>
+            </div>
+            <div class="house-filters__chips" role="group" aria-label="Access">
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-tag="strobe"
+              >
+                Strobe
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-tag="stairs"
+              >
+                Stairs
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-tag="jumpscare"
+              >
+                Jumpscare
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-tag="outdoors"
+              >
+                Outdoors
+              </button>
+            </div>
+          </div>
+          <div class="house-grid" id="houseGrid"></div>
+          <div class="my-night-panel" id="myNightPanel">
+            <h3 class="roadmap__title">My night</h3>
+            <p class="muted" id="myNightHint">
+              Open a house from the map or list, then tap Add to my night.
+            </p>
+            <ol class="my-night-list" id="myNightList"></ol>
+          </div>
+        </section>
+
+        <section class="view" data-view="tonight" hidden>
+          <div class="section-head">
+            <h2>Tonight at Scream Fest</h2>
+            <p id="scheduleDateLabel">
+              Performances and house hours for the night. Times are Singapore
+              time.
+            </p>
+          </div>
+          <div class="announce-board">
+            <h3 class="roadmap__title">Staff announcements</h3>
+            <p class="muted announce-board__hint">
+              Official updates from facilitators. Newest first.
+            </p>
+            <ul class="announce-list" id="announceList"></ul>
+          </div>
+          <h3 class="roadmap__title">Night programme</h3>
+          <ol class="night-timeline" id="nightTimeline"></ol>
+        </section>
+
+        <section class="view" data-view="login" hidden>
+          <div class="login-page">
+            <div class="section-head">
+              <h2>Sign in</h2>
+              <p>
+                Pick the form that matches you. Admin number is
+                <strong>P</strong> plus seven digits, for example
+                <strong>P1234567</strong>. The 7 digits alone also work.
+              </p>
+            </div>
+            <div class="login-split">
+              <form class="auth-card" id="studentLoginForm">
+                <p class="auth-card__kicker">Students</p>
+                <h2>Open your stamp card</h2>
+                <p class="muted">
+                  No student password. First visit creates your card. Come back
+                  with the same admin number and name.
+                </p>
+                <label>
+                  Admin number
+                  <input
+                    id="studentLoginId"
+                    name="adminNumber"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="username"
+                    maxlength="16"
+                    placeholder="P1234567"
+                    spellcheck="false"
+                    required
+                  />
+                  <span class="field-hint"
+                    >P plus 7 digits, or just the 7 digits</span
+                  >
+                </label>
+                <label>
+                  Full name
+                  <input
+                    id="studentLoginName"
+                    name="fullName"
+                    type="text"
+                    autocomplete="name"
+                    maxlength="80"
+                    placeholder="Full name on your card"
+                    required
+                  />
+                </label>
+                <label class="check-row">
+                  <input id="studentNotifyOptIn" type="checkbox" />
+                  <span
+                    >Notify this phone when a house I watch hits 0 minutes
+                    (walk-in). iPhone: Add to Home Screen first.</span
+                  >
+                </label>
+                <p class="form-error" id="studentLoginError" hidden></p>
+                <button class="btn" type="submit">Open stamp card</button>
+              </form>
+              <form class="auth-card auth-card--staff" id="staffLoginForm">
+                <p class="auth-card__kicker">Staff</p>
+                <h2>Facilitator access</h2>
+                <p class="muted">
+                  Same admin number format, plus the staff password. Wait-time,
+                  stamp, and full-admin passwords can differ in production.
+                </p>
+                <label>
+                  Admin number
+                  <input
+                    id="staffLoginId"
+                    name="adminNumber"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="username"
+                    maxlength="16"
+                    placeholder="P1234567"
+                    spellcheck="false"
+                    required
+                  />
+                </label>
+                <label>
+                  Full name
+                  <input
+                    id="staffLoginName"
+                    name="fullName"
+                    type="text"
+                    autocomplete="name"
+                    maxlength="80"
+                    placeholder="Your name"
+                    required
+                  />
+                </label>
+                <label>
+                  Staff password
+                  <input
+                    id="staffLoginPassword"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    maxlength="80"
+                    required
+                  />
+                </label>
+                <p class="form-error" id="staffLoginError" hidden></p>
+                <button class="btn" type="submit">Staff sign in</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="stamps" hidden>
+          <div id="studentAuth" class="auth-card">
+            <p class="auth-card__kicker">SP Scream Fest</p>
+            <h2>Sign in to open your card</h2>
+            <p>
+              Stamp cards are tied to your admin number (P followed by 7
+              digits). Use the same Sign in page as the rest of the night.
+            </p>
+            <ul class="stamp-gate-points">
+              <li>Six booth stamps unlock Fast Pass</li>
+              <li>Staff stamp you at the booth — you cannot stamp yourself</li>
+              <li>Come back with the same admin number and name</li>
+            </ul>
+            <p class="form-error" id="studentAuthError" hidden></p>
+            <button class="btn" type="button" data-nav="login">
+              Go to Sign in
+            </button>
+          </div>
+
+          <div id="stampApp" hidden>
+            <article class="passport">
+              <div class="passport__id">
+                <svg
+                  class="progress-ring"
+                  viewBox="0 0 42 42"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="21"
+                    cy="21"
+                    r="16"
+                    fill="none"
+                    stroke="rgba(255,122,24,.2)"
+                    stroke-width="4"
+                  ></circle>
+                  <circle
+                    id="stampFill"
+                    class="progress-ring__fill"
+                    cx="21"
+                    cy="21"
+                    r="16"
+                    fill="none"
+                    stroke="#ff7a18"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    pathLength="100"
+                    stroke-dasharray="100"
+                    stroke-dashoffset="100"
+                  ></circle>
+                </svg>
+                <div>
+                  <p class="passport__event">SP Scream Fest</p>
+                  <h2 id="stampHolderName">Student</h2>
+                  <p class="passport__idno" id="stampHolderId"></p>
+                  <p class="stamp-progress" id="stampProgress">
+                    0 / 6 runes lit
+                  </p>
+                </div>
+              </div>
+              <p class="passport__hint">
+                Staff stamp you at each booth — you cannot stamp yourself. Visit
+                booths in any order, then show your name and admin number at the
+                Fast Pass desk.
+              </p>
+              <p class="compare-kicker">
+                Compare layouts — same stamps, two cards
+              </p>
+              <h3 class="roadmap__title">Stamp card grid</h3>
+              <p class="station-map__lead">
+                Three pads on top, three below. Each booth inks one pad and
+                uncovers 1/6 of the Fast Pass.
+              </p>
+              <div class="stamp-grid" id="stampGrid"></div>
+              <h3 class="roadmap__title">Ticket map</h3>
+              <p class="station-map__lead">
+                Current: pins on the ticket, fog punches a hole around each
+                stamp. Six stamps uncage the lantern.
+              </p>
+              <div class="station-map" id="stampRoadmap"></div>
+              <article class="fast-pass" id="fastPassCard">
+                <div class="haunt-fx" aria-hidden="true">
+                  <span class="haunt-fx__rays"></span>
+                  <span class="haunt-fx__mist haunt-fx__mist--a"></span>
+                  <span class="haunt-fx__mist haunt-fx__mist--b"></span>
+                  <span class="haunt-fx__ground"></span>
+                  <span class="haunt-fx__web haunt-fx__web--tl"></span>
+                  <span class="haunt-fx__web haunt-fx__web--tr"></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 8%; --d: 0s; --t: 7s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 18%; --d: 1.4s; --t: 8.2s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 31%; --d: 2.8s; --t: 6.6s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 44%; --d: 0.6s; --t: 7.8s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 58%; --d: 3.2s; --t: 9s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 71%; --d: 1.1s; --t: 6.4s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 82%; --d: 2.2s; --t: 8.5s"
+                  ></span>
+                  <span
+                    class="haunt-fx__ember"
+                    style="--x: 93%; --d: 4s; --t: 7.2s"
+                  ></span>
+                  <span
+                    class="haunt-fx__fly"
+                    style="--y: 12%; --d: 0s; --t: 18s"
+                    >🦇</span
+                  >
+                  <span
+                    class="haunt-fx__fly haunt-fx__fly--rev"
+                    style="--y: 28%; --d: 5s; --t: 22s"
+                    >🍂</span
+                  >
+                  <span
+                    class="haunt-fx__fly"
+                    style="--y: 62%; --d: 9s; --t: 20s"
+                    >🦇</span
+                  >
+                  <span
+                    class="haunt-fx__fly haunt-fx__fly--rev"
+                    style="--y: 78%; --d: 3s; --t: 26s"
+                    >👻</span
+                  >
+                </div>
+                <p class="fast-pass__kicker" id="passKicker">Caged spirit</p>
+                <h3>Your spirit</h3>
+                <p class="lantern__spirit" id="spiritName" data-spirit-name>
+                  Ember Wisp
+                </p>
+                <div class="lantern">
+                  <span class="lantern__handle" aria-hidden="true"></span>
+                  <div class="lantern__core">
+                    <span class="lantern__cap" aria-hidden="true"></span>
+                    <button
+                      class="lantern__raise"
+                      id="lanternRaise"
+                      type="button"
+                      data-raise-spirit
+                      aria-expanded="false"
+                      aria-controls="passPlate"
+                    >
+                      <span class="lantern__glass">
+                        <span class="lantern__ribs" aria-hidden="true"></span>
+                        <span class="lantern__flame" aria-hidden="true"></span>
+                        <span class="ghost" aria-hidden="true">
+                          <span class="ghost__sheet">
+                            <span class="ghost__eye ghost__eye--l"></span>
+                            <span class="ghost__eye ghost__eye--r"></span>
+                            <span class="ghost__eye ghost__eye--m"></span>
+                          </span>
+                          <span class="ghost__tail"></span>
+                        </span>
+                        <span class="lantern__cage" aria-hidden="true">
+                          <span></span><span></span><span></span><span></span
+                          ><span></span>
+                          <i></i>
+                        </span>
+                        <span class="visually-hidden">Raise your spirit</span>
+                      </span>
+                    </button>
+                    <span class="lantern__base" aria-hidden="true"></span>
+                    <div class="lantern__orbit" aria-hidden="true">
+                      <span class="lantern__halo"></span>
+                      <span class="lantern__halo lantern__halo--outer"></span>
+                      <span class="lantern__motes">
+                        <i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i
+                        ><i></i><i></i><i></i><i></i>
+                      </span>
+                      <span class="lantern__sparks">
+                        <i></i><i></i><i></i><i></i><i></i><i></i> <i></i><i></i
+                        ><i></i><i></i>
+                      </span>
+                    </div>
+                    <div class="lantern__sigil-wrap" aria-hidden="true">
+                      <span class="lantern__sigil-aura"></span>
+                      <span class="lantern__sigil-seeker"><i></i></span>
+                      <span
+                        class="lantern__sigil-seeker lantern__sigil-seeker--b"
+                        ><i></i
+                      ></span>
+                      <svg class="lantern__sigil" viewBox="0 0 280 280">
+                        <defs>
+                          <mask id="lanternSigilClear">
+                            <rect width="280" height="280" fill="white" />
+                            <circle cx="140" cy="140" r="108" fill="black" />
+                          </mask>
+                        </defs>
+                        <g mask="url(#lanternSigilClear)">
+                          <circle
+                            class="lantern__sigil-orbit"
+                            cx="140"
+                            cy="140"
+                            r="140"
+                            fill="none"
+                            pathLength="96"
+                          />
+                          <circle
+                            class="lantern__sigil-flow"
+                            cx="140"
+                            cy="140"
+                            r="140"
+                            fill="none"
+                            pathLength="96"
+                          />
+                          <circle
+                            class="lantern__sigil-orbit lantern__sigil-orbit--inner"
+                            cx="140"
+                            cy="140"
+                            r="126"
+                            fill="none"
+                            pathLength="48"
+                          />
+                          <polygon
+                            class="lantern__sigil-hex"
+                            points="140,0 261.2,70 261.2,210 140,280 18.8,210 18.8,70"
+                          />
+                          <polygon
+                            class="lantern__sigil-hex lantern__sigil-hex--inner"
+                            points="140,14 249.1,77 249.1,203 140,266 30.9,203 30.9,77"
+                          />
+                        </g>
+                        <g class="lantern__sigil-script">
+                          <path
+                            d="M140 18v8M152 19l3 7M128 19l-3 7M164 24l5 6M116 24l-5 6"
+                          />
+                          <path d="M252 70l-7 4M248 82l-8 2M255 58l-6 6" />
+                          <path d="M252 210l-7-4M248 198l-8-2M255 222l-6-6" />
+                          <path
+                            d="M140 262v-8M152 261l3-7M128 261l-3-7M164 256l5-6M116 256l-5-6"
+                          />
+                          <path d="M28 210l7-4M32 198l8-2M25 222l6-6" />
+                          <path d="M28 70l7 4M32 82l8 2M25 58l6 6" />
+                        </g>
+                        <g class="lantern__sigil-ticks">
+                          <path d="M140 4v16" />
+                          <path d="M258 68l-14 8" />
+                          <path d="M258 212l-14-8" />
+                          <path d="M140 276v-16" />
+                          <path d="M22 212l14-8" />
+                          <path d="M22 68l14 8" />
+                        </g>
+                        <g class="lantern__sigil-notches">
+                          <path d="M198 24l6-11 6 11" />
+                          <path d="M256 140h12" />
+                          <path d="M198 256l6 11 6-11" />
+                          <path d="M82 256l-6 11-6-11" />
+                          <path d="M12 140H0" />
+                          <path d="M82 24l-6-11-6 11" />
+                        </g>
+                        <g class="lantern__sigil-nodes">
+                          <circle cx="140" cy="0" r="3.2" />
+                          <circle cx="261.2" cy="70" r="3.2" />
+                          <circle cx="261.2" cy="210" r="3.2" />
+                          <circle cx="140" cy="280" r="3.2" />
+                          <circle cx="18.8" cy="210" r="3.2" />
+                          <circle cx="18.8" cy="70" r="3.2" />
+                        </g>
+                      </svg>
+                    </div>
+                    <div class="lantern__runes" id="lanternRunes">
+                      <span class="lantern__rune-slot" style="--rune: 0"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="1"
+                          aria-label="Pumpkin Gate"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <circle cx="20" cy="20" r="9" />
+                              <path
+                                d="M20 2v7M20 31v7M2 20h7M31 20h7M6 6l5 5M29 29l5 5M34 6l-5 5M6 34l5-5M20 11v18M11 20h18"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">🎃</span>
+                        </button></span
+                      >
+                      <span class="lantern__rune-slot" style="--rune: 1"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="2"
+                          aria-label="Bat Colony"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <path
+                                d="M20 5v30M7 14l13 9 13-9M7 26l13-9 13 9M12 8h16M12 32h16M20 14l-6 16M20 14l6 16"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">🦇</span>
+                        </button></span
+                      >
+                      <span class="lantern__rune-slot" style="--rune: 2"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="3"
+                          aria-label="Plaza Ghost"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <circle cx="20" cy="20" r="10" />
+                              <circle cx="20" cy="20" r="5" />
+                              <path
+                                d="M8 12h24M8 28h24M14 6v28M26 6v28"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">👻</span>
+                        </button></span
+                      >
+                      <span class="lantern__rune-slot" style="--rune: 3"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="4"
+                          aria-label="Web Lab"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <path
+                                d="M20 4l16 16-16 16L4 20zM20 4v32M4 20h32M8 8l24 24M32 8 8 32M20 10l10 10-10 10L10 20z"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">🕸️</span>
+                        </button></span
+                      >
+                      <span class="lantern__rune-slot" style="--rune: 4"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="5"
+                          aria-label="Candy Court"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <path
+                                d="M7 10c9 5 17 5 26 0M7 20h26M7 30c9-5 17-5 26 0M13 7v26M27 7v26M10 15l10 5 10-5M10 25l10-5 10 5"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">🍬</span>
+                        </button></span
+                      >
+                      <span class="lantern__rune-slot" style="--rune: 5"
+                        ><button
+                          class="lantern__rune"
+                          type="button"
+                          data-stamp="6"
+                          aria-label="Crypt Keep"
+                        >
+                          <span class="lantern__rune-glow"></span
+                          ><span class="lantern__rune-stone"></span
+                          ><span class="lantern__rune-etch"
+                            ><svg viewBox="0 0 40 40">
+                              <circle cx="20" cy="20" r="15" />
+                              <path
+                                d="M12 32V16c0-6 16-6 16 0v16M12 32h16M20 8v8M14 12h12M16 32v-9h8v9M20 23v9"
+                              /></svg></span
+                          ><span class="lantern__rune-glyph">🕯️</span>
+                        </button></span
+                      >
+                    </div>
+                  </div>
+                  <p class="lantern__hint" id="lanternHint">
+                    The spirit is caged. Stamp booths to uncover your ticket
+                  </p>
+                </div>
+                <div class="pass-plate" id="passPlate">
+                  <p class="pass-plate__name" id="passHolder"></p>
+                  <p class="pass-plate__admin" id="passAdmin"></p>
+                  <p class="fast-pass__id is-locked" id="passId">
+                    Locked · 0 / 6 runes lit
+                  </p>
+                </div>
+                <span class="fast-pass__used" id="passUsedMark" hidden
+                  >Laid to rest</span
+                >
+                <p class="muted" id="redeemedNote" hidden></p>
+              </article>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-view="games" hidden>
+          <article
+            class="game-panel game-panel--arcade"
+            data-game-panel="clicker"
+          >
+            <div class="section-head">
+              <h2>Pumpkin clicker</h2>
+              <p>
+                Tap the core for candy. Install systems for idle production,
+                chain taps for combos, and prestige for a lasting curse
+                multiplier.
+              </p>
+            </div>
+            <div class="clicker-layout">
+              <div class="clicker-core">
+                <div class="arcade-hud arcade-hud--clicker" aria-live="polite">
+                  <div class="arcade-stat">
+                    <span>Candy</span>
+                    <strong id="clickerCount">0</strong>
+                  </div>
+                  <div class="arcade-stat">
+                    <span>Output</span>
+                    <strong id="clickerRate">0/s</strong>
+                  </div>
+                  <div class="arcade-stat">
+                    <span>Curses</span>
+                    <strong id="clickerPrestige">0</strong>
+                  </div>
+                  <div class="arcade-stat">
+                    <span>Best</span>
+                    <strong data-best="clicker">0</strong>
+                  </div>
+                  <div class="arcade-stat arcade-stat--combo">
+                    <span>Combo</span>
+                    <strong id="clickerCombo">x1</strong>
+                  </div>
+                </div>
+                <div class="orb-stage">
+                  <canvas
+                    id="clickerFx"
+                    class="clicker-fx"
+                    width="280"
+                    height="280"
+                    aria-hidden="true"
+                  ></canvas>
+                  <button
+                    class="clicker-orb"
+                    id="clickerPumpkin"
+                    type="button"
+                    aria-label="Tap pumpkin"
+                  >
+                    <span class="clicker-orb__halo" aria-hidden="true"></span>
+                    <span class="clicker-orb__ring" aria-hidden="true"></span>
+                    <span class="clicker-orb__core" aria-hidden="true">🎃</span>
+                  </button>
+                  <div
+                    id="clickerFloats"
+                    class="clicker-floats"
+                    aria-hidden="true"
+                  ></div>
+                </div>
+                <div class="clicker-frenzy" id="clickerFrenzy" hidden>
+                  <span>Frenzy</span>
+                  <div class="clicker-frenzy__bar">
+                    <i id="clickerFrenzyFill"></i>
+                  </div>
+                </div>
+                <div class="clicker-progress">
+                  <div class="clicker-progress__meta">
+                    <span id="clickerProgressLabel">Next milestone</span>
+                    <span id="clickerTier">Tier 1</span>
+                  </div>
+                  <div class="clicker-progress__track">
+                    <i id="clickerProgressFill"></i>
+                  </div>
+                </div>
+                <p class="muted clicker-flavor" id="clickerFlavor">
+                  Tap the core. Buy systems. Keep the streak alive.
+                </p>
+                <div class="game-actions clicker-core-actions">
+                  <button class="btn" id="clickerPrestigeBtn" type="button">
+                    Prestige
+                  </button>
+                </div>
+              </div>
+              <div class="clicker-shop-wrap">
+                <h3 class="roadmap__title">Systems</h3>
+                <div class="clicker-shop" id="clickerShop"></div>
+              </div>
+            </div>
+            <p class="game-toast" id="clickerToast" hidden></p>
+            <h3 class="roadmap__title">Milestones</h3>
+            <ul class="achieve-list" id="clickerAchievements"></ul>
+            <h3 class="roadmap__title">Top scores</h3>
+            <ol class="scoreboard" data-scoreboard="clicker"></ol>
+          </article>
+
+          <article class="game-panel" data-game-panel="memory" hidden>
+            <div class="section-head">
+              <h2>Memory match</h2>
+              <p>
+                Flip two cards at a time and match every Halloween pair. Easy
+                uses a smaller set; Difficult uses a larger board. The timer
+                starts when you press Start and resets each new round.
+              </p>
+            </div>
+            <p class="game-meta">
+              Best: <strong data-best="memory">0</strong> · Time:
+              <strong id="memoryTimer">0:00</strong>
+            </p>
+            <p id="memoryStatus" class="muted"></p>
+            <div class="game-actions">
+              <label class="diff-label">
+                Difficulty
+                <select id="memoryDifficulty">
+                  <option value="easy">Easy</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="hard">Difficult</option>
+                </select>
+              </label>
+              <button class="btn" id="memoryStart" type="button">
+                Start round
+              </button>
+            </div>
+            <div class="memory-grid" id="memoryGrid" data-diff="medium"></div>
+            <h3 class="roadmap__title">Top scores</h3>
+            <ol class="scoreboard" data-scoreboard="memory"></ol>
+          </article>
+
+          <article
+            class="game-panel game-panel--arcade"
+            data-game-panel="catch"
+            hidden
+          >
+            <div class="section-head">
+              <h2>Catch the treats</h2>
+              <p>
+                Steer the catcher. Treats score, rares pay more, cores start a
+                bonus window. Hazards cut your combo. Pause freezes the round;
+                leaving Games pauses automatically.
+              </p>
+            </div>
+            <div class="catch-stage">
+              <div class="arcade-hud arcade-hud--catch" aria-live="polite">
+                <div class="arcade-stat">
+                  <span>Score</span>
+                  <strong id="catchScore">0</strong>
+                </div>
+                <div class="arcade-stat">
+                  <span>Best</span>
+                  <strong data-best="catch">0</strong>
+                </div>
+                <div class="arcade-stat arcade-stat--combo">
+                  <span>Combo</span>
+                  <strong id="catchCombo">x1</strong>
+                </div>
+                <div class="arcade-stat">
+                  <span>Mult</span>
+                  <strong id="catchMult">x1</strong>
+                </div>
+                <div class="arcade-stat">
+                  <span>Wave</span>
+                  <strong id="catchLevel">1</strong>
+                </div>
+                <div class="arcade-stat">
+                  <span>Time</span>
+                  <strong id="catchTime">0:45</strong>
+                </div>
+              </div>
+              <p id="catchStatus" class="catch-status">
+                Press start, then drag or use the arrow keys.
+              </p>
+              <div class="game-actions catch-actions">
+                <button class="btn" id="catchStart" type="button">
+                  Start round
+                </button>
+                <button
+                  class="btn btn--ghost"
+                  id="catchPause"
+                  type="button"
+                  hidden
+                >
+                  Pause
+                </button>
+              </div>
+              <div class="catch-frame">
+                <canvas
+                  id="catchCanvas"
+                  class="catch-canvas"
+                  width="360"
+                  height="480"
+                ></canvas>
+              </div>
+              <ul class="catch-legend">
+                <li><span>🍬</span> Treat</li>
+                <li><span>🎃</span> Rare</li>
+                <li><span>✦</span> Bonus</li>
+                <li><span>💀</span> Hazard</li>
+              </ul>
+            </div>
+            <h3 class="roadmap__title">Top scores</h3>
+            <ol class="scoreboard" data-scoreboard="catch"></ol>
+          </article>
+        </section>
+
+        <section class="view" data-view="feedback" hidden>
+          <div class="section-head">
+            <h2>Night feedback</h2>
+            <p>
+              Tell staff how a scare house or booth went. Keep it short and
+              useful.
+            </p>
+          </div>
+          <form class="auth-card feedback-form" id="feedbackForm">
             <label>
-              Admin number
-              <input id="redeemStudentNumber" type="text" autocomplete="off" maxlength="16" placeholder="P1234567" spellcheck="false" required>
-              <span class="field-hint">P followed by 7 digits</span>
-            </label>
-            <p class="form-error" id="staffRedeemError" hidden></p>
-            <button class="btn" type="submit">Look up</button>
-          </form>
-          <article class="fast-pass staff-pass-preview" id="staffRedeemReady" hidden>
-            <p class="fast-pass__kicker">Ready to redeem</p>
-            <h3>SP Scream Fest Fast Pass</h3>
-            <p class="fast-pass__holder" id="staffRedeemName"></p>
-            <p class="fast-pass__id" id="staffRedeemId"></p>
-            <p class="muted" id="staffRedeemStamps"></p>
-            <button class="btn" id="staffRedeemConfirm" type="button">Mark redeemed</button>
-            <button class="btn btn--ghost" type="button" data-redeem-reset>Look up another</button>
-          </article>
-          <article class="fast-pass is-redeemed staff-pass-used" id="staffRedeemUsed" hidden>
-            <p class="fast-pass__kicker">Used</p>
-            <h3>Fast Pass redeemed</h3>
-            <p class="fast-pass__holder" id="staffUsedName"></p>
-            <p class="fast-pass__id" id="staffUsedId"></p>
-            <p class="muted" id="staffUsedNote"></p>
-            <button class="btn" type="button" data-redeem-reset>Look up another</button>
-          </article>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="ops" hidden>
-          <div class="section-head">
-            <h2>Command post</h2>
-            <p>Live counts for the night. Needs a working API and database.</p>
-          </div>
-          <div class="ops-grid" id="opsGrid"></div>
-          <h3 class="roadmap__title">Recent staff actions</h3>
-          <ul class="feedback-list" id="opsAudit"></ul>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="feedback" hidden>
-          <div class="section-head">
-            <h2>Submitted feedback</h2>
-            <p>Filter by type, then by a specific scare house or booth.</p>
-          </div>
-          <div class="admin-toolbar feedback-filters">
-            <button class="nav__btn is-active" type="button" data-fb-kind="">All</button>
-            <button class="nav__btn" type="button" data-fb-kind="scare_house">Scare Houses</button>
-            <button class="nav__btn" type="button" data-fb-kind="booth">Booths</button>
-            <label class="diff-label" id="feedbackTargetWrap" hidden>
-              Specific
-              <select id="adminFeedbackTarget">
-                <option value="">All in this type</option>
+              About
+              <select id="feedbackKind" required>
+                <option value="scare_house">Scare Houses</option>
+                <option value="booth">Booths</option>
               </select>
             </label>
-          </div>
-          <p class="form-error" id="adminFeedbackError" hidden></p>
-          <ul class="feedback-list" id="adminFeedbackList"></ul>
-        </div>
-
-        <div class="staff-panel" data-staff-panel="announce" hidden>
-          <div class="section-head">
-            <h2>Staff announcements</h2>
-            <p>Posted notes show under Staff announcements on Event Map and Tonight. Take down when they are no longer needed.</p>
-          </div>
-          <form class="auth-card" id="announceForm">
             <label>
-              Message
-              <textarea id="announceMessage" rows="3" maxlength="400" required placeholder="House T12 last entry in 10 minutes…"></textarea>
+              Which one
+              <select id="feedbackTarget" required></select>
             </label>
             <label>
-              Who should see it
-              <select id="announceAudience">
-                <option value="all">Everyone</option>
-                <option value="house">One scare house</option>
-                <option value="booths">Booths / stamp trail</option>
+              Rating
+              <select id="feedbackRating">
+                <option value="">No stars — comment only</option>
+                <option value="5">5 — excellent</option>
+                <option value="4">4 — good</option>
+                <option value="3">3 — okay</option>
+                <option value="2">2 — weak</option>
+                <option value="1">1 — poor</option>
               </select>
             </label>
-            <label id="announceHouseWrap" hidden>
-              Scare house
-              <select id="announceHouse"></select>
-            </label>
             <label>
-              Auto-expire (minutes, optional)
-              <input id="announceExpires" type="number" min="0" max="600" placeholder="Leave blank to keep">
+              Your feedback
+              <textarea
+                id="feedbackMessage"
+                rows="4"
+                maxlength="1000"
+                placeholder="Optional if you pick a rating. What worked, what to fix…"
+              ></textarea>
             </label>
-            <p class="form-error" id="announceError" hidden></p>
-            <button class="btn" type="submit">Post announcement</button>
+            <p class="form-error" id="feedbackError" hidden></p>
+            <p class="form-ok" id="feedbackOk" hidden>
+              Thanks — staff can read this on the Staff page.
+            </p>
+            <button class="btn" type="submit">Send feedback</button>
           </form>
-          <ul class="feedback-list" id="adminAnnounceList"></ul>
+        </section>
+
+        <section class="view" data-view="guide" hidden>
+          <div class="section-head">
+            <h2>How to use this site</h2>
+            <p>
+              Keep this tab open — wait times update on their own. Pins and
+              house cards use the same colours.
+            </p>
+          </div>
+
+          <h3 class="guide-heading">House states</h3>
+          <p class="guide-lead">
+            Match the pin and the card before you queue. Staff set these live.
+          </p>
+          <div class="guide-states">
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <svg
+                  class="guide-pin guide-pin--walkin"
+                  viewBox="0 0 40 52"
+                  aria-hidden="true"
+                >
+                  <path
+                    class="guide-pin__mark"
+                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
+                  />
+                  <circle cx="20" cy="18" r="6.5" fill="#052e16" />
+                </svg>
+                <article class="house-card house-card--sample status-open">
+                  <div class="house-card__open">
+                    <span class="house-card__short">T18A</span>
+                    <strong>Aerohub Crypt</strong>
+                    <span class="status-pill status-walkin">Walk-in</span>
+                    <span class="wait">Walk in</span>
+                    <span class="fresh muted">Just updated</span>
+                  </div>
+                </article>
+              </div>
+              <h3>Walk-in</h3>
+              <p>
+                Wait is 0 minutes and the house is open. Go now — nobody is
+                queued. Tap <strong>Alert when walk-in</strong> on other houses
+                if you want a ping when they hit this.
+              </p>
+            </article>
+
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <svg
+                  class="guide-pin guide-pin--open"
+                  viewBox="0 0 40 52"
+                  aria-hidden="true"
+                >
+                  <path
+                    class="guide-pin__mark"
+                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
+                  />
+                  <circle cx="20" cy="18" r="6.5" fill="#052e16" />
+                </svg>
+                <article class="house-card house-card--sample status-open">
+                  <div class="house-card__open">
+                    <span class="house-card__short">EW22</span>
+                    <strong>Dover Gate Ghouls</strong>
+                    <span class="status-pill">Open</span>
+                    <span class="wait">8 min</span>
+                    <span class="fresh muted">Updated 2 min ago</span>
+                  </div>
+                </article>
+              </div>
+              <h3>Open</h3>
+              <p>
+                The house is running and taking guests. The number is the wait
+                staff last published. Queue as normal.
+              </p>
+            </article>
+
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <svg
+                  class="guide-pin guide-pin--busy"
+                  viewBox="0 0 40 52"
+                  aria-hidden="true"
+                >
+                  <path
+                    class="guide-pin__mark"
+                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
+                  />
+                  <circle cx="20" cy="18" r="6.5" fill="#3b1a04" />
+                </svg>
+                <article class="house-card house-card--sample status-busy">
+                  <div class="house-card__open">
+                    <span class="house-card__short">T12</span>
+                    <strong>Atrium Abyss</strong>
+                    <span class="status-pill">Busy</span>
+                    <span class="wait">25 min</span>
+                    <span class="fresh muted">Updated 4 min ago</span>
+                  </div>
+                </article>
+              </div>
+              <h3>Busy</h3>
+              <p>
+                Still open, but the wait is longer. The queue is moving. Check
+                the minutes before you commit, or pick a shorter house.
+              </p>
+            </article>
+
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <svg
+                  class="guide-pin guide-pin--full"
+                  viewBox="0 0 40 52"
+                  aria-hidden="true"
+                >
+                  <path
+                    class="guide-pin__mark"
+                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
+                  />
+                  <circle cx="20" cy="18" r="6.5" fill="#2e1064" />
+                </svg>
+                <article
+                  class="house-card house-card--sample status-at_capacity"
+                >
+                  <div class="house-card__open">
+                    <span class="house-card__short">LIB</span>
+                    <strong>Library of Lost Souls</strong>
+                    <span class="status-pill">At Capacity</span>
+                    <span class="wait">40 min · Full</span>
+                    <span class="fresh muted">Updated 1 min ago</span>
+                  </div>
+                </article>
+              </div>
+              <h3>At capacity</h3>
+              <p>
+                The house is full. <strong>The queue stops</strong> — staff will
+                not take new guests until people leave. Do not join a line. Come
+                back later or choose another haunt.
+              </p>
+            </article>
+
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <svg
+                  class="guide-pin guide-pin--closed"
+                  viewBox="0 0 40 52"
+                  aria-hidden="true"
+                >
+                  <path
+                    class="guide-pin__mark"
+                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
+                  />
+                  <circle cx="20" cy="18" r="6.5" fill="#450a0a" />
+                </svg>
+                <article class="house-card house-card--sample status-closed">
+                  <div class="house-card__open">
+                    <span class="house-card__short">WSA</span>
+                    <strong>West Coast Warehouse</strong>
+                    <span class="status-pill">Closed</span>
+                    <span class="wait">Closed</span>
+                    <span class="fresh muted">Updated 10 min ago</span>
+                  </div>
+                </article>
+              </div>
+              <h3>Closed</h3>
+              <p>
+                Not running right now (reset, last entry, or a pause). Pins and
+                cards go red. Don’t wait at the door until it shows Open, Busy,
+                or Walk-in again.
+              </p>
+            </article>
+          </div>
+
+          <h3 class="guide-heading">Using the rest of the site</h3>
+          <ol class="how-list">
+            <li>
+              Use <strong>Event Map</strong> to tap pins or house cards. Times
+              are Singapore time, published by staff.
+            </li>
+            <li>
+              <strong>Sign in</strong> with your admin number and name to open
+              your stamp card. Staff stamp you at booths — you cannot stamp
+              yourself.
+            </li>
+            <li>
+              Six stamps unlock Fast Pass. Show it at the Fast Pass desk; staff
+              mark it used on their side.
+            </li>
+            <li>
+              <strong>Tonight</strong> is the programme.
+              <strong>Games</strong> are optional. Send
+              <strong>Feedback</strong> if a house or booth needs a note.
+            </li>
+            <li>
+              Tap <strong>Alert when walk-in</strong> on a house for a ping at 0
+              minutes. On iPhone, add this site to your Home Screen first.
+            </li>
+            <li>
+              Help desk, meetup, and skip-house notes live on
+              <strong>Safety</strong>.
+            </li>
+          </ol>
+        </section>
+
+        <section class="view" data-view="safety" hidden>
+          <div class="section-head">
+            <h2>Stay safe tonight</h2>
+            <p>
+              General notes for SP Scream Fest. Follow staff instructions on the
+              ground.
+            </p>
+          </div>
+          <ul class="safety-list" id="safetyList"></ul>
+        </section>
+
+        <section class="view" data-view="follow" hidden>
+          <div class="section-head">
+            <h2>Follow us</h2>
+            <p>
+              Scream Fest is brought to you by these SP student clubs. Instagram
+              and email links are placeholders until the official accounts are
+              confirmed.
+            </p>
+          </div>
+          <div class="club-grid" id="clubFollowList"></div>
+        </section>
+
+        <section class="view" data-view="admin" hidden>
+          <div id="adminGate" class="auth-card">
+            <p class="auth-card__kicker">SP Scream Fest</p>
+            <h2>Staff tools</h2>
+            <p>
+              Use the same Sign in page as students. Enter your admin number (P
+              plus 7 digits), full name, and staff password.
+            </p>
+            <button class="btn" type="button" data-nav="login">
+              Go to Sign in
+            </button>
+          </div>
+
+          <div id="adminApp" hidden>
+            <p class="db-banner" id="dbBanner" hidden></p>
+            <details class="staff-log">
+              <summary>Error log</summary>
+              <p class="muted">
+                Newest first. When a staff action fails, the full message lands
+                here.
+              </p>
+              <ul class="staff-log__list" id="staffErrorLog"></ul>
+              <button class="btn btn--ghost" id="staffLogClear" type="button">
+                Clear log
+              </button>
+            </details>
+            <div class="staff-tabs" role="tablist" aria-label="Staff sections">
+              <button
+                class="nav__btn is-active"
+                type="button"
+                data-staff-tab="waits"
+                data-staff-scope="waits"
+              >
+                Wait times
+              </button>
+              <button
+                class="nav__btn"
+                type="button"
+                data-staff-tab="stamps"
+                data-staff-scope="stamps"
+              >
+                Award stamps
+              </button>
+              <button
+                class="nav__btn"
+                type="button"
+                data-staff-tab="redeem"
+                data-staff-scope="stamps"
+              >
+                Redeem Fast Pass
+              </button>
+              <button
+                class="nav__btn"
+                type="button"
+                data-staff-tab="ops"
+                data-staff-scope="admin"
+              >
+                Command post
+              </button>
+              <button
+                class="nav__btn"
+                type="button"
+                data-staff-tab="feedback"
+                data-staff-scope="admin"
+              >
+                Feedback
+              </button>
+              <button
+                class="nav__btn"
+                type="button"
+                data-staff-tab="announce"
+                data-staff-scope="admin"
+              >
+                Announcements
+              </button>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="waits">
+              <div class="section-head">
+                <h2>Wait-Time Control</h2>
+                <p>
+                  Edits sync to every open map when auto-save is on, or hit
+                  Publish.
+                </p>
+                <div class="admin-toolbar">
+                  <label class="toggle">
+                    <input id="autoSave" type="checkbox" checked />
+                    Instant auto-save
+                  </label>
+                  <button class="btn" id="publishAll" type="button">
+                    Publish all
+                  </button>
+                  <button class="btn btn--ghost" id="adminLock" type="button">
+                    Sign out
+                  </button>
+                </div>
+                <p class="form-error" id="waitSaveStatus" hidden></p>
+              </div>
+              <div class="table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Scare house</th>
+                      <th>Wait (min)</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminTable"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="stamps" hidden>
+              <div class="section-head">
+                <h2>Award a booth stamp</h2>
+                <p>
+                  Enter the student admin number, pick the booth, and award.
+                </p>
+              </div>
+              <form class="auth-card award-stamp-form" id="awardStampForm">
+                <div class="award-stamp-fields">
+                  <label>
+                    Admin number
+                    <input
+                      id="awardStudentNumber"
+                      type="text"
+                      autocomplete="off"
+                      maxlength="16"
+                      placeholder="P1234567"
+                      spellcheck="false"
+                      required
+                    />
+                    <span class="field-hint">P followed by 7 digits</span>
+                  </label>
+                  <label>
+                    Booth
+                    <select id="awardBooth" required></select>
+                  </label>
+                </div>
+                <p class="form-error" id="awardStampError" hidden></p>
+                <p class="muted" id="awardStampBusy" hidden>Awarding stamp…</p>
+                <p class="form-ok" id="awardStampOk" hidden></p>
+                <button class="btn" id="awardStampSubmit" type="submit">
+                  Award stamp
+                </button>
+              </form>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="redeem" hidden>
+              <div class="section-head">
+                <h2>Redeem Fast Pass</h2>
+                <p>
+                  Enter the student admin number. Staff mark the pass used here
+                  — not on the student’s phone.
+                </p>
+              </div>
+              <form
+                class="auth-card award-stamp-form"
+                id="staffRedeemLookupForm"
+              >
+                <label>
+                  Admin number
+                  <input
+                    id="redeemStudentNumber"
+                    type="text"
+                    autocomplete="off"
+                    maxlength="16"
+                    placeholder="P1234567"
+                    spellcheck="false"
+                    required
+                  />
+                  <span class="field-hint">P followed by 7 digits</span>
+                </label>
+                <p class="form-error" id="staffRedeemError" hidden></p>
+                <button class="btn" type="submit">Look up</button>
+              </form>
+              <article
+                class="fast-pass staff-pass-preview"
+                id="staffRedeemReady"
+                hidden
+              >
+                <p class="fast-pass__kicker">Ready to redeem</p>
+                <h3>SP Scream Fest Fast Pass</h3>
+                <p class="fast-pass__holder" id="staffRedeemName"></p>
+                <p class="fast-pass__id" id="staffRedeemId"></p>
+                <p class="muted" id="staffRedeemStamps"></p>
+                <button class="btn" id="staffRedeemConfirm" type="button">
+                  Mark redeemed
+                </button>
+                <button class="btn btn--ghost" type="button" data-redeem-reset>
+                  Look up another
+                </button>
+              </article>
+              <article
+                class="fast-pass is-redeemed staff-pass-used"
+                id="staffRedeemUsed"
+                hidden
+              >
+                <p class="fast-pass__kicker">Used</p>
+                <h3>Fast Pass redeemed</h3>
+                <p class="fast-pass__holder" id="staffUsedName"></p>
+                <p class="fast-pass__id" id="staffUsedId"></p>
+                <p class="muted" id="staffUsedNote"></p>
+                <button class="btn" type="button" data-redeem-reset>
+                  Look up another
+                </button>
+              </article>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="ops" hidden>
+              <div class="section-head">
+                <h2>Command post</h2>
+                <p>
+                  Live counts for the night. Needs a working API and database.
+                </p>
+              </div>
+              <div class="ops-grid" id="opsGrid"></div>
+              <h3 class="roadmap__title">Recent staff actions</h3>
+              <ul class="feedback-list" id="opsAudit"></ul>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="feedback" hidden>
+              <div class="section-head">
+                <h2>Submitted feedback</h2>
+                <p>Filter by type, then by a specific scare house or booth.</p>
+              </div>
+              <div class="admin-toolbar feedback-filters">
+                <button
+                  class="nav__btn is-active"
+                  type="button"
+                  data-fb-kind=""
+                >
+                  All
+                </button>
+                <button
+                  class="nav__btn"
+                  type="button"
+                  data-fb-kind="scare_house"
+                >
+                  Scare Houses
+                </button>
+                <button class="nav__btn" type="button" data-fb-kind="booth">
+                  Booths
+                </button>
+                <label class="diff-label" id="feedbackTargetWrap" hidden>
+                  Specific
+                  <select id="adminFeedbackTarget">
+                    <option value="">All in this type</option>
+                  </select>
+                </label>
+              </div>
+              <p class="form-error" id="adminFeedbackError" hidden></p>
+              <ul class="feedback-list" id="adminFeedbackList"></ul>
+            </div>
+
+            <div class="staff-panel" data-staff-panel="announce" hidden>
+              <div class="section-head">
+                <h2>Staff announcements</h2>
+                <p>
+                  Posted notes show under Staff announcements on Event Map and
+                  Tonight. Take down when they are no longer needed.
+                </p>
+              </div>
+              <form class="auth-card" id="announceForm">
+                <label>
+                  Message
+                  <textarea
+                    id="announceMessage"
+                    rows="3"
+                    maxlength="400"
+                    required
+                    placeholder="House T12 last entry in 10 minutes…"
+                  ></textarea>
+                </label>
+                <label>
+                  Who should see it
+                  <select id="announceAudience">
+                    <option value="all">Everyone</option>
+                    <option value="house">One scare house</option>
+                    <option value="booths">Booths / stamp trail</option>
+                  </select>
+                </label>
+                <label id="announceHouseWrap" hidden>
+                  Scare house
+                  <select id="announceHouse"></select>
+                </label>
+                <label>
+                  Auto-expire (minutes, optional)
+                  <input
+                    id="announceExpires"
+                    type="number"
+                    min="0"
+                    max="600"
+                    placeholder="Leave blank to keep"
+                  />
+                </label>
+                <p class="form-error" id="announceError" hidden></p>
+                <button class="btn" type="submit">Post announcement</button>
+              </form>
+              <ul class="feedback-list" id="adminAnnounceList"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="view board-view" data-view="board" hidden>
+          <div class="section-head">
+            <h2>Scream Fest board</h2>
+            <p>Campus high scores. Auto-refreshes for a projector.</p>
+          </div>
+          <div class="board-grid" id="boardGrid"></div>
+        </section>
+      </main>
+
+      <div class="modal" id="detailModal" hidden>
+        <div class="modal__backdrop" data-close-modal></div>
+        <div
+          class="modal__panel"
+          tabindex="-1"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="houseModalTitle"
+        >
+          <button
+            class="modal__close"
+            type="button"
+            data-close-modal
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <p class="modal__code" data-modal-code></p>
+          <h3 id="houseModalTitle" data-modal-title></h3>
+          <div class="modal__meta">
+            <span class="status-pill" data-modal-status></span>
+            <strong data-modal-wait></strong>
+          </div>
+          <p class="modal__story" data-modal-story></p>
+          <p class="house-tags" data-modal-tags></p>
+          <p class="muted" data-modal-updated></p>
+          <div class="modal-actions">
+            <button class="btn" type="button" id="modalAddNight">
+              Add to my night
+            </button>
+            <button class="btn btn--ghost" type="button" id="modalWatch">
+              Alert when walk-in
+            </button>
+          </div>
         </div>
       </div>
-    </section>
 
-    <section class="view board-view" data-view="board" hidden>
-      <div class="section-head">
-        <h2>Scream Fest board</h2>
-        <p>Campus high scores. Auto-refreshes for a projector.</p>
+      <div class="modal" id="boothsModal" hidden>
+        <div class="modal__backdrop" data-close-modal></div>
+        <div
+          class="modal__panel"
+          tabindex="-1"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="boothsModalTitle"
+        >
+          <button
+            class="modal__close"
+            type="button"
+            data-close-modal
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <p class="modal__code">Eleven Square</p>
+          <h3 id="boothsModalTitle">Booths</h3>
+          <p class="muted">Six stamp stations. Tap a booth for the brief.</p>
+          <div class="booths-list" id="boothsPinList"></div>
+        </div>
       </div>
-      <div class="board-grid" id="boardGrid"></div>
-    </section>
-  </main>
 
-  <div class="modal" id="detailModal" hidden>
-    <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="houseModalTitle">
-      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-      <p class="modal__code" data-modal-code></p>
-      <h3 id="houseModalTitle" data-modal-title></h3>
-      <div class="modal__meta">
-        <span class="status-pill" data-modal-status></span>
-        <strong data-modal-wait></strong>
+      <div class="modal" id="boothModal" hidden>
+        <div class="modal__backdrop" data-close-modal></div>
+        <div
+          class="modal__panel"
+          tabindex="-1"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="boothModalTitle"
+        >
+          <button
+            class="modal__close"
+            type="button"
+            data-close-modal
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <p class="modal__code" data-booth-code></p>
+          <h3 id="boothModalTitle" data-booth-title></h3>
+          <p class="muted" data-booth-place></p>
+          <p class="modal__story" data-booth-summary></p>
+          <p data-booth-about></p>
+          <p class="muted" data-booth-stamp></p>
+        </div>
       </div>
-      <p class="modal__story" data-modal-story></p>
-      <p class="house-tags" data-modal-tags></p>
-      <p class="muted" data-modal-updated></p>
-      <div class="modal-actions">
-        <button class="btn" type="button" id="modalAddNight">Add to my night</button>
-        <button class="btn btn--ghost" type="button" id="modalWatch">Alert when walk-in</button>
-      </div>
-    </div>
-  </div>
 
-  <div class="modal" id="boothsModal" hidden>
-    <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="boothsModalTitle">
-      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-      <p class="modal__code">Eleven Square</p>
-      <h3 id="boothsModalTitle">Booths</h3>
-      <p class="muted">Six stamp stations. Tap a booth for the brief.</p>
-      <div class="booths-list" id="boothsPinList"></div>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
+      <script src="js/config.js"></script>
+      <script type="module" src="js/app.js?v=map80"></script>
     </div>
-  </div>
-
-  <div class="modal" id="boothModal" hidden>
-    <div class="modal__backdrop" data-close-modal></div>
-    <div class="modal__panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="boothModalTitle">
-      <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-      <p class="modal__code" data-booth-code></p>
-      <h3 id="boothModalTitle" data-booth-title></h3>
-      <p class="muted" data-booth-place></p>
-      <p class="modal__story" data-booth-summary></p>
-      <p data-booth-about></p>
-      <p class="muted" data-booth-stamp></p>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
-  <script src="js/config.js"></script>
-  <script type="module" src="js/app.js?v=map73"></script>
-</div>
-</body>
+  </body>
 </html>

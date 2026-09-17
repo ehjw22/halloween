@@ -59,6 +59,6 @@ export function applyGhostPass(root, { seed, raised, redeemed, lit = [], complet
   const raiseBtn = root.querySelector("[data-raise-spirit]");
   if (raiseBtn) {
     raiseBtn.disabled = Boolean(redeemed) || !complete;
-    raiseBtn.setAttribute("aria-expanded", raised && complete && !redeemed ? "true" : "false");
+    raiseBtn.setAttribute("aria-expanded", (raised || root.classList.contains("is-roaming")) && complete && !redeemed ? "true" : "false");
   }
 }

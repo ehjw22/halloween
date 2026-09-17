@@ -1761,6 +1761,158 @@ html.event-open .header-meta {
   color: var(--orange-2);
   margin: 28px 0 12px;
 }
+.compare-kicker {
+  margin: 18px 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stamp-grid {
+  --stamp-inset: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 0 8px;
+  padding: var(--stamp-inset);
+  border-radius: 16px;
+  border: 1px solid rgba(212, 168, 62, 0.45);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(212, 168, 62, 0.06) 11px 12px),
+    linear-gradient(180deg, #1a0c10, #12080a);
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.35);
+}
+#stampGrid {
+  position: relative;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+.stamp-grid__ticket {
+  position: absolute;
+  inset: var(--stamp-inset);
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0;
+}
+.stamp-grid.has-ink .stamp-grid__ticket,
+.stamp-grid.is-complete .stamp-grid__ticket {
+  opacity: 1;
+}
+.stamp-grid__ticket img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.stamp-grid.is-complete {
+  border-color: rgba(255, 214, 120, 0.8);
+  box-shadow:
+    inset 0 0 16px rgba(0, 0, 0, 0.2),
+    0 0 24px rgba(255, 180, 60, 0.22);
+}
+.stamp-pad {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 32 / 27;
+  padding: 0;
+  overflow: hidden;
+  border: 1px dashed rgba(212, 168, 62, 0.38);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(80, 40, 24, 0.35), transparent 58%),
+    #16090c;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.stamp-pad.is-lit {
+  background: transparent;
+  border-style: solid;
+  border-color: rgba(212, 168, 62, 0.42);
+  border-radius: 0;
+}
+.stamp-pad.is-lit:not(.is-join-n):not(.is-join-w) { border-top-left-radius: 10px; }
+.stamp-pad.is-lit:not(.is-join-n):not(.is-join-e) { border-top-right-radius: 10px; }
+.stamp-pad.is-lit:not(.is-join-s):not(.is-join-w) { border-bottom-left-radius: 10px; }
+.stamp-pad.is-lit:not(.is-join-s):not(.is-join-e) { border-bottom-right-radius: 10px; }
+.stamp-pad.is-join-e { border-right-width: 0; }
+.stamp-pad.is-join-w { border-left-width: 0; }
+.stamp-pad.is-join-s { border-bottom-width: 0; }
+.stamp-pad.is-join-n { border-top-width: 0; }
+.stamp-grid.is-complete .stamp-pad {
+  border-color: transparent;
+}
+.stamp-pad__art {
+  display: none;
+}
+.stamp-pad__ink {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  font-size: 1.15rem;
+  background: #14080e;
+  border: 1px solid rgba(255, 179, 71, 0.32);
+  box-shadow: 0 0 0 3px rgba(7, 3, 8, 0.55);
+  filter: grayscale(0.85) brightness(0.7);
+}
+.stamp-pad.is-lit .stamp-pad__meta {
+  opacity: 0;
+}
+.stamp-pad.is-lit .stamp-pad__ink {
+  left: auto;
+  right: 6px;
+  top: 6px;
+  width: 28px;
+  height: 28px;
+  transform: none;
+  font-size: 0.9rem;
+  filter: none;
+  border-color: hsl(var(--ghost-h, 28) 80% 62%);
+  box-shadow:
+    0 0 0 3px rgba(7, 3, 8, 0.5),
+    0 0 12px hsl(var(--ghost-h, 28) 80% 50% / 0.5);
+}
+.stamp-pad__meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 18px 6px 7px;
+  background: linear-gradient(180deg, transparent, rgba(8, 4, 8, 0.92));
+  text-align: center;
+}
+.stamp-pad__meta strong {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff4d6;
+}
+.stamp-pad__meta small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 214, 140, 0.62);
+}
+.stamp-pad:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .roadmap {
   list-style: none;
   margin: 0;
@@ -2412,13 +2564,14 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 
 .lantern {
+  --rune-orbit: 168px;
   position: relative;
   display: grid;
   justify-items: center;
   gap: 0;
-  width: min(320px, 92vw);
+  width: min(390px, 96vw);
   margin: 8px auto 8px;
-  padding: 8px 0 36px;
+  padding: 36px 0 64px;
   overflow: visible;
   border: 0;
   background: transparent;
@@ -2432,11 +2585,13 @@ html.event-welcome .view:not([data-view="welcome"]) {
   border-bottom: 0;
   border-radius: 18px 18px 0 0;
   box-shadow: 0 0 8px hsl(var(--ghost-h) 60% 45% / 0.35);
-  z-index: 3;
+  position: relative;
+  z-index: 1;
 }
 .lantern__core {
   position: relative;
   isolation: isolate;
+  z-index: 2;
   width: 176px;
   margin-top: -2px;
 }
@@ -2548,7 +2703,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
 }
 .lantern__hint {
-  margin: 52px 0 0;
+  margin: 76px 0 0;
   font-size: 0.8rem;
   color: var(--muted);
 }
@@ -2568,6 +2723,58 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .lantern__sigil-wrap {
   z-index: 1;
   animation: rune-orbit 26s linear infinite;
+}
+.lantern__sigil-aura {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--rune-orbit) * 2 + 36px);
+  height: calc(var(--rune-orbit) * 2 + 36px);
+  margin: calc(var(--rune-orbit) * -1 - 18px);
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 18deg,
+    hsl(var(--ghost-h) 80% 55% / 0.16) 28deg,
+    transparent 48deg 78deg,
+    hsl(38 70% 70% / 0.12) 92deg,
+    transparent 110deg 160deg,
+    hsl(var(--ghost-h) 90% 60% / 0.14) 176deg,
+    transparent 200deg 360deg
+  );
+  animation: rune-orbit 18s linear infinite reverse;
+  filter: blur(0.4px);
+  opacity: 0.7;
+}
+.lantern__sigil-seeker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  animation: rune-orbit 26s linear infinite;
+}
+.lantern__sigil-seeker i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8e0, hsl(var(--ghost-h) 90% 62%) 55%, transparent 70%);
+  box-shadow: 0 0 14px hsl(var(--ghost-h) 90% 60%);
+  transform: rotate(-90deg) translate(var(--rune-orbit));
+}
+.lantern__sigil-seeker--b {
+  animation-delay: -13s;
+}
+.lantern__sigil-seeker--b i {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  opacity: 0.75;
 }
 .lantern__motes {
   position: absolute;
@@ -2648,16 +2855,16 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .lantern__sparks i:nth-child(10) { --a: 336deg; --r: 180px; animation-duration: 8.2s; animation-delay: -3.6s; }
 
 .lantern__runes {
-  z-index: 6;
+  z-index: 8;
   animation: rune-orbit 26s linear infinite;
 }
 .lantern__sigil {
   position: absolute;
   left: 0;
   top: 0;
-  width: 248px;
-  height: 248px;
-  margin: -124px;
+  width: calc(var(--rune-orbit) * 2);
+  height: calc(var(--rune-orbit) * 2);
+  margin: calc(var(--rune-orbit) * -1);
   overflow: visible;
   pointer-events: none;
   color: hsl(var(--ghost-h) 62% 62%);
@@ -2670,10 +2877,20 @@ html.event-welcome .view:not([data-view="welcome"]) {
   stroke-dasharray: 1.2 2.8 0.4 4.2;
   opacity: 0.7;
 }
+.lantern__sigil-flow {
+  stroke: hsl(38 85% 72%);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 8 88;
+  opacity: 0.95;
+  animation: sigil-chase 4.8s linear infinite;
+  filter: drop-shadow(0 0 3px hsl(var(--ghost-h) 90% 60%));
+}
 .lantern__sigil-orbit--inner {
   stroke-width: 0.7;
   stroke-dasharray: 0.6 5.4;
   opacity: 0.45;
+  animation: sigil-chase 9s linear infinite reverse;
 }
 .lantern__sigil-hex {
   fill: none;
@@ -2685,9 +2902,11 @@ html.event-welcome .view:not([data-view="welcome"]) {
   stroke-width: 0.85;
   opacity: 0.55;
   stroke-dasharray: 3 2.2;
+  animation: sigil-chase 14s linear infinite;
 }
 .lantern__sigil-ticks path,
-.lantern__sigil-notches path {
+.lantern__sigil-notches path,
+.lantern__sigil-script path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.35;
@@ -2698,32 +2917,65 @@ html.event-welcome .view:not([data-view="welcome"]) {
   stroke-width: 1.1;
   opacity: 0.55;
 }
+.lantern__sigil-script path {
+  stroke-width: 0.9;
+  opacity: 0.42;
+}
+.lantern__sigil-nodes circle {
+  fill: hsl(38 70% 62%);
+  stroke: hsl(38 80% 80%);
+  stroke-width: 0.6;
+  opacity: 0.7;
+}
+.fast-pass[data-runes="0"] .lantern__sigil { opacity: 0.42; }
+.fast-pass[data-runes="1"] .lantern__sigil { opacity: 0.55; }
+.fast-pass[data-runes="2"] .lantern__sigil { opacity: 0.68; }
+.fast-pass[data-runes="3"] .lantern__sigil { opacity: 0.78; }
+.fast-pass[data-runes="4"] .lantern__sigil { opacity: 0.88; }
+.fast-pass[data-runes="5"] .lantern__sigil,
+.fast-pass[data-runes="6"] .lantern__sigil { opacity: 1; }
 .fast-pass.is-complete .lantern__sigil {
   color: hsl(var(--ghost-h) 78% 68%);
   filter: drop-shadow(0 0 16px hsl(var(--ghost-h) 90% 55% / 0.55));
+}
+.fast-pass.is-complete .lantern__sigil-aura {
+  opacity: 1;
+  filter: blur(0.2px) saturate(1.2);
+}
+.fast-pass.is-complete .lantern__sigil-nodes circle {
+  opacity: 1;
+  animation: rune-ember 1.8s ease-in-out infinite;
 }
 .lantern__rune-slot {
   position: absolute;
   left: 0;
   top: 0;
-  transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(124px);
+  transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(var(--rune-orbit)) rotate(calc(90deg - var(--rune) * 60deg));
 }
 .lantern__rune {
   pointer-events: auto;
   position: absolute;
   left: 0;
   top: 0;
-  width: 48px;
-  height: 54px;
-  margin: -27px -24px;
+  width: 54px;
+  height: 62px;
+  margin: -31px -27px;
   padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
   cursor: pointer;
   color: inherit;
-  transform: rotate(calc(90deg - var(--rune) * 60deg));
   animation: rune-orbit 26s linear infinite reverse;
+}
+.lantern__rune-glow {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, hsl(var(--ghost-h) 90% 58% / 0.55), transparent 68%);
+  z-index: 0;
 }
 .lantern__rune-stone {
   position: absolute;
@@ -2781,8 +3033,20 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .lantern__runes:hover .lantern__rune,
 .lantern__runes:focus-within .lantern__rune,
 .lantern__core:has(.lantern__runes:hover) .lantern__sigil-wrap,
-.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-wrap {
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-wrap,
+.lantern__core:has(.lantern__runes:hover) .lantern__sigil-aura,
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-aura,
+.lantern__core:has(.lantern__runes:hover) .lantern__sigil-seeker,
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-seeker,
+.lantern__core:has(.lantern__runes:hover) .lantern__sigil-flow,
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-flow,
+.lantern__core:has(.lantern__runes:hover) .lantern__sigil-orbit--inner,
+.lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-orbit--inner {
   animation-play-state: paused;
+}
+.lantern__rune.is-lit .lantern__rune-glow {
+  opacity: 1;
+  animation: rune-halo 1.9s ease-in-out infinite;
 }
 .lantern__rune.is-lit .lantern__rune-stone {
   background:
@@ -2793,6 +3057,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
     0 0 0 1px hsl(var(--ghost-h) 70% 52%),
     0 0 18px hsl(var(--ghost-h) 90% 50% / 0.55),
     0 8px 14px rgba(0, 0, 0, 0.4);
+  animation: rune-ember 1.8s ease-in-out infinite;
 }
 .lantern__rune.is-lit .lantern__rune-stone::before {
   box-shadow:
@@ -2942,7 +3207,53 @@ html.event-welcome .view:not([data-view="welcome"]) {
   opacity: 1;
   box-shadow: 0 0 16px hsl(var(--ghost-h) var(--ghost-s) 70%);
 }
-.fast-pass.is-raised .lantern__hint { color: hsl(var(--ghost-h) 80% 72%); }
+.fast-pass.is-roaming .ghost {
+  visibility: hidden;
+}
+.fast-pass.is-roaming .lantern__glass {
+  overflow: visible;
+}
+.ghost--roam {
+  position: fixed !important;
+  bottom: auto !important;
+  right: auto;
+  margin: 0;
+  z-index: 220;
+  pointer-events: none;
+  transform-origin: 50% 60%;
+  will-change: transform, opacity, left, top;
+  filter: drop-shadow(0 10px 22px hsl(var(--ghost-h) var(--ghost-s) 52% / 0.62));
+}
+.ghost-trail {
+  position: fixed;
+  z-index: 218;
+  margin: 0;
+  bottom: auto;
+  pointer-events: none;
+  transform-origin: 50% 60%;
+  animation: ghost-trail-fade 0.7s ease-out forwards;
+  filter: blur(1.4px) saturate(0.85);
+}
+.ghost-wisp {
+  position: fixed;
+  z-index: 217;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: hsl(var(--ghost-h) var(--ghost-s) 82%);
+  box-shadow: 0 0 12px hsl(var(--ghost-h) 90% 70% / 0.9);
+  animation: ghost-wisp-fade 0.95s ease-out forwards;
+}
+@keyframes ghost-trail-fade {
+  0% { opacity: 0.42; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.72) translateY(10px); filter: blur(5px); }
+}
+@keyframes ghost-wisp-fade {
+  0% { opacity: 0.9; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.2) translateY(-18px); }
+}
 
 .pass-plate {
   margin: 8px 0 12px;
@@ -3059,6 +3370,18 @@ html.event-welcome .view:not([data-view="welcome"]) {
 @keyframes rune-orbit {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+@keyframes sigil-chase {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -96; }
+}
+@keyframes rune-ember {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.28); }
+}
+@keyframes rune-halo {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 @keyframes spark-out {
   0% {
@@ -4187,16 +4510,19 @@ body.is-board { background: #050308; }
   .map-viewport { height: min(30vh, 248px); }
   .station-map { height: auto; }
   .station-map__board { width: 100%; }
-  .lantern { width: min(300px, 100%); padding-bottom: 36px; }
+  .stamp-grid { --stamp-inset: 8px; gap: 0; padding: var(--stamp-inset); }
+  .stamp-pad__meta strong { font-size: 0.6rem; }
+  .stamp-pad__meta small { font-size: 0.52rem; }
+  .lantern { --rune-orbit: 152px; width: min(360px, 100%); padding: 28px 0 56px; }
   .lantern__rune-slot {
-    transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(112px);
+    transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(var(--rune-orbit)) rotate(calc(90deg - var(--rune) * 60deg));
   }
   .lantern__sigil {
-    width: 224px;
-    height: 224px;
-    margin: -112px;
+    width: calc(var(--rune-orbit) * 2);
+    height: calc(var(--rune-orbit) * 2);
+    margin: calc(var(--rune-orbit) * -1);
   }
-  .lantern__hint { margin-top: 52px; }
+  .lantern__hint { margin-top: 68px; }
   .event-gate__unit { min-width: 4.15rem; padding: 12px 10px 11px; gap: 6px; }
   .event-gate__unit span { font-size: clamp(1.7rem, 8vw, 2.15rem); line-height: 1; }
   .event-gate__unit small { font-size: 0.62rem; }
@@ -4220,6 +4546,6 @@ body.is-board { background: #050308; }
     scroll-behavior: auto !important;
   }
   .house-card:hover, .club-card:hover { transform: none; }
-  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__sigil-wrap, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays { animation: none !important; }
+  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__sigil-wrap, .lantern__sigil-aura, .lantern__sigil-seeker, .lantern__sigil-flow, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays, .ghost-trail, .ghost-wisp { animation: none !important; }
 }
 

@@ -58,6 +58,7 @@ const els = {
   liveMode: document.getElementById("liveMode"),
   modal: document.getElementById("detailModal"),
   stampRoadmap: document.getElementById("stampRoadmap"),
+  stampGrid: document.getElementById("stampGrid"),
   stampModal: document.getElementById("stampModal"),
   boothModal: document.getElementById("boothModal"),
   boothsModal: document.getElementById("boothsModal"),
@@ -830,6 +831,160 @@ async function loadCardFromServer() {
 }
 
 let spiritRaised = false;
+let ghostRoaming = false;
+let ghostRoamGen = 0;
+let ghostRoamFrame = 0;
+
+function stopGhostRoam() {
+  ghostRoamGen += 1;
+  if (ghostRoamFrame) cancelAnimationFrame(ghostRoamFrame);
+  ghostRoamFrame = 0;
+  ghostRoaming = false;
+  document.querySelectorAll(".ghost--roam, .ghost-trail, .ghost-wisp").forEach((node) => node.remove());
+  els.fastPassCard?.classList.remove("is-roaming");
+}
+
+function roamGhost() {
+  const card = els.fastPassCard;
+  const ghost = card?.querySelector(".ghost");
+  if (!card || !ghost || ghostRoaming) return;
+  if (card.classList.contains("is-redeemed") || !card.classList.contains("is-complete")) return;
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    spiritRaised = !spiritRaised;
+    paintStampUi();
+    return;
+  }
+
+  const gen = ++ghostRoamGen;
+  ghostRoaming = true;
+  spiritRaised = true;
+  card.classList.add("is-roaming");
+  if (els.lanternHint) els.lanternHint.textContent = "Your spirit is loose — it will come back";
+
+  const home = () => ghost.getBoundingClientRect();
+  const start = home();
+  const hue = getComputedStyle(card).getPropertyValue("--ghost-h");
+  const sat = getComputedStyle(card).getPropertyValue("--ghost-s");
+  const clone = ghost.cloneNode(true);
+  clone.classList.add("ghost--roam");
+  clone.setAttribute("aria-hidden", "true");
+  clone.style.setProperty("--ghost-h", hue);
+  clone.style.setProperty("--ghost-s", sat);
+  clone.style.width = `${start.width}px`;
+  document.body.appendChild(clone);
+
+  let x = start.left;
+  let y = start.top;
+  let vx = (Math.random() > 0.5 ? 1 : -1) * (2.2 + Math.random() * 1.1);
+  let vy = -1.4 - Math.random() * 1.2;
+  let lastTrail = 0;
+  const t0 = performance.now();
+  const roamMs = 8200;
+  const homeMs = 980;
+  let phase = "roam";
+  let homeFrom = { x, y };
+  let homeT0 = t0;
+
+  const dropTrail = (now) => {
+    if (now - lastTrail < 58) return;
+    lastTrail = now;
+    const extras = document.querySelectorAll(".ghost-trail");
+    if (extras.length > 10) extras[0].remove();
+    const trail = clone.cloneNode(true);
+    trail.classList.remove("ghost--roam");
+    trail.classList.add("ghost-trail");
+    trail.style.left = `${x}px`;
+    trail.style.top = `${y}px`;
+    trail.style.width = `${start.width}px`;
+    trail.style.setProperty("--ghost-h", hue);
+    trail.style.setProperty("--ghost-s", sat);
+    document.body.appendChild(trail);
+    window.setTimeout(() => trail.remove(), 720);
+    const wisp = document.createElement("i");
+    wisp.className = "ghost-wisp";
+    wisp.style.left = `${x + start.width * (0.28 + Math.random() * 0.4)}px`;
+    wisp.style.top = `${y + start.height * (0.35 + Math.random() * 0.3)}px`;
+    wisp.style.setProperty("--ghost-h", hue);
+    wisp.style.setProperty("--ghost-s", sat);
+    document.body.appendChild(wisp);
+    window.setTimeout(() => wisp.remove(), 980);
+  };
+
+  const finish = () => {
+    if (gen !== ghostRoamGen) return;
+    clone.remove();
+    document.querySelectorAll(".ghost-trail, .ghost-wisp").forEach((node) => node.remove());
+    ghostRoaming = false;
+    card.classList.remove("is-roaming");
+    paintStampUi();
+  };
+
+  const tick = (now) => {
+    if (gen !== ghostRoamGen) return;
+    const minX = 10;
+    const minY = 58;
+    const maxX = Math.max(minX, window.innerWidth - start.width - 10);
+    const maxY = Math.max(minY, window.innerHeight - start.height - 12);
+
+    if (phase === "roam" && now - t0 >= roamMs) {
+      phase = "home";
+      homeFrom = { x, y };
+      homeT0 = now;
+    }
+
+    if (phase === "roam") {
+      const elapsed = now - t0;
+      vx += Math.cos(elapsed / 390) * 0.045 + (Math.random() - 0.5) * 0.16;
+      vy += Math.sin(elapsed / 260) * 0.055 + (Math.random() - 0.5) * 0.14;
+      const speed = Math.hypot(vx, vy);
+      const cap = 3.8;
+      if (speed > cap) {
+        vx = (vx / speed) * cap;
+        vy = (vy / speed) * cap;
+      }
+      x += vx;
+      y += vy;
+      if (x <= minX) {
+        x = minX;
+        vx = Math.abs(vx) * 0.92;
+      } else if (x >= maxX) {
+        x = maxX;
+        vx = -Math.abs(vx) * 0.92;
+      }
+      if (y <= minY) {
+        y = minY;
+        vy = Math.abs(vy) * 0.88;
+      } else if (y >= maxY) {
+        y = maxY;
+        vy = -Math.abs(vy) * 0.88;
+      }
+    } else {
+      const back = home();
+      const t = Math.min(1, (now - homeT0) / homeMs);
+      const ease = t * t * (3 - 2 * t);
+      x = homeFrom.x + (back.left - homeFrom.x) * ease;
+      y = homeFrom.y + (back.top - homeFrom.y) * ease;
+      if (t >= 1) {
+        finish();
+        return;
+      }
+    }
+
+    const elapsed = now - t0;
+    const bob = Math.sin(elapsed / 210) * 11;
+    const sway = Math.sin(elapsed / 280) * 10;
+    const scale = 1.02 + Math.sin(elapsed / 240) * 0.08;
+    clone.style.left = `${x}px`;
+    clone.style.top = `${y}px`;
+    clone.style.opacity = String(0.72 + Math.sin(elapsed / 130) * 0.28);
+    clone.style.transform = `translateY(${bob}px) rotate(${sway}deg) scale(${scale})`;
+    dropTrail(now);
+    ghostRoamFrame = requestAnimationFrame(tick);
+  };
+
+  ghostRoamFrame = requestAnimationFrame(tick);
+}
 
 function isPassRedeemed(value) {
   if (!value) return false;
@@ -861,6 +1016,37 @@ function paintStampUi() {
   if (els.stampFill) {
     const offset = 100 - (filled / 6) * 100;
     els.stampFill.style.strokeDashoffset = String(offset);
+  }
+
+  if (els.stampGrid) {
+    const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
+    const litFlags = BOOTHS.map((booth) => isLit(booth.id));
+    els.stampGrid.classList.toggle("is-complete", complete);
+    els.stampGrid.classList.toggle("has-ink", litFlags.some(Boolean));
+    const pads = BOOTHS.map((booth, index) => {
+      const stamped = litFlags[index];
+      const col = index % 3;
+      const row = Math.floor(index / 3);
+      const joins = [];
+      if (stamped && col < 2 && litFlags[index + 1]) joins.push("is-join-e");
+      if (stamped && col > 0 && litFlags[index - 1]) joins.push("is-join-w");
+      if (stamped && row < 1 && litFlags[index + 3]) joins.push("is-join-s");
+      if (stamped && row > 0 && litFlags[index - 3]) joins.push("is-join-n");
+      const cls = ["stamp-pad", stamped ? "is-lit" : "", ...joins].filter(Boolean).join(" ");
+      return `
+        <button class="${cls}" type="button" data-stamp="${booth.id}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}${stamped ? " · stamped" : " · empty"}">
+          <span class="stamp-pad__ink" aria-hidden="true">${booth.icon}</span>
+          <span class="stamp-pad__meta">
+            <strong>${escapeHtml(booth.name)}</strong>
+            <small>${escapeHtml(booth.short)}</small>
+          </span>
+        </button>`;
+    }).join("");
+    els.stampGrid.innerHTML = `
+      <div class="stamp-grid__ticket" aria-hidden="true">
+        <img src="img/fast-pass-ticket.png?v=map70" alt="">
+      </div>
+      ${pads}`;
   }
 
   if (els.stampRoadmap) {
@@ -943,9 +1129,11 @@ function paintStampUi() {
     els.lanternHint.textContent = redeemed
       ? "This spirit has been laid to rest"
       : complete
-        ? spiritRaised
+        ? ghostRoaming
+          ? "Your spirit is loose — it will come back"
+          : spiritRaised
           ? "Show your name and admin number to staff"
-          : "Tap the pumpkin to raise your spirit"
+          : "Tap the ghost to let it fly"
         : filled
           ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
           : "The spirit is caged. Stamp booths to uncover your ticket";
@@ -1541,6 +1729,7 @@ function bindUi() {
         applyGameAccount();
         cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
         spiritRaised = false;
+        stopGhostRoam();
         updateNav();
         renderStamps();
       } else {
@@ -1612,8 +1801,7 @@ function bindUi() {
   els.lanternRaise?.addEventListener("click", () => {
     if (els.fastPassCard?.classList.contains("is-redeemed")) return;
     if (!els.fastPassCard?.classList.contains("is-complete")) return;
-    spiritRaised = !spiritRaised;
-    paintStampUi();
+    roamGhost();
   });
 
   function resetStaffRedeemView() {

@@ -1,4 +1,4 @@
-export const GATES_AT = Date.parse("2026-09-15T13:45:00+08:00");
+export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
 const PREVIEW_KEY = "scream-gate-open";
 export const WELCOME_PENDING_KEY = "scream-welcome-pending";
 const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
