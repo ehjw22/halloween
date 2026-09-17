@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map80" />
+    <link rel="stylesheet" href="css/styles.css?v=map82" />
     <script>
       (function () {
         var open = Date.now() >= Date.parse("2026-10-24T18:00:00+08:00");
@@ -681,7 +681,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.5.7</div>
+          <div class="version-chip" title="App version">v1.5.8</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -1069,20 +1069,37 @@
                 Fast Pass desk.
               </p>
               <p class="compare-kicker">
-                Compare layouts — same stamps, two cards
+                Two Fast Pass designs — same stamps. Keep both until you pick
+                one.
               </p>
-              <h3 class="roadmap__title">Stamp card grid</h3>
-              <p class="station-map__lead">
-                Three pads on top, three below. Each booth inks one pad and
-                uncovers 1/6 of the Fast Pass.
-              </p>
-              <div class="stamp-grid" id="stampGrid"></div>
-              <h3 class="roadmap__title">Ticket map</h3>
-              <p class="station-map__lead">
-                Current: pins on the ticket, fog punches a hole around each
-                stamp. Six stamps uncage the lantern.
-              </p>
-              <div class="station-map" id="stampRoadmap"></div>
+              <div class="design-duo">
+                <section
+                  class="design-option"
+                  aria-labelledby="stampGridTitle"
+                >
+                  <p class="design-option__tag">Option A</p>
+                  <h3 class="roadmap__title" id="stampGridTitle">
+                    Stamp card grid
+                  </h3>
+                  <p class="station-map__lead">
+                    Three pads on top, three below. Each booth inks one pad and
+                    uncovers 1/6 of the Fast Pass.
+                  </p>
+                  <div class="stamp-grid" id="stampGrid"></div>
+                </section>
+                <section
+                  class="design-option"
+                  aria-labelledby="stampMapTitle"
+                >
+                  <p class="design-option__tag">Option B</p>
+                  <h3 class="roadmap__title" id="stampMapTitle">Ticket map</h3>
+                  <p class="station-map__lead">
+                    Pins on the ticket; fog punches a hole around each stamp.
+                    Six stamps uncage the lantern.
+                  </p>
+                  <div class="station-map" id="stampRoadmap"></div>
+                </section>
+              </div>
               <article class="fast-pass" id="fastPassCard">
                 <div class="haunt-fx" aria-hidden="true">
                   <span class="haunt-fx__rays"></span>
@@ -1912,7 +1929,7 @@
                 here.
               </p>
               <ul class="staff-log__list" id="staffErrorLog"></ul>
-              <button class="btn btn--ghost" id="staffLogClear" type="button">
+              <button class="btn btn--danger" id="staffLogClear" type="button">
                 Clear log
               </button>
             </details>
@@ -2204,6 +2221,21 @@
         </section>
       </main>
 
+      <footer class="site-footer">
+        <p class="site-footer__credit">
+          SP Scream Fest is brought to you by
+          <span id="footerClubs"
+            >SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC ·
+            ABEC · SMAC</span
+          >
+        </p>
+        <nav class="site-footer__links" aria-label="Footer">
+          <button type="button" data-nav="follow">Follow us</button>
+          <button type="button" data-nav="safety">Safety</button>
+          <button type="button" data-nav="guide">How to</button>
+        </nav>
+      </footer>
+
       <div class="modal" id="detailModal" hidden>
         <div class="modal__backdrop" data-close-modal></div>
         <div
@@ -2293,7 +2325,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
       <script src="js/config.js"></script>
-      <script type="module" src="js/app.js?v=map80"></script>
+      <script type="module" src="js/app.js?v=map82"></script>
     </div>
   </body>
 </html>

@@ -459,10 +459,12 @@ function renderMyNight() {
   const rows = sortedHouses(night.houses.map((id) => houses.find((h) => h.id === id)).filter(Boolean));
   panel.hidden = false;
   if (hint) hint.hidden = rows.length > 0;
-  list.innerHTML = rows.map((row) => {
-    const meta = houseMeta(row.id);
-    return `<li><button type="button" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || "")} · ${escapeHtml(row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button></li>`;
-  }).join("");
+  list.innerHTML = rows.length
+    ? rows.map((row) => {
+        const meta = houseMeta(row.id);
+        return `<li><button type="button" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || "")} · ${escapeHtml(row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button></li>`;
+      }).join("")
+    : `<li class="empty-state"><p class="empty-state__title">Nothing on your night yet</p><p class="empty-state__hint">Open a house, then tap Add to my night.</p></li>`;
 }
 
 function showWaitToast(title, body, walkIn = false) {
@@ -548,10 +550,11 @@ function paintSafety() {
 }
 
 function paintClubs() {
+  const line = CLUBS.map((club) => club.abbr).join(" · ");
   const credits = document.getElementById("clubCredits");
-  if (credits) {
-    credits.textContent = CLUBS.map((club) => club.abbr).join(" · ");
-  }
+  if (credits) credits.textContent = line;
+  const footer = document.getElementById("footerClubs");
+  if (footer) footer.textContent = line;
   const list = document.getElementById("clubFollowList");
   if (!list) return;
   list.innerHTML = CLUBS.map((club) => `
@@ -577,9 +580,9 @@ async function startBoard() {
         const data = await res.json().catch(() => ({}));
         const title = id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats";
         const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
-        return `<article class="board-card"><h3>${title}</h3><ol>${rows || "<li class='empty-state__hint'>No scores yet</li>"}</ol></article>`;
+        return `<article class="board-card"><h3>${title}</h3><ol>${rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>Play a round to open the board.</p></li>"}</ol></article>`;
       } catch {
-        return `<article class="board-card"><h3>${id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats"}</h3><p class="empty-state__hint">Scores unavailable</p></article>`;
+        return `<article class="board-card"><h3>${id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats"}</h3><div class="empty-state"><p class="empty-state__title">Scores unavailable</p><p class="empty-state__hint">Try again when the board is back online.</p></div></article>`;
       }
     }));
     grid.innerHTML = blocks.join("");
@@ -1353,7 +1356,7 @@ async function loadOps() {
         : "<li class='empty-state'><p class='empty-state__title'>No audit rows yet</p><p class='empty-state__hint'>Staff actions will appear here.</p></li>";
     }
   } catch (error) {
-    grid.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
+    grid.innerHTML = `<div class="empty-state"><p class="empty-state__title">Command post unavailable</p><p class="empty-state__hint">${escapeHtml(error.message)}</p></div>`;
   }
 }
 
