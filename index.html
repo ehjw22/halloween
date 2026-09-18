@@ -29,8 +29,8 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map89" />
-    <script src="js/boot.js?v=map89"></script>
+    <link rel="stylesheet" href="css/styles.css?v=map95" />
+    <script src="js/boot.js?v=map92"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -641,7 +641,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.6.2</div>
+          <div class="version-chip" title="App version">v1.6.3</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -860,20 +860,13 @@
           <div class="login-page">
             <div class="section-head">
               <h2>Sign in</h2>
-              <p>
-                Admin number is <strong>P</strong> plus seven digits, for
-                example <strong>P1234567</strong>. The 7 digits alone also work.
-                First visit creates your stamp card. Come back with the same
-                name. Staff also get a Staff tab; the night password is asked
-                there, not on this form.
-              </p>
             </div>
             <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on">
               <p class="auth-card__kicker">SP Scream Fest</p>
               <h2>Open your night</h2>
               <p class="muted">
-                Use your admin number and full name. Facilitators use the same
-                fields, then open the Staff tab to enter the night password.
+                Don’t have an account yet? Enter your admin number and full name
+                — that counts as sign up. Next time, sign in with the same details.
               </p>
               <label>
                 Admin number
@@ -1619,13 +1612,21 @@
                   />
                   <circle cx="20" cy="18" r="6.5" fill="#052e16" />
                 </svg>
-                <article class="house-card house-card--sample status-open">
+                <article class="house-card house-card--sample status-open is-walkin">
                   <div class="house-card__open">
-                    <span class="house-card__short">T18A</span>
-                    <strong>Aerohub Crypt</strong>
-                    <span class="status-pill status-walkin">Walk-in</span>
-                    <span class="wait">Walk in</span>
-                    <span class="fresh muted">Just updated</span>
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">T18A</span>
+                      <span class="status-pill status-walkin">Walk-in</span>
+                    </span>
+                    <strong class="house-card__name">Aerohub Crypt</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">Walk in</span>
+                      <span class="house-card__unit">No queue</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Just updated</span>
+                    </span>
                   </div>
                 </article>
               </div>
@@ -1652,11 +1653,19 @@
                 </svg>
                 <article class="house-card house-card--sample status-open">
                   <div class="house-card__open">
-                    <span class="house-card__short">EW22</span>
-                    <strong>Dover Gate Ghouls</strong>
-                    <span class="status-pill">Open</span>
-                    <span class="wait">8 min</span>
-                    <span class="fresh muted">Updated 2 min ago</span>
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">EW22</span>
+                      <span class="status-pill">Open</span>
+                    </span>
+                    <strong class="house-card__name">Dover Gate Ghouls</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">8</span>
+                      <span class="house-card__unit">min wait</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Updated 2 min ago</span>
+                    </span>
                   </div>
                 </article>
               </div>
@@ -1682,11 +1691,19 @@
                 </svg>
                 <article class="house-card house-card--sample status-busy">
                   <div class="house-card__open">
-                    <span class="house-card__short">T12</span>
-                    <strong>Atrium Abyss</strong>
-                    <span class="status-pill">Busy</span>
-                    <span class="wait">25 min</span>
-                    <span class="fresh muted">Updated 4 min ago</span>
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">T12</span>
+                      <span class="status-pill">Busy</span>
+                    </span>
+                    <strong class="house-card__name">Atrium Abyss</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">25</span>
+                      <span class="house-card__unit">min wait</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Updated 4 min ago</span>
+                    </span>
                   </div>
                 </article>
               </div>
@@ -1714,11 +1731,19 @@
                   class="house-card house-card--sample status-at_capacity"
                 >
                   <div class="house-card__open">
-                    <span class="house-card__short">LIB</span>
-                    <strong>Library of Lost Souls</strong>
-                    <span class="status-pill">At Capacity</span>
-                    <span class="wait">40 min · Full</span>
-                    <span class="fresh muted">Updated 1 min ago</span>
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">LIB</span>
+                      <span class="status-pill">At Capacity</span>
+                    </span>
+                    <strong class="house-card__name">Library of Lost Souls</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">40</span>
+                      <span class="house-card__unit">min · full</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Updated 1 min ago</span>
+                    </span>
                   </div>
                 </article>
               </div>
@@ -1745,11 +1770,19 @@
                 </svg>
                 <article class="house-card house-card--sample status-closed">
                   <div class="house-card__open">
-                    <span class="house-card__short">WSA</span>
-                    <strong>West Coast Warehouse</strong>
-                    <span class="status-pill">Closed</span>
-                    <span class="wait">Closed</span>
-                    <span class="fresh muted">Updated 10 min ago</span>
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">WSA</span>
+                      <span class="status-pill">Closed</span>
+                    </span>
+                    <strong class="house-card__name">West Coast Warehouse</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">Closed</span>
+                      <span class="house-card__unit">Not running</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Updated 10 min ago</span>
+                    </span>
                   </div>
                 </article>
               </div>
@@ -2144,17 +2177,12 @@
 
       <footer class="site-footer">
         <p class="site-footer__credit">
-          SP Scream Fest is brought to you by
+          Brought to you by
           <span id="footerClubs"
             >SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC ·
             ABEC · SMAC</span
           >
         </p>
-        <nav class="site-footer__links" aria-label="Footer">
-          <button type="button" data-nav="follow">Follow us</button>
-          <button type="button" data-nav="safety">Safety</button>
-          <button type="button" data-nav="guide">How to</button>
-        </nav>
       </footer>
 
       <div class="modal" id="detailModal" hidden>
@@ -2245,8 +2273,8 @@
       </div>
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
-      <script src="js/config.js?v=map89"></script>
-      <script type="module" src="js/app.js?v=map89"></script>
+      <script src="js/config.js?v=map92"></script>
+      <script type="module" src="js/app.js?v=map92"></script>
     </div>
   </body>
 </html>

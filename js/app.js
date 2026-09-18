@@ -138,6 +138,23 @@ function waitLabel(minutes, status) {
   return `${minutes} min`;
 }
 
+function isWalkInHouse(row) {
+  return row.status !== "closed" && row.status !== "at_capacity" && !(Number(row.wait_minutes) > 0);
+}
+
+function statusPillLabel(row) {
+  if (isWalkInHouse(row)) return "Walk-in";
+  return STATUS_LABEL[row.status] || row.status;
+}
+
+function waitMetric(row) {
+  const minutes = Number(row.wait_minutes) || 0;
+  if (row.status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
+  if (row.status === "at_capacity") return { value: String(minutes), unit: "min · full", kind: "full" };
+  if (!minutes) return { value: "Walk in", unit: "No queue", kind: "walkin" };
+  return { value: String(minutes), unit: "min wait", kind: "queue" };
+}
+
 function waitRank(row) {
   const status = row.status || "open";
   const band = status === "closed" ? 2 : status === "at_capacity" ? 1 : 0;
@@ -205,6 +222,26 @@ function freshnessLabel(iso) {
 
 function tagChips(meta) {
   return (meta?.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+}
+
+function houseCardOpenInner(row, meta) {
+  const metric = waitMetric(row);
+  const tags = tagChips(meta);
+  return `
+    <span class="house-card__rail" aria-hidden="true"></span>
+    <span class="house-card__top">
+      <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
+      <span class="status-pill">${escapeHtml(statusPillLabel(row))}</span>
+    </span>
+    <strong class="house-card__name">${escapeHtml(row.name)}</strong>
+    <span class="house-card__metric">
+      <span class="house-card__wait">${escapeHtml(metric.value)}</span>
+      <span class="house-card__unit">${escapeHtml(metric.unit)}</span>
+    </span>
+    <span class="house-card__meta">
+      <span class="fresh">${escapeHtml(freshnessLabel(row.updated_at))}</span>
+      ${tags ? `<span class="house-tags">${tags}</span>` : ""}
+    </span>`;
 }
 
 function staffScope() {
@@ -423,17 +460,18 @@ function renderDashboard() {
     .map((row) => {
       const meta = houseMeta(row.id);
       const on = watching.has(row.id);
-      return `
-        <article class="house-card status-${row.status}">
+        const walkIn = isWalkInHouse(row);
+        return `<article class="house-card status-${row.status}${walkIn ? " is-walkin" : ""}">
           <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
-            <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
-            <strong>${escapeHtml(row.name)}</strong>
-            <span class="status-pill">${STATUS_LABEL[row.status] || row.status}</span>
-            <span class="wait">${waitLabel(row.wait_minutes, row.status)}</span>
-            <span class="fresh muted">${escapeHtml(freshnessLabel(row.updated_at))}</span>
-            <span class="house-tags">${tagChips(meta)}</span>
+            ${houseCardOpenInner(row, meta)}
           </button>
-          <button class="house-card__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(row.id)}" aria-pressed="${on}">${on ? "Alert on" : "Alert"}</button>
+          <button class="house-card__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(row.id)}" aria-pressed="${on}" aria-label="${escapeHtml(row.name)} walk-in alert">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8" />
+              <path d="M10 18a2 2 0 0 0 4 0" />
+            </svg>
+            ${on ? "Watching" : "Notify"}
+          </button>
         </article>`;
     })
     .join("");
@@ -2199,10 +2237,14 @@ async function init() {
   }
   try {
     bindMap();
+  } catch (error) {
+    console.warn("Map setup failed", error);
+  }
+  try {
     renderDashboard();
     renderPins();
   } catch (error) {
-    console.warn("Map setup failed", error);
+    console.warn("House list failed", error);
   }
   import("./games.js")
     .then((games) => {

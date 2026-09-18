@@ -2107,8 +2107,8 @@ html.event-welcome .view:not([data-view="welcome"]) {
 
 .house-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr));
+  gap: 14px;
 }
 .house-filters {
   display: grid;
@@ -2141,19 +2141,39 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 
 .house-card {
+  position: relative;
   text-align: left;
   padding: 0;
-  border-radius: var(--radius-md);
-  background: var(--panel);
-  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(36, 18, 28, 0.96), rgba(18, 8, 16, 0.96));
+  border: 1px solid rgba(255, 122, 24, 0.16);
   color: inherit;
   display: grid;
-  gap: 0;
-  min-height: 132px;
-  box-shadow: var(--shadow-sm);
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, var(--shadow-sm);
   overflow: hidden;
   transition: border-color var(--ease), transform var(--ease), box-shadow var(--ease);
 }
+.house-card__rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--muted);
+}
+.status-open .house-card__rail,
+.house-card.is-walkin .house-card__rail { background: var(--open); }
+.status-busy .house-card__rail { background: var(--busy); }
+.status-closed .house-card__rail { background: var(--closed); }
+.status-at_capacity .house-card__rail { background: var(--full); }
+.house-card.is-walkin {
+  border-color: rgba(74, 222, 128, 0.28);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.08), var(--shadow-sm);
+}
+.house-card.status-closed { opacity: 0.78; }
 .house-card:hover {
   border-color: var(--orange);
   transform: translateY(-2px);
@@ -2165,36 +2185,97 @@ html.event-welcome .view:not([data-view="welcome"]) {
   color: inherit;
   background: transparent;
   border: 0;
-  padding: 12px 12px 8px;
+  padding: 14px 16px 10px 18px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
+  min-width: 0;
 }
-.house-card__watch {
-  font: inherit;
-  font-size: 0.75rem;
+.house-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.house-card__name {
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.house-card__metric {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 2px;
+}
+.house-card__wait {
+  font-size: 1.7rem;
   font-weight: 700;
-  cursor: pointer;
-  margin: 0 10px 10px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #1a0d16;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--orange-2);
+}
+.house-card.is-walkin .house-card__wait {
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+  color: var(--open);
+}
+.house-card.status-closed .house-card__wait {
+  font-size: 1.2rem;
+  color: var(--closed);
+}
+.house-card.status-at_capacity .house-card__wait { color: var(--full); }
+.house-card__unit {
+  font-size: 0.78rem;
+  font-weight: 500;
   color: var(--muted);
 }
+.house-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.house-card__watch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: stretch;
+  gap: 6px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+  margin: 0;
+  padding: 6px 12px;
+  width: 100%;
+  min-height: 30px;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 122, 24, 0.1);
+  color: var(--orange-2);
+  letter-spacing: 0.06em;
+}
+.house-card__watch svg { flex: 0 0 auto; }
+.house-card__watch:hover {
+  background: rgba(255, 122, 24, 0.18);
+  color: #ffe0b0;
+}
 .house-card__watch.is-on {
-  color: #14080c;
+  color: #052e16;
   background: var(--open);
   border-color: transparent;
 }
 .house-card__short {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--purple);
+  color: var(--muted);
 }
-.house-card strong { font-size: 0.95rem; line-height: 1.25; }
-.house-card .wait { font-weight: 700; color: var(--orange-2); }
 
 .status-pill {
   display: inline-flex;
@@ -2209,6 +2290,11 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .status-open .status-pill, .status-pill.status-open {
   color: #bbf7d0;
   background: rgba(74, 222, 128, 0.14);
+}
+.house-card.is-walkin .status-pill,
+.status-pill.status-walkin {
+  color: #bbf7d0;
+  background: rgba(74, 222, 128, 0.16);
 }
 .status-busy .status-pill, .status-pill.status-busy {
   color: #ffd7a8;
@@ -3901,14 +3987,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   }
   .short-wait__wait { font-size: 0.78rem; margin-top: 2px; }
 }
-.house-card .fresh { font-size: 0.72rem; display: block; }
+.house-card .fresh {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
 .house-tags, .tag-chip { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .tag-chip {
-  font-size: 0.68rem;
-  padding: 2px 7px;
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  padding: 3px 8px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--orange-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
 }
 .watch-banner {
   margin: 0;
@@ -4322,11 +4415,23 @@ body.is-board { background: #050308; }
 }
 
 .my-night-panel {
-  margin: 20px 0 8px;
-  padding: 16px;
+  margin: 16px 0 8px;
+  padding: 14px 16px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--panel);
+}
+.my-night-panel .roadmap__title {
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+.my-night-panel .muted {
+  margin: 0 0 8px;
+}
+.my-night-panel .empty-state {
+  margin: 0;
+  padding: 10px 4px 4px;
+  border: 0;
 }
 .my-night-list button {
   min-height: 40px;
@@ -4347,11 +4452,14 @@ body.is-board { background: #050308; }
 .map-controls button { min-width: var(--tap); min-height: var(--tap); }
 
 .house-card__watch {
-  min-height: 36px;
+  min-height: 30px;
   transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
-.auth-card .btn { width: fit-content; }
+.login-page .auth-card .btn {
+  display: flex;
+  width: 100%;
+}
 
 .feedback-form textarea,
 .diff-label select, .feedback-form select, #awardBooth, #adminFeedbackTarget {
@@ -4409,7 +4517,6 @@ body.is-board { background: #050308; }
 .login-page .section-head { max-width: none; }
 
 @media (max-width: 800px) {
-  .house-grid { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
   .modal-actions .btn { flex: 1 1 140px; }
   .auth-card { margin: 12px auto 20px; padding: 18px; }
   .passport { padding: 16px; }
@@ -4459,45 +4566,24 @@ body.is-board { background: #050308; }
 .site-footer {
   position: relative;
   z-index: 1;
-  margin: 8px auto 0;
-  padding: 20px 16px 28px;
+  margin: 4px auto 0;
+  padding: 10px 16px 14px;
   max-width: 1280px;
   border-top: 1px solid var(--line);
   text-align: center;
 }
 .site-footer__credit {
-  margin: 0 auto 12px;
-  max-width: 40rem;
+  margin: 0 auto;
+  max-width: 52rem;
   color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 .site-footer__credit span {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   letter-spacing: 0.04em;
   color: var(--ink);
-}
-.site-footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 4px;
-  justify-content: center;
-}
-.site-footer__links button {
-  font: inherit;
-  color: var(--orange-2);
-  background: none;
-  border: 0;
-  min-height: var(--tap);
-  padding: 8px 12px;
-  cursor: pointer;
-}
-.site-footer__links button:hover { text-decoration: underline; }
-.site-footer__links button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
-  border-radius: var(--radius-pill);
 }
 
 .design-duo {
