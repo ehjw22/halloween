@@ -2664,12 +2664,13 @@ html.event-welcome .view:not([data-view="welcome"]) {
   gap: 0;
   width: min(390px, 96vw);
   margin: 8px auto 8px;
-  padding: 36px 0 64px;
+  padding: 36px 0 96px;
   overflow: visible;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
+  z-index: 2;
 }
 .lantern__handle {
   width: 56px;
@@ -2796,7 +2797,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
 }
 .lantern__hint {
-  margin: 76px 0 0;
+  margin: 112px 0 8px;
   font-size: 0.8rem;
   color: var(--muted);
 }
@@ -3304,16 +3305,25 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .fast-pass.is-roaming .lantern__glass {
   overflow: visible;
 }
+.fast-pass.is-complete .lantern__hint,
+.fast-pass.is-redeemed .lantern__hint {
+  display: none;
+}
 .ghost--roam {
   position: fixed !important;
   bottom: auto !important;
   right: auto;
   margin: 0;
   z-index: 220;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
   transform-origin: 50% 60%;
   will-change: transform, opacity, left, top;
   filter: drop-shadow(0 10px 22px hsl(var(--ghost-h) var(--ghost-s) 52% / 0.62));
+}
+.ghost--roam.is-fleeing {
+  filter: drop-shadow(0 14px 28px hsl(var(--ghost-h) var(--ghost-s) 62% / 0.85));
 }
 .ghost-trail {
   position: fixed;
@@ -3348,8 +3358,9 @@ html.event-welcome .view:not([data-view="welcome"]) {
 
 .pass-plate {
   position: relative;
+  z-index: 0;
   overflow: hidden;
-  margin: 8px 0 12px;
+  margin: 20px 0 12px;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid hsl(var(--ghost-h) 40% 42% / 0.45);
@@ -4660,7 +4671,7 @@ body.is-board { background: #050308; }
   .stamp-grid { --stamp-inset: 8px; gap: 0; padding: var(--stamp-inset); }
   .stamp-pad__meta strong { font-size: 0.6rem; }
   .stamp-pad__meta small { font-size: 0.52rem; }
-  .lantern { --rune-orbit: 152px; width: min(360px, 100%); padding: 28px 0 56px; }
+  .lantern { --rune-orbit: 152px; width: min(360px, 100%); padding: 28px 0 84px; }
   .lantern__rune-slot {
     transform: rotate(calc(var(--rune) * 60deg - 90deg)) translate(var(--rune-orbit)) rotate(calc(90deg - var(--rune) * 60deg));
   }
@@ -4669,7 +4680,7 @@ body.is-board { background: #050308; }
     height: calc(var(--rune-orbit) * 2);
     margin: calc(var(--rune-orbit) * -1);
   }
-  .lantern__hint { margin-top: 68px; }
+  .lantern__hint { margin-top: 100px; }
   .event-gate__unit { min-width: 4.15rem; padding: 12px 10px 11px; gap: 6px; }
   .event-gate__unit span { font-size: clamp(1.7rem, 8vw, 2.15rem); line-height: 1; }
   .event-gate__unit small { font-size: 0.62rem; }

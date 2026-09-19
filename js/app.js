@@ -4,7 +4,7 @@ import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
 import { SAFETY } from "./safety.js";
-import { applyGhostPass } from "./ghost-pass.js?v=map96";
+import { applyGhostPass } from "./ghost-pass.js?v=map100";
 import { createStore } from "./store.js";
 import {
   apiFetch,
@@ -855,9 +855,12 @@ let spiritRaised = false;
 let ghostRoaming = false;
 let ghostRoamGen = 0;
 let ghostRoamFrame = 0;
+let ghostFleeCtl = null;
 
 function stopGhostRoam() {
   ghostRoamGen += 1;
+  ghostFleeCtl?.abort();
+  ghostFleeCtl = null;
   if (ghostRoamFrame) cancelAnimationFrame(ghostRoamFrame);
   ghostRoamFrame = 0;
   ghostRoaming = false;
@@ -878,10 +881,12 @@ function roamGhost() {
   }
 
   const gen = ++ghostRoamGen;
+  ghostFleeCtl?.abort();
+  ghostFleeCtl = new AbortController();
+  const { signal } = ghostFleeCtl;
   ghostRoaming = true;
   spiritRaised = true;
   card.classList.add("is-roaming");
-  if (els.lanternHint) els.lanternHint.textContent = "Your spirit is loose — it will come back";
 
   const home = () => ghost.getBoundingClientRect();
   const start = home();
@@ -889,7 +894,10 @@ function roamGhost() {
   const sat = getComputedStyle(card).getPropertyValue("--ghost-s");
   const clone = ghost.cloneNode(true);
   clone.classList.add("ghost--roam");
-  clone.setAttribute("aria-hidden", "true");
+  clone.removeAttribute("aria-hidden");
+  clone.setAttribute("role", "button");
+  clone.setAttribute("tabindex", "0");
+  clone.setAttribute("aria-label", "Shoo the spirit");
   clone.style.setProperty("--ghost-h", hue);
   clone.style.setProperty("--ghost-s", sat);
   clone.style.width = `${start.width}px`;
@@ -906,6 +914,50 @@ function roamGhost() {
   let phase = "roam";
   let homeFrom = { x, y };
   let homeT0 = t0;
+  let dash = null;
+
+  const bounds = () => {
+    const minX = 10;
+    const minY = 58;
+    const maxX = Math.max(minX, window.innerWidth - start.width - 10);
+    const maxY = Math.max(minY, window.innerHeight - start.height - 12);
+    return { minX, minY, maxX, maxY };
+  };
+
+  const startDash = (px, py) => {
+    const { minX, minY, maxX, maxY } = bounds();
+    const cx = x + start.width / 2;
+    const cy = y + start.height / 2;
+    let ang = Math.atan2(cy - py, cx - px);
+    if (!Number.isFinite(ang)) ang = Math.random() * Math.PI * 2;
+    ang += (Math.random() - 0.5) * 0.85;
+    const dist = 240 + Math.random() * 280;
+    let toX = x + Math.cos(ang) * dist;
+    let toY = y + Math.sin(ang) * dist;
+    toX = Math.min(maxX, Math.max(minX, toX));
+    toY = Math.min(maxY, Math.max(minY, toY));
+    if (Math.hypot(toX - x, toY - y) < 120) {
+      toX = Math.random() > 0.5 ? minX : maxX;
+      toY = minY + Math.random() * Math.max(1, maxY - minY);
+    }
+    dash = {
+      fromX: x,
+      fromY: y,
+      toX,
+      toY,
+      t0: performance.now(),
+      dur: 160 + Math.random() * 70,
+    };
+    vx = (toX - x) / 12;
+    vy = (toY - y) / 12;
+  };
+
+  clone.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (phase !== "roam") return;
+    startDash(event.clientX, event.clientY);
+  }, { signal });
 
   const dropTrail = (now) => {
     if (now - lastTrail < 58) return;
@@ -913,8 +965,11 @@ function roamGhost() {
     const extras = document.querySelectorAll(".ghost-trail");
     if (extras.length > 10) extras[0].remove();
     const trail = clone.cloneNode(true);
-    trail.classList.remove("ghost--roam");
+    trail.classList.remove("ghost--roam", "is-fleeing");
     trail.classList.add("ghost-trail");
+    trail.removeAttribute("role");
+    trail.removeAttribute("tabindex");
+    trail.setAttribute("aria-hidden", "true");
     trail.style.left = `${x}px`;
     trail.style.top = `${y}px`;
     trail.style.width = `${start.width}px`;
@@ -934,6 +989,8 @@ function roamGhost() {
 
   const finish = () => {
     if (gen !== ghostRoamGen) return;
+    ghostFleeCtl?.abort();
+    ghostFleeCtl = null;
     clone.remove();
     document.querySelectorAll(".ghost-trail, .ghost-wisp").forEach((node) => node.remove());
     ghostRoaming = false;
@@ -943,18 +1000,27 @@ function roamGhost() {
 
   const tick = (now) => {
     if (gen !== ghostRoamGen) return;
-    const minX = 10;
-    const minY = 58;
-    const maxX = Math.max(minX, window.innerWidth - start.width - 10);
-    const maxY = Math.max(minY, window.innerHeight - start.height - 12);
+    const { minX, minY, maxX, maxY } = bounds();
+    const dashing = Boolean(dash);
+    clone.classList.toggle("is-fleeing", dashing);
 
-    if (phase === "roam" && now - t0 >= roamMs) {
+    if (phase === "roam" && now - t0 >= roamMs && !dashing) {
       phase = "home";
       homeFrom = { x, y };
       homeT0 = now;
     }
 
-    if (phase === "roam") {
+    if (phase === "roam" && dash) {
+      const t = Math.min(1, (now - dash.t0) / dash.dur);
+      const ease = 1 - (1 - t) ** 3;
+      x = dash.fromX + (dash.toX - dash.fromX) * ease;
+      y = dash.fromY + (dash.toY - dash.fromY) * ease;
+      if (t >= 1) {
+        x = dash.toX;
+        y = dash.toY;
+        dash = null;
+      }
+    } else if (phase === "roam") {
       const elapsed = now - t0;
       vx += Math.cos(elapsed / 390) * 0.045 + (Math.random() - 0.5) * 0.16;
       vy += Math.sin(elapsed / 260) * 0.055 + (Math.random() - 0.5) * 0.14;
@@ -993,9 +1059,9 @@ function roamGhost() {
     }
 
     const elapsed = now - t0;
-    const bob = Math.sin(elapsed / 210) * 11;
-    const sway = Math.sin(elapsed / 280) * 10;
-    const scale = 1.02 + Math.sin(elapsed / 240) * 0.08;
+    const bob = dashing ? 0 : Math.sin(elapsed / 210) * 11;
+    const sway = dashing ? Math.sin(elapsed / 50) * 22 : Math.sin(elapsed / 280) * 10;
+    const scale = dashing ? 1.16 : 1.02 + Math.sin(elapsed / 240) * 0.08;
     clone.style.left = `${x}px`;
     clone.style.top = `${y}px`;
     clone.style.opacity = String(0.72 + Math.sin(elapsed / 130) * 0.28);
@@ -1167,7 +1233,7 @@ function paintStampUi() {
         : "Caged spirit";
   }
   if (els.lanternHint) {
-    const hideHint = complete || redeemed;
+    const hideHint = complete || redeemed || ghostRoaming;
     els.lanternHint.hidden = hideHint;
     if (!hideHint) {
       els.lanternHint.textContent = filled
