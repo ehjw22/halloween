@@ -46,7 +46,7 @@ export function applyGhostPass(root, { seed, raised, redeemed, lit = [], complet
   root.dataset.body = traits.body;
   root.dataset.eyes = String(traits.eyes);
   root.dataset.runes = String(litIds.size);
-  root.classList.toggle("is-complete", Boolean(complete) && !redeemed);
+  root.classList.toggle("is-complete", Boolean(complete));
   root.classList.toggle("is-raised", Boolean(raised) && complete && !redeemed);
   root.classList.toggle("is-redeemed", Boolean(redeemed));
   const nameEl = root.querySelector("[data-spirit-name]");

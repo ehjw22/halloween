@@ -4,7 +4,7 @@ import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
 import { SAFETY } from "./safety.js";
-import { applyGhostPass } from "./ghost-pass.js";
+import { applyGhostPass } from "./ghost-pass.js?v=map96";
 import { createStore } from "./store.js";
 import {
   apiFetch,
@@ -46,7 +46,6 @@ const els = {
   views: [...document.querySelectorAll(".view")],
   navButtons: [...document.querySelectorAll("[data-nav]")],
   houseGrid: document.getElementById("houseGrid"),
-  shortWaits: document.getElementById("shortWaits"),
   mapWorld: document.getElementById("mapWorld"),
   mapViewport: document.getElementById("mapViewport"),
   mapPins: document.getElementById("mapPinLayer"),
@@ -100,8 +99,24 @@ const els = {
   adminAnnounceList: document.getElementById("adminAnnounceList"),
 };
 
+function statusFromWait(minutes) {
+  const wait = Math.max(0, Number(minutes) || 0);
+  if (wait >= 60) return "closed";
+  if (wait >= 30) return "busy";
+  return "open";
+}
+
+function normalizeHouseRow(row) {
+  const wait = Math.max(0, Number(row.wait_minutes ?? row.wait) || 0);
+  return {
+    ...row,
+    wait_minutes: wait,
+    status: statusFromWait(wait),
+  };
+}
+
 let store;
-let houses = HOUSES.map((h) => ({
+let houses = HOUSES.map((h) => normalizeHouseRow({
   id: h.id,
   name: h.name,
   wait_minutes: h.wait,
@@ -132,32 +147,35 @@ function houseMeta(id) {
 }
 
 function waitLabel(minutes, status) {
-  if (status === "closed") return "Closed";
-  if (status === "at_capacity") return `${minutes} min · Full`;
+  if (status === "closed" || statusFromWait(minutes) === "closed") return "Closed";
   if (!minutes) return "Walk in";
   return `${minutes} min`;
 }
 
 function isWalkInHouse(row) {
-  return row.status !== "closed" && row.status !== "at_capacity" && !(Number(row.wait_minutes) > 0);
+  return statusFromWait(row.wait_minutes) !== "closed" && !(Number(row.wait_minutes) > 0);
+}
+
+function isGoNowHouse(row) {
+  return statusFromWait(row.wait_minutes) !== "closed" && Number(row.wait_minutes) < 15;
 }
 
 function statusPillLabel(row) {
   if (isWalkInHouse(row)) return "Walk-in";
-  return STATUS_LABEL[row.status] || row.status;
+  return STATUS_LABEL[statusFromWait(row.wait_minutes)] || row.status;
 }
 
 function waitMetric(row) {
   const minutes = Number(row.wait_minutes) || 0;
-  if (row.status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
-  if (row.status === "at_capacity") return { value: String(minutes), unit: "min · full", kind: "full" };
+  const status = statusFromWait(minutes);
+  if (status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
   if (!minutes) return { value: "Walk in", unit: "No queue", kind: "walkin" };
   return { value: String(minutes), unit: "min wait", kind: "queue" };
 }
 
 function waitRank(row) {
-  const status = row.status || "open";
-  const band = status === "closed" ? 2 : status === "at_capacity" ? 1 : 0;
+  const status = statusFromWait(row.wait_minutes);
+  const band = status === "closed" ? 2 : status === "busy" ? 1 : 0;
   return band * 1000 + (Number(row.wait_minutes) || 0);
 }
 
@@ -173,15 +191,16 @@ function houseSearchHay(row) {
 function houseMatchesFilter(row) {
   const q = houseFilter.q.trim().toLowerCase();
   if (q && !houseSearchHay(row).includes(q)) return false;
+  const status = statusFromWait(row.wait_minutes);
   const wait = Number(row.wait_minutes) || 0;
   if (houseFilter.status === "walkin") {
-    if (row.status === "closed" || row.status === "at_capacity" || wait !== 0) return false;
-  } else if (houseFilter.status === "queue") {
-    if (row.status !== "open" && row.status !== "busy") return false;
-  } else if (houseFilter.status === "at_capacity") {
-    if (row.status !== "at_capacity") return false;
+    if (status === "closed" || wait !== 0) return false;
+  } else if (houseFilter.status === "open") {
+    if (status !== "open" || wait === 0) return false;
+  } else if (houseFilter.status === "busy") {
+    if (status !== "busy") return false;
   } else if (houseFilter.status === "closed") {
-    if (row.status !== "closed") return false;
+    if (status !== "closed") return false;
   }
   if (houseFilter.tag) {
     const tags = houseMeta(row.id)?.tags || [];
@@ -196,13 +215,6 @@ function filterIsActive() {
 
 function filteredHouses() {
   return sortedHouses().filter(houseMatchesFilter);
-}
-
-function goNowHouses() {
-  let list = sortedHouses().filter((row) => row.status === "open" || row.status === "busy");
-  const q = houseFilter.q.trim().toLowerCase();
-  if (q) list = list.filter((row) => houseSearchHay(row).includes(q));
-  return list.slice(0, 3);
 }
 
 function paintHouseFilters() {
@@ -384,7 +396,6 @@ function setView(name, extra) {
     paintStampUi();
   }
   if (name === "map") {
-    renderMyNight();
     requestAnimationFrame(() => fitMap());
   }
   if (name === "safety") paintSafety();
@@ -408,7 +419,7 @@ function toggleWatchHouse(id) {
     enablePushNotifications(night.watch).then((result) => {
       paintPushHint();
       if (result?.ok) {
-        showWaitToast("Walk-in alert on", "We’ll ping this phone when the wait hits 0 minutes.", false);
+        showWaitToast("Walk-in alert on", "We’ll ping this phone when there’s no queue.", false);
         return;
       }
       if (result?.reason === "ios-install") {
@@ -419,80 +430,51 @@ function toggleWatchHouse(id) {
         showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
         return;
       }
-      showWaitToast("Walk-in alert on", "You’ll see a message here when the wait hits 0. Phone alerts need notification permission.", false);
+      showWaitToast("Walk-in alert on", "You’ll see a message here when there’s no queue. Phone alerts need notification permission.", false);
     }).catch(paintPushHint);
   } else {
     syncPushWatch(night.watch);
-    showWaitToast("Alert off", "This house will no longer ping you at 0 minutes.", false);
+    showWaitToast("Alert off", "This house will no longer ping you when there’s no queue.", false);
   }
+}
+
+function houseCardHtml(row, watching) {
+  const meta = houseMeta(row.id);
+  const on = watching.has(row.id);
+  const walkIn = isWalkInHouse(row);
+  const status = statusFromWait(row.wait_minutes);
+  return `<article class="house-card status-${status}${walkIn ? " is-walkin" : ""}">
+    <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
+      ${houseCardOpenInner(row, meta)}
+    </button>
+    <button class="house-card__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(row.id)}" aria-pressed="${on}" aria-label="${escapeHtml(row.name)} walk-in alert">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8" />
+        <path d="M10 18a2 2 0 0 0 4 0" />
+      </svg>
+      ${on ? "Watching" : "Notify"}
+    </button>
+  </article>`;
 }
 
 function renderDashboard() {
   paintHouseFilters();
-  const goNow = goNowHouses();
-  if (els.shortWaits) {
-    els.shortWaits.innerHTML = goNow.length
-      ? `<div class="short-waits__head">
-          <p class="short-waits__kicker">Shortest queues</p>
-          <h3>Go now</h3>
-          <p class="short-waits__hint">These houses are open with the shortest waits. Walk in if it says 0 minutes — tap a card to open it.</p>
-        </div>
-        <div class="short-waits__row">${goNow.map((row) => {
-        const meta = houseMeta(row.id);
-        const walkIn = row.status !== "closed" && row.status !== "at_capacity" && !(Number(row.wait_minutes) > 0);
-        return `<button type="button" class="short-wait${walkIn ? " short-wait--walkin" : ""}" data-open-house="${escapeHtml(row.id)}">
-          <span class="short-wait__code">${escapeHtml(meta?.short || "")}</span>
-          <strong class="short-wait__name">${escapeHtml(row.name)}</strong>
-          <span class="short-wait__wait">${escapeHtml(waitLabel(row.wait_minutes, row.status))}</span>
-        </button>`;
-      }).join("")}</div>`
-      : "";
-  }
   if (!els.houseGrid) return;
   const list = filteredHouses();
   const watching = new Set(readNight().watch);
   if (!list.length) {
     els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Clear a filter or try a different search.</p></div>`;
-    renderMyNight();
     return;
   }
-  els.houseGrid.innerHTML = list
-    .map((row) => {
-      const meta = houseMeta(row.id);
-      const on = watching.has(row.id);
-        const walkIn = isWalkInHouse(row);
-        return `<article class="house-card status-${row.status}${walkIn ? " is-walkin" : ""}">
-          <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
-            ${houseCardOpenInner(row, meta)}
-          </button>
-          <button class="house-card__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(row.id)}" aria-pressed="${on}" aria-label="${escapeHtml(row.name)} walk-in alert">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8" />
-              <path d="M10 18a2 2 0 0 0 4 0" />
-            </svg>
-            ${on ? "Watching" : "Notify"}
-          </button>
-        </article>`;
-    })
-    .join("");
-  renderMyNight();
-}
-
-function renderMyNight() {
-  const panel = document.getElementById("myNightPanel");
-  const list = document.getElementById("myNightList");
-  const hint = document.getElementById("myNightHint");
-  if (!panel || !list) return;
-  const night = readNight();
-  const rows = sortedHouses(night.houses.map((id) => houses.find((h) => h.id === id)).filter(Boolean));
-  panel.hidden = false;
-  if (hint) hint.hidden = rows.length > 0;
-  list.innerHTML = rows.length
-    ? rows.map((row) => {
-        const meta = houseMeta(row.id);
-        return `<li><button type="button" data-open-house="${escapeHtml(row.id)}">${escapeHtml(meta?.short || "")} · ${escapeHtml(row.name)} · ${escapeHtml(waitLabel(row.wait_minutes, row.status))}</button></li>`;
-      }).join("")
-    : `<li class="empty-state"><p class="empty-state__title">Nothing on your night yet</p><p class="empty-state__hint">Open a house, then tap Add to my night.</p></li>`;
+  const goNow = list.filter(isGoNowHouse);
+  const rest = list.filter((row) => !isGoNowHouse(row));
+  const goNowBlock = goNow.length
+    ? `<div class="house-grid__gonow">
+        <p class="house-grid__gonow-kicker">Go now</p>
+        ${goNow.map((row) => houseCardHtml(row, watching)).join("")}
+      </div>`
+    : "";
+  els.houseGrid.innerHTML = `${goNowBlock}${rest.map((row) => houseCardHtml(row, watching)).join("")}`;
 }
 
 function showWaitToast(title, body, walkIn = false) {
@@ -506,6 +488,19 @@ function showWaitToast(title, body, walkIn = false) {
   setTimeout(() => {
     el.remove();
   }, walkIn ? 12000 : 8000);
+}
+
+function showAnnounceToast(row) {
+  const host = document.getElementById("announceToasts");
+  if (!host) return;
+  const el = document.createElement("aside");
+  el.className = "wait-toast wait-toast--announce";
+  el.innerHTML = `<strong>New announcement</strong><span>${escapeHtml(row.message || "")}</span>`;
+  host.appendChild(el);
+  while (host.children.length > 3) host.removeChild(host.firstChild);
+  setTimeout(() => {
+    el.remove();
+  }, 12000);
 }
 
 function phoneNotify(title, body, url) {
@@ -550,10 +545,10 @@ function notifyWatches(nextHouses) {
     const nowWait = Number(row.wait_minutes) || 0;
     const meta = houseMeta(row.id);
     const label = meta?.short || row.name;
-    const walkIn = nowWait === 0 && row.status !== "closed" && row.status !== "at_capacity" && wasWait > 0;
-    const title = walkIn ? "Walk in now" : label;
+    const walkIn = nowWait === 0 && statusFromWait(nowWait) !== "closed" && wasWait > 0;
+    const title = walkIn ? "No queue now" : label;
     const body = walkIn
-      ? `${row.name} is 0 minutes. Head over.`
+      ? `${row.name}. Head over.`
       : `${row.name}: ${waitLabel(row.wait_minutes, row.status)}`;
     showWaitToast(title, body, walkIn);
     if (walkIn || document.hidden) phoneNotify(title, body, `/#house/${row.id}`);
@@ -649,8 +644,7 @@ function renderPins() {
   const housePins = HOUSES.map((house) => {
     const { cx, cy } = pctToSvg(house.x, house.y);
     const row = houses.find((h) => h.id === house.id) || house;
-    const allowed = { open: 1, busy: 1, closed: 1, at_capacity: 1 };
-    const status = allowed[row.status] ? row.status : allowed[house.status] ? house.status : "open";
+    const status = statusFromWait(row.wait_minutes ?? house.wait);
     const label = escapeHtml(house.short || house.name);
     const match = houseMatchesFilter(row);
     const dim = filtering && !match;
@@ -752,9 +746,10 @@ function openHouse(id) {
   if (!meta || !row || !els.modal) return;
   openHouseId = id;
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
-  els.modal.querySelector("[data-modal-wait]").textContent = waitLabel(row.wait_minutes, row.status);
-  els.modal.querySelector("[data-modal-status]").textContent = STATUS_LABEL[row.status];
-  els.modal.querySelector("[data-modal-status]").className = `status-pill status-${row.status}`;
+  const status = statusFromWait(row.wait_minutes);
+  els.modal.querySelector("[data-modal-wait]").textContent = waitLabel(row.wait_minutes, status);
+  els.modal.querySelector("[data-modal-status]").textContent = statusPillLabel(row);
+  els.modal.querySelector("[data-modal-status]").className = `status-pill status-${status}`;
   els.modal.querySelector("[data-modal-story]").textContent = meta.story;
   els.modal.querySelector("[data-modal-code]").textContent = meta.short;
   const tagsEl = els.modal.querySelector("[data-modal-tags]");
@@ -762,9 +757,7 @@ function openHouse(id) {
   const upd = els.modal.querySelector("[data-modal-updated]");
   if (upd) upd.textContent = freshnessLabel(row.updated_at);
   const night = readNight();
-  const addBtn = document.getElementById("modalAddNight");
   const watchBtn = document.getElementById("modalWatch");
-  if (addBtn) addBtn.textContent = night.houses.includes(id) ? "Remove from my night" : "Add to my night";
   if (watchBtn) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
   els.modal.hidden = false;
   els.modal.querySelector(".modal__panel").focus();
@@ -1075,6 +1068,25 @@ function paintStampUi() {
         <img src="img/fast-pass-ticket.png?v=map70" alt="">
       </div>
       ${pads}`;
+    const ticket = els.stampGrid.querySelector(".stamp-grid__ticket");
+    if (ticket) {
+      if (complete) {
+        ticket.style.maskImage = "none";
+        ticket.style.webkitMaskImage = "none";
+      } else {
+        const cells = litFlags
+          .map((lit, index) => {
+            if (!lit) return "";
+            const col = index % 3;
+            const row = Math.floor(index / 3);
+            return `linear-gradient(#fff, #fff) ${(col / 3) * 100}% ${(row / 2) * 100}% / 33.34% 50% no-repeat`;
+          })
+          .filter(Boolean);
+        const mask = cells.length ? cells.join(", ") : "linear-gradient(transparent, transparent)";
+        ticket.style.mask = mask;
+        ticket.style.webkitMask = mask;
+      }
+    }
   }
 
   if (els.stampRoadmap) {
@@ -1135,6 +1147,7 @@ function paintStampUi() {
   if (els.passAdmin) els.passAdmin.textContent = adminNo;
   if (els.passId) {
     els.passId.classList.toggle("is-locked", !complete);
+    els.passId.classList.remove("is-rested");
     els.passId.textContent = complete
       ? cardState.passId
       : `Locked · ${filled} / 6 runes lit`;
@@ -1148,30 +1161,26 @@ function paintStampUi() {
   });
   if (els.passKicker) {
     els.passKicker.textContent = redeemed
-      ? "Laid to rest"
+      ? "Spirit keepsake"
       : complete
         ? "Show this at Fast Pass"
         : "Caged spirit";
   }
   if (els.lanternHint) {
-    els.lanternHint.textContent = redeemed
-      ? "This spirit has been laid to rest"
-      : complete
-        ? ghostRoaming
-          ? "Your spirit is loose — it will come back"
-          : spiritRaised
-          ? "Show your name and admin number to staff"
-          : "Tap the ghost to let it fly"
-        : filled
-          ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
-          : "The spirit is caged. Stamp booths to uncover your ticket";
+    const hideHint = complete || redeemed;
+    els.lanternHint.hidden = hideHint;
+    if (!hideHint) {
+      els.lanternHint.textContent = filled
+        ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
+        : "The spirit is caged. Stamp booths to uncover your ticket";
+    }
   }
   if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
   if (els.redeemedNote) {
     els.redeemedNote.hidden = !redeemed;
     if (redeemed) {
       const when = new Date(cardState.redeemedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      els.redeemedNote.textContent = `Redeemed at ${when}${cardState.redeemedBy ? ` by ${cardState.redeemedBy}` : ""}.`;
+      els.redeemedNote.textContent = `Redeemed at ${when}`;
     }
   }
 }
@@ -1300,9 +1309,9 @@ function renderTimeline() {
 }
 
 function formatPostedAt(iso) {
-  if (!iso) return { clock: "", ago: "" };
+  if (!iso) return { clock: "", ago: "", fresh: false };
   const then = new Date(iso);
-  if (Number.isNaN(then.getTime())) return { clock: "", ago: "" };
+  if (Number.isNaN(then.getTime())) return { clock: "", ago: "", fresh: false };
   const clock = then.toLocaleString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -1311,18 +1320,22 @@ function formatPostedAt(iso) {
   });
   const sec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
   let ago = "just now";
-  if (sec >= 45 && sec < 90) ago = "1 min ago";
-  else if (sec >= 90 && sec < 3600) ago = `${Math.floor(sec / 60)} min ago`;
-  else if (sec < 5400) ago = "1 hour ago";
-  else if (sec < 86400) ago = `${Math.floor(sec / 3600)} hours ago`;
-  else if (sec < 172800) ago = "1 day ago";
+  if (sec < 60) ago = "just now";
+  else if (sec < 3600) {
+    const mins = Math.floor(sec / 60);
+    ago = mins === 1 ? "1 min ago" : `${mins} min ago`;
+  } else if (sec < 86400) {
+    const hours = Math.floor(sec / 3600);
+    ago = hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  } else if (sec < 172800) ago = "1 day ago";
   else ago = `${Math.floor(sec / 86400)} days ago`;
-  return { clock, ago };
+  return { clock, ago, fresh: sec < 60 };
 }
 
 function announceItemHtml(row) {
-  const { clock, ago } = formatPostedAt(row.created_at);
-  const when = [clock, ago].filter(Boolean).join(" · ");
+  const { clock, ago, fresh } = formatPostedAt(row.created_at);
+  const relative = fresh ? "just posted" : ago;
+  const when = [clock, relative].filter(Boolean).join(" · ");
   const audience = row.audience && row.audience !== "all" ? row.audience : "";
   const house = row.house_id ? houseMeta(row.house_id)?.short : "";
   return `<li class="announce-item">
@@ -1334,6 +1347,7 @@ function announceItemHtml(row) {
 
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
+  noteNewAnnouncements(rows);
   const empty = `<li class="empty-state"><p class="empty-state__title">No staff announcements yet</p><p class="empty-state__hint">Official notes from facilitators will show up here.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
@@ -1342,17 +1356,42 @@ async function loadPublicAnnouncements() {
   if (details) details.open = rows.length > 0;
 }
 
+const ANNOUNCE_SEEN_KEY = "scream-announce-seen";
+let announceSeenReady = false;
+
+function noteNewAnnouncements(rows) {
+  const ids = rows.map((row) => String(row.id || "")).filter(Boolean);
+  let seen = [];
+  try {
+    seen = JSON.parse(sessionStorage.getItem(ANNOUNCE_SEEN_KEY) || "[]");
+  } catch {
+    seen = [];
+  }
+  if (!announceSeenReady) {
+    sessionStorage.setItem(ANNOUNCE_SEEN_KEY, JSON.stringify(ids));
+    announceSeenReady = true;
+    return;
+  }
+  const known = new Set(seen);
+  rows.forEach((row) => {
+    if (!row?.id || known.has(String(row.id))) return;
+    showAnnounceToast(row);
+  });
+  sessionStorage.setItem(ANNOUNCE_SEEN_KEY, JSON.stringify([...new Set([...seen, ...ids])].slice(-40)));
+}
+
 async function loadAdminAnnouncements() {
   if (!els.adminAnnounceList) return;
   try {
     const rows = await fetchAnnouncements({ all: true });
     els.adminAnnounceList.innerHTML = rows.length
       ? rows.map((row) => {
-        const { clock, ago } = formatPostedAt(row.created_at);
+        const { clock, ago, fresh } = formatPostedAt(row.created_at);
         const posted = row.active !== false;
+        const relative = fresh ? "just posted" : ago;
         return `<li class="feedback-item">
           <p>${escapeHtml(row.message)}</p>
-          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · ${escapeHtml(row.audience || "all")}${row.house_id ? ` · ${escapeHtml(row.house_id)}` : ""}${row.expires_at ? ` · expires ${escapeHtml(formatPostedAt(row.expires_at).clock)}` : ""} · Posted ${escapeHtml(clock)}${ago ? ` · ${escapeHtml(ago)}` : ""} · ${posted ? "Showing" : "Taken down"}</p>
+          <p class="muted">${escapeHtml(row.posted_by || "Staff")} · ${escapeHtml(row.audience || "all")}${row.house_id ? ` · ${escapeHtml(row.house_id)}` : ""}${row.expires_at ? ` · expires ${escapeHtml(formatPostedAt(row.expires_at).clock)}` : ""} · Posted ${escapeHtml(clock)}${relative ? ` · ${escapeHtml(relative)}` : ""} · ${posted ? "Showing" : "Taken down"}</p>
           ${posted ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
         </li>`;
       }).join("")
@@ -1372,7 +1411,8 @@ async function loadOps() {
     grid.innerHTML = `
       <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
       <div class="ops-card"><span>Fast Pass unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
-      <div class="ops-card"><span>Houses at capacity</span><strong>${data.housesAtCapacity || 0}</strong></div>
+      <div class="ops-card"><span>Houses busy</span><strong>${data.housesBusy || 0}</strong></div>
+      <div class="ops-card"><span>Houses closed</span><strong>${data.housesClosed || 0}</strong></div>
       <div class="ops-card"><span>Feedback (6h)</span><strong>${data.recentFeedback || 0}</strong></div>
       ${boothBits}`;
     if (audit) {
@@ -1437,11 +1477,9 @@ function renderAdmin() {
     .map((row) => {
       const draft = drafts.get(row.id) || {
         wait_minutes: row.wait_minutes,
-        status: row.status,
+        status: statusFromWait(row.wait_minutes),
       };
-      const options = STATUSES.map(
-        (s) => `<option value="${s.id}" ${draft.status === s.id ? "selected" : ""}>${s.label}</option>`
-      ).join("");
+      const status = statusFromWait(draft.wait_minutes);
       return `
         <tr data-admin-row="${row.id}">
           <td>
@@ -1451,12 +1489,10 @@ function renderAdmin() {
           <td>
             <div class="wait-editor">
               <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
-              <input type="number" min="0" step="1" value="${draft.wait_minutes}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <input type="number" min="0" max="180" step="1" value="${draft.wait_minutes}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
               <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
-          </td>
-          <td>
-            <select data-status>${options}</select>
+            <div class="muted" data-status-label>${STATUS_LABEL[status]}</div>
           </td>
           <td>
             <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
@@ -1467,7 +1503,7 @@ function renderAdmin() {
   fillAwardBoothSelect();
   const houseSel = document.getElementById("announceHouse");
   if (houseSel && !houseSel.dataset.filled) {
-    houseSel.innerHTML = HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`).join("");
+    houseSel.innerHTML = `<option value="">General — not tied to a house</option>${HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`).join("")}`;
     houseSel.dataset.filled = "1";
   }
   const scope = staffScope();
@@ -1492,7 +1528,9 @@ function renderAdmin() {
 function readAdminRow(tr) {
   const id = tr.dataset.adminRow;
   const wait = Math.max(0, Number(tr.querySelector("[data-wait-input]").value) || 0);
-  const status = tr.querySelector("[data-status]").value;
+  const status = statusFromWait(wait);
+  const label = tr.querySelector("[data-status-label]");
+  if (label) label.textContent = STATUS_LABEL[status] || status;
   drafts.set(id, { wait_minutes: wait, status });
   return { id, wait_minutes: wait, status };
 }
@@ -1703,17 +1741,7 @@ function bindUi() {
   });
   document.getElementById("announceAudience")?.addEventListener("change", (event) => {
     const wrap = document.getElementById("announceHouseWrap");
-    if (wrap) wrap.hidden = event.target.value !== "house";
-  });
-  document.getElementById("modalAddNight")?.addEventListener("click", () => {
-    if (!openHouseId) return;
-    const night = readNight();
-    night.houses = night.houses.includes(openHouseId)
-      ? night.houses.filter((id) => id !== openHouseId)
-      : [...night.houses, openHouseId];
-    writeNight(night);
-    openHouse(openHouseId);
-    renderMyNight();
+    if (wrap) wrap.hidden = event.target.value === "booths";
   });
   document.getElementById("modalWatch")?.addEventListener("click", () => {
     if (!openHouseId) return;
@@ -1993,6 +2021,12 @@ function bindUi() {
     }
   });
 
+  els.adminTable?.addEventListener("input", (event) => {
+    if (!event.target.matches("[data-wait-input]")) return;
+    const tr = event.target.closest("[data-admin-row]");
+    if (tr) readAdminRow(tr);
+  });
+
   els.adminTable?.addEventListener("change", (event) => {
     const tr = event.target.closest("[data-admin-row]");
     if (!tr) return;
@@ -2115,9 +2149,12 @@ function bindUi() {
     event.preventDefault();
     if (els.announceError) els.announceError.hidden = true;
     try {
+      const audienceSelect = document.getElementById("announceAudience")?.value || "all";
+      const houseId = document.getElementById("announceHouse")?.value || "";
+      const audience = audienceSelect === "booths" ? "booths" : houseId ? "house" : "all";
       await postAnnouncement(document.getElementById("announceMessage").value, {
-        audience: document.getElementById("announceAudience")?.value || "all",
-        houseId: document.getElementById("announceHouse")?.value || "",
+        audience,
+        houseId,
         expiresMinutes: document.getElementById("announceExpires")?.value || "",
       });
       document.getElementById("announceMessage").value = "";
@@ -2208,8 +2245,9 @@ function paintConnectionUi(mode, error) {
 }
 
 function onStoreChange(next, sync) {
-  notifyWatches(next);
-  houses = next;
+  const normalized = (next || []).map(normalizeHouseRow);
+  notifyWatches(normalized);
+  houses = normalized;
   if (sync) {
     paintWaitBanner(sync);
     if (sync.liveOk) paintConnectionUi("live");
@@ -2218,7 +2256,7 @@ function onStoreChange(next, sync) {
   renderPins();
   if (document.querySelector('.view.is-active')?.dataset.view === "admin" && isAdminUnlocked()) {
     const active = document.activeElement;
-    if (!active?.matches("[data-wait-input], [data-status]")) renderAdmin();
+    if (!active?.matches("[data-wait-input]")) renderAdmin();
   }
 }
 

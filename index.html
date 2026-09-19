@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map95" />
+    <link rel="stylesheet" href="css/styles.css?v=map99" />
     <script src="js/boot.js?v=map92"></script>
   </head>
   <body>
@@ -641,7 +641,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.6.3</div>
+          <div class="version-chip" title="App version">v1.6.4</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -655,6 +655,7 @@
       </div>
 
       <div class="wait-toasts" id="waitToasts" aria-live="polite"></div>
+      <div class="announce-toasts" id="announceToasts" aria-live="polite"></div>
       <p class="push-install-hint" id="pushInstallHint" hidden>
         iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that
         icon, then tap <strong>Alert when walk-in</strong> on a house. Safari
@@ -734,7 +735,6 @@
               </div>
             </div>
           </div>
-          <div class="short-waits" id="shortWaits"></div>
           <details class="announce-panel" id="announceDetails">
             <summary class="announce-panel__summary">
               <h2>Staff announcements</h2>
@@ -777,16 +777,16 @@
               <button
                 type="button"
                 class="filter-chip"
-                data-filter-status="queue"
+                data-filter-status="open"
               >
-                Open / busy
+                Open
               </button>
               <button
                 type="button"
                 class="filter-chip"
-                data-filter-status="at_capacity"
+                data-filter-status="busy"
               >
-                At capacity
+                Busy
               </button>
               <button
                 type="button"
@@ -828,13 +828,6 @@
             </div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
-          <div class="my-night-panel" id="myNightPanel">
-            <h3 class="roadmap__title">My night</h3>
-            <p class="muted" id="myNightHint">
-              Open a house from the map or list, then tap Add to my night.
-            </p>
-            <ol class="my-night-list" id="myNightList"></ol>
-          </div>
         </section>
 
         <section class="view" data-view="tonight" hidden>
@@ -898,8 +891,8 @@
               <label class="check-row">
                 <input id="studentNotifyOptIn" type="checkbox" />
                 <span
-                  >Notify this phone when a house I watch hits 0 minutes
-                  (walk-in). iPhone: Add to Home Screen first.</span
+                  >Notify this phone when a house I watch has no queue.
+                  iPhone: Add to Home Screen first.</span
                 >
               </label>
               <p class="form-error" id="studentLoginError" hidden></p>
@@ -1322,10 +1315,10 @@
                   <p class="fast-pass__id is-locked" id="passId">
                     Locked · 0 / 6 runes lit
                   </p>
+                  <span class="fast-pass__used" id="passUsedMark" hidden
+                    >Laid to rest</span
+                  >
                 </div>
-                <span class="fast-pass__used" id="passUsedMark" hidden
-                  >Laid to rest</span
-                >
                 <p class="muted" id="redeemedNote" hidden></p>
               </article>
             </article>
@@ -1632,9 +1625,9 @@
               </div>
               <h3>Walk-in</h3>
               <p>
-                Wait is 0 minutes and the house is open. Go now — nobody is
-                queued. Tap <strong>Alert when walk-in</strong> on other houses
-                if you want a ping when they hit this.
+                There’s no queue and the house is open. Go now. Tap
+                <strong>Alert when walk-in</strong> on other houses if you want
+                a ping when they hit this.
               </p>
             </article>
 
@@ -1698,7 +1691,7 @@
                     </span>
                     <strong class="house-card__name">Atrium Abyss</strong>
                     <span class="house-card__metric">
-                      <span class="house-card__wait">25</span>
+                      <span class="house-card__wait">32</span>
                       <span class="house-card__unit">min wait</span>
                     </span>
                     <span class="house-card__meta">
@@ -1709,49 +1702,9 @@
               </div>
               <h3>Busy</h3>
               <p>
-                Still open, but the wait is longer. The queue is moving. Check
-                the minutes before you commit, or pick a shorter house.
-              </p>
-            </article>
-
-            <article class="guide-state">
-              <div class="guide-state__art">
-                <svg
-                  class="guide-pin guide-pin--full"
-                  viewBox="0 0 40 52"
-                  aria-hidden="true"
-                >
-                  <path
-                    class="guide-pin__mark"
-                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
-                  />
-                  <circle cx="20" cy="18" r="6.5" fill="#2e1064" />
-                </svg>
-                <article
-                  class="house-card house-card--sample status-at_capacity"
-                >
-                  <div class="house-card__open">
-                    <span class="house-card__rail" aria-hidden="true"></span>
-                    <span class="house-card__top">
-                      <span class="house-card__short">LIB</span>
-                      <span class="status-pill">At Capacity</span>
-                    </span>
-                    <strong class="house-card__name">Library of Lost Souls</strong>
-                    <span class="house-card__metric">
-                      <span class="house-card__wait">40</span>
-                      <span class="house-card__unit">min · full</span>
-                    </span>
-                    <span class="house-card__meta">
-                      <span class="fresh">Updated 1 min ago</span>
-                    </span>
-                  </div>
-                </article>
-              </div>
-              <h3>At capacity</h3>
-              <p>
-                The house is full. <strong>The queue stops</strong> — staff will
-                not take new guests until people leave. Do not join a line. Come
-                back later or choose another haunt.
+                Wait is 30 minutes or more. Still taking guests, but the line is
+                long. Check the minutes before you commit, or pick a shorter
+                house.
               </p>
             </article>
 
@@ -1788,9 +1741,9 @@
               </div>
               <h3>Closed</h3>
               <p>
-                Not running right now (reset, last entry, or a pause). Pins and
-                cards go red. Don’t wait at the door until it shows Open, Busy,
-                or Walk-in again.
+                Wait is 60 minutes or more — treated as closed (reset, last
+                entry, or a pause). Pins and cards go red. Don’t wait at the
+                door until it shows Open, Busy, or Walk-in again.
               </p>
             </article>
           </div>
@@ -1816,8 +1769,9 @@
               <strong>Feedback</strong> if a house or booth needs a note.
             </li>
             <li>
-              Tap <strong>Alert when walk-in</strong> on a house for a ping at 0
-              minutes. On iPhone, add this site to your Home Screen first.
+              Tap <strong>Alert when walk-in</strong> on a house for a ping when
+              there’s no queue. On iPhone, add this site to your Home Screen
+              first.
             </li>
             <li>
               Help desk, meetup, and skip-house notes live on
@@ -1942,8 +1896,8 @@
               <div class="section-head">
                 <h2>Wait-Time Control</h2>
                 <p>
-                  Edits sync to every open map when auto-save is on, or hit
-                  Publish.
+                  Wait minutes set the status: under 30 is open, 30 and above is
+                  busy, 60 closes the house. Auto-save publishes to every open map.
                 </p>
                 <div class="admin-toolbar">
                   <label class="toggle">
@@ -1965,7 +1919,6 @@
                     <tr>
                       <th>Scare house</th>
                       <th>Wait (min)</th>
-                      <th>Status</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -2089,23 +2042,25 @@
                 <p>Filter by type, then by a specific scare house or booth.</p>
               </div>
               <div class="admin-toolbar feedback-filters">
-                <button
-                  class="nav__btn is-active"
-                  type="button"
-                  data-fb-kind=""
-                >
-                  All
-                </button>
-                <button
-                  class="nav__btn"
-                  type="button"
-                  data-fb-kind="scare_house"
-                >
-                  Scare Houses
-                </button>
-                <button class="nav__btn" type="button" data-fb-kind="booth">
-                  Booths
-                </button>
+                <div class="feedback-filters__kinds" role="tablist" aria-label="Feedback type">
+                  <button
+                    class="nav__btn is-active"
+                    type="button"
+                    data-fb-kind=""
+                  >
+                    All
+                  </button>
+                  <button
+                    class="nav__btn"
+                    type="button"
+                    data-fb-kind="scare_house"
+                  >
+                    Scare houses
+                  </button>
+                  <button class="nav__btn" type="button" data-fb-kind="booth">
+                    Booths
+                  </button>
+                </div>
                 <label class="diff-label" id="feedbackTargetWrap" hidden>
                   Specific
                   <select id="adminFeedbackTarget">
@@ -2122,7 +2077,7 @@
                 <h2>Staff announcements</h2>
                 <p>
                   Posted notes show under Staff announcements on Event Map and
-                  Tonight. Take down when they are no longer needed.
+                  Tonight. Leave scare house blank for a general note.
                 </p>
               </div>
               <form class="auth-card" id="announceForm">
@@ -2140,13 +2095,14 @@
                   Who should see it
                   <select id="announceAudience">
                     <option value="all">Everyone</option>
-                    <option value="house">One scare house</option>
                     <option value="booths">Booths / stamp trail</option>
                   </select>
                 </label>
-                <label id="announceHouseWrap" hidden>
-                  Scare house
-                  <select id="announceHouse"></select>
+                <label id="announceHouseWrap">
+                  Scare house (optional)
+                  <select id="announceHouse">
+                    <option value="">General — not tied to a house</option>
+                  </select>
                 </label>
                 <label>
                   Auto-expire (minutes, optional)
@@ -2212,10 +2168,7 @@
           <p class="house-tags" data-modal-tags></p>
           <p class="muted" data-modal-updated></p>
           <div class="modal-actions">
-            <button class="btn" type="button" id="modalAddNight">
-              Add to my night
-            </button>
-            <button class="btn btn--ghost" type="button" id="modalWatch">
+            <button class="btn" type="button" id="modalWatch">
               Alert when walk-in
             </button>
           </div>
@@ -2274,7 +2227,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=map92"></script>
-      <script type="module" src="js/app.js?v=map92"></script>
+      <script type="module" src="js/app.js?v=map98"></script>
     </div>
   </body>
 </html>

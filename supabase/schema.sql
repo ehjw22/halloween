@@ -6,7 +6,7 @@ create table if not exists public.scare_houses (
   name text not null,
   wait_minutes integer not null default 0 check (wait_minutes >= 0),
   status text not null default 'open'
-    check (status in ('open', 'busy', 'closed', 'at_capacity')),
+    check (status in ('open', 'busy', 'closed')),
   updated_at timestamptz not null default now()
 );
 
@@ -22,20 +22,20 @@ drop policy if exists "public update scare houses" on public.scare_houses;
 
 insert into public.scare_houses (id, name, wait_minutes, status) values
   ('dover-gate', 'Dover Gate Ghouls', 5, 'open'),
-  ('aerohub', 'Aerohub Crypt', 20, 'busy'),
+  ('aerohub', 'Aerohub Crypt', 20, 'open'),
   ('innovillage', 'Innovillage Incubus', 10, 'open'),
   ('sports-complex', 'Trackside Terror', 0, 'open'),
-  ('mp-field', 'Fog on the Field', 15, 'busy'),
-  ('atrium', 'Atrium Abyss (T12)', 25, 'busy'),
+  ('mp-field', 'Fog on the Field', 15, 'open'),
+  ('atrium', 'Atrium Abyss (T12)', 32, 'busy'),
   ('witch-labs', 'T11 Witch Labs', 8, 'open'),
-  ('library', 'Library of Lost Souls', 35, 'at_capacity'),
+  ('library', 'Library of Lost Souls', 35, 'busy'),
   ('admin', 'Admin Hex', 12, 'open'),
-  ('plaza', 'Plaza Phantom', 18, 'busy'),
-  ('arena', 'Sports Arena Haunt', 22, 'busy'),
+  ('plaza', 'Plaza Phantom', 18, 'open'),
+  ('arena', 'Sports Arena Haunt', 22, 'open'),
   ('moberly', 'Moberly Manor', 6, 'open'),
-  ('west-wing', 'West Wing Wraiths', 0, 'closed'),
+  ('west-wing', 'West Wing Wraiths', 60, 'closed'),
   ('food-court', 'FC Cursed Kitchen', 9, 'open'),
-  ('wsa', 'WSA Warehouse Whispers', 40, 'at_capacity')
+  ('wsa', 'WSA Warehouse Whispers', 40, 'busy')
 on conflict (id) do nothing;
 
 create table if not exists public.students (
@@ -264,7 +264,7 @@ begin
   if p_id is null or length(trim(p_id)) = 0 then
     return jsonb_build_object('ok', false, 'error', 'bad_id');
   end if;
-  if p_status not in ('open', 'busy', 'closed', 'at_capacity') then
+  if p_status not in ('open', 'busy', 'closed') then
     return jsonb_build_object('ok', false, 'error', 'bad_status');
   end if;
   wait_val := greatest(0, least(240, coalesce(p_wait, 0)));

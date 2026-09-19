@@ -2,7 +2,6 @@ export const STATUSES = [
   { id: "open", label: "Open" },
   { id: "busy", label: "Busy" },
   { id: "closed", label: "Closed" },
-  { id: "at_capacity", label: "At Capacity" },
 ];
 
 /** x/y are percentages of sp_map.png (left/top). */
@@ -26,7 +25,7 @@ export const HOUSES = [
     x: 47.2,
     y: 13.9,
     wait: 20,
-    status: "busy",
+    status: "open",
     tags: ["jumpscare", "dark"],
     story:
       "Hangars should not echo like catacombs. Inside Aerohub, aircraft silhouettes twist into bone, and a hangar door opens onto a runway that ends in open sky — and then keeps going.",
@@ -62,7 +61,7 @@ export const HOUSES = [
     x: 49.1,
     y: 48.4,
     wait: 15,
-    status: "busy",
+    status: "open",
     tags: ["outdoors", "fog"],
     story:
       "The multi-purpose field is a bowl of low fog. Whistles blow from the centre circle. When the mist parts, the players have no faces — only SP crests stitched over where mouths should be.",
@@ -73,7 +72,7 @@ export const HOUSES = [
     short: "T12",
     x: 59.1,
     y: 30.6,
-    wait: 25,
+    wait: 32,
     status: "busy",
     tags: ["stairs", "jumpscare"],
     story:
@@ -98,7 +97,7 @@ export const HOUSES = [
     x: 70.4,
     y: 69.8,
     wait: 35,
-    status: "at_capacity",
+    status: "busy",
     tags: ["quiet", "stairs"],
     story:
       "Silent floor is silent for a reason. Books reshelve themselves into a Dewey system of last words. If your student card beeps at the gate, something in the stacks already knows your name.",
@@ -122,7 +121,7 @@ export const HOUSES = [
     x: 55.8,
     y: 25.6,
     wait: 18,
-    status: "busy",
+    status: "open",
     tags: ["crowd", "outdoors"],
     story:
       "The plaza fountain runs black. Campus cats refuse to cross it. At the stroke of a fake midnight, the crowd in the open space is twice as large as the people who actually walked in.",
@@ -134,7 +133,7 @@ export const HOUSES = [
     x: 46.9,
     y: 62.6,
     wait: 22,
-    status: "busy",
+    status: "open",
     tags: ["strobe", "crowd", "stairs"],
     story:
       "The arena scoreboard counts down from 13. Cheer squads in the dark bleachers never sit down. When the buzzer sounds, both teams are already gone — the court is waiting for you.",
@@ -157,7 +156,7 @@ export const HOUSES = [
     short: "W1–3",
     x: 82.6,
     y: 78.3,
-    wait: 0,
+    wait: 60,
     status: "closed",
     tags: ["strobe"],
     story:
@@ -182,7 +181,7 @@ export const HOUSES = [
     x: 79,
     y: 88,
     wait: 40,
-    status: "at_capacity",
+    status: "busy",
     tags: ["dark", "jumpscare"],
     story:
       "Pallets shift in WSA when nobody is on shift. Forklifts idle in a V formation. Follow the yellow floor tape far enough and it leads under the building — into a loading bay that only opens on Halloween.",
