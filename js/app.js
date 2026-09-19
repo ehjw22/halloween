@@ -385,6 +385,7 @@ function setView(name, extra) {
     else setHash(name);
   }
   setView.skipHash = false;
+  setMoreMenu(false);
   updateNav();
   if (name === "admin") renderAdmin();
   if (name === "tonight") {

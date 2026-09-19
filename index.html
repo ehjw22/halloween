@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map102" />
+    <link rel="stylesheet" href="css/styles.css?v=map103" />
     <script src="js/boot.js?v=map92"></script>
   </head>
   <body>
@@ -514,6 +514,29 @@
               ></span>
               Sign in
             </button>
+            <button
+              class="nav__btn"
+              type="button"
+              data-nav="admin"
+              data-nav-show="admin"
+              hidden
+            >
+              <span class="nav__icon" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M12 3.8 4.5 7v4.4c0 4.4 3 7.9 7.5 9.3 4.5-1.4 7.5-4.9 7.5-9.3V7L12 3.8z"
+                  />
+                  <path d="M9 12.2 11 14l4-4" /></svg
+              ></span>
+              Staff
+            </button>
           </div>
           <button class="nav__btn nav__wide" type="button" data-nav="games">
             <span class="nav__icon" aria-hidden="true"
@@ -613,7 +636,7 @@
             Sign in
           </button>
           <button
-            class="nav__btn"
+            class="nav__btn nav__wide"
             type="button"
             data-nav="admin"
             data-nav-show="admin"
@@ -641,7 +664,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.6.5</div>
+          <div class="version-chip" title="App version">v1.6.6</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -1804,9 +1827,9 @@
                 Staff password
                 <input
                   id="staffUnlockPassword"
-                  name="password"
+                  name="staffUnlockPassword"
                   type="password"
-                  autocomplete="current-password"
+                  autocomplete="off"
                   maxlength="80"
                   required
                 />
@@ -2215,7 +2238,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=map92"></script>
-      <script type="module" src="js/app.js?v=map102"></script>
+      <script type="module" src="js/app.js?v=map103"></script>
     </div>
   </body>
 </html>
