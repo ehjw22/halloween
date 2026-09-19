@@ -2,7 +2,7 @@ import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js";
 import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
-import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js";
+import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
 import { SAFETY } from "./safety.js";
 import { applyGhostPass } from "./ghost-pass.js?v=map100";
 import { createStore } from "./store.js";
@@ -2350,7 +2350,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js")
+  import("./games.js?v=map102")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

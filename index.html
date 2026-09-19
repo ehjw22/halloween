@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=map101" />
+    <link rel="stylesheet" href="css/styles.css?v=map102" />
     <script src="js/boot.js?v=map92"></script>
   </head>
   <body>
@@ -641,7 +641,7 @@
           <div class="live-chip" id="liveMode" aria-live="polite" hidden>
             Connecting…
           </div>
-          <div class="version-chip" title="App version">v1.6.4</div>
+          <div class="version-chip" title="App version">v1.6.5</div>
         </div>
       </header>
       <div class="game-subnav" id="gameSubnav" hidden>
@@ -1589,21 +1589,18 @@
 
           <h3 class="guide-heading">House states</h3>
           <p class="guide-lead">
-            Match the pin and the card before you queue. Staff set these live.
+            Match the map circle and the card before you queue. Staff set these live.
           </p>
           <div class="guide-states">
             <article class="guide-state">
               <div class="guide-state__art">
                 <svg
                   class="guide-pin guide-pin--walkin"
-                  viewBox="0 0 40 52"
+                  viewBox="0 0 48 48"
                   aria-hidden="true"
                 >
-                  <path
-                    class="guide-pin__mark"
-                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
-                  />
-                  <circle cx="20" cy="18" r="6.5" fill="#052e16" />
+                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
+                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
                 </svg>
                 <article class="house-card house-card--sample status-open is-walkin">
                   <div class="house-card__open">
@@ -1635,14 +1632,11 @@
               <div class="guide-state__art">
                 <svg
                   class="guide-pin guide-pin--open"
-                  viewBox="0 0 40 52"
+                  viewBox="0 0 48 48"
                   aria-hidden="true"
                 >
-                  <path
-                    class="guide-pin__mark"
-                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
-                  />
-                  <circle cx="20" cy="18" r="6.5" fill="#052e16" />
+                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
+                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
                 </svg>
                 <article class="house-card house-card--sample status-open">
                   <div class="house-card__open">
@@ -1673,14 +1667,11 @@
               <div class="guide-state__art">
                 <svg
                   class="guide-pin guide-pin--busy"
-                  viewBox="0 0 40 52"
+                  viewBox="0 0 48 48"
                   aria-hidden="true"
                 >
-                  <path
-                    class="guide-pin__mark"
-                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
-                  />
-                  <circle cx="20" cy="18" r="6.5" fill="#3b1a04" />
+                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
+                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
                 </svg>
                 <article class="house-card house-card--sample status-busy">
                   <div class="house-card__open">
@@ -1712,14 +1703,11 @@
               <div class="guide-state__art">
                 <svg
                   class="guide-pin guide-pin--closed"
-                  viewBox="0 0 40 52"
+                  viewBox="0 0 48 48"
                   aria-hidden="true"
                 >
-                  <path
-                    class="guide-pin__mark"
-                    d="M20 3c-8.3 0-15 6.4-15 16.2C5 31.4 20 49 20 49s15-17.6 15-29.8C35 9.4 28.3 3 20 3z"
-                  />
-                  <circle cx="20" cy="18" r="6.5" fill="#450a0a" />
+                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
+                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
                 </svg>
                 <article class="house-card house-card--sample status-closed">
                   <div class="house-card__open">
@@ -2227,7 +2215,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=map92"></script>
-      <script type="module" src="js/app.js?v=map101"></script>
+      <script type="module" src="js/app.js?v=map102"></script>
     </div>
   </body>
 </html>

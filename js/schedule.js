@@ -1,7 +1,7 @@
 /** Night-of programme. Times are 24h, Singapore. */
-export const EVENT_DATE_LABEL = "31 Oct 2026";
+export const EVENT_DATE_LABEL = "24 Oct 2026";
 export const EVENT_TZ = "Asia/Singapore";
-export const EVENT_ISO_DATE = "2026-10-31";
+export const EVENT_ISO_DATE = "2026-10-24";
 
 export const SCHEDULE = [
   { start: "17:30", end: "18:00", title: "Gates open", place: "Gate 1 / Dover", kind: "ops", note: "Stamp cards and safety brief at Pumpkin Gate." },

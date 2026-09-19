@@ -150,42 +150,35 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     ctx.save();
     ctx.translate(item.x, item.y);
     ctx.rotate(item.rot);
-    ctx.textAlign = "left";
-    if (item.type === "hazard") {
-      ctx.shadowColor = "#f87171";
-      ctx.shadowBlur = 12;
-      ctx.font = "26px serif";
-      ctx.fillText(item.spin > 0 ? "💀" : "🦇", -13, 8);
-    } else if (item.type === "bonus") {
-      ctx.shadowColor = "#c084fc";
-      ctx.shadowBlur = 16;
-      ctx.fillStyle = "#c084fc";
-      ctx.beginPath();
-      ctx.arc(0, 0, 11, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fff4d6";
-      ctx.font = "12px Outfit, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("✦", 0, 4);
-    } else if (item.type === "rare") {
-      ctx.shadowColor = "#ffb347";
-      ctx.shadowBlur = 14;
-      ctx.font = "28px serif";
-      ctx.fillText("🎃", -14, 10);
-    } else {
-      ctx.shadowColor = "#4ade80";
-      ctx.shadowBlur = 10;
-      ctx.font = "24px serif";
-      ctx.fillText("🍬", -12, 8);
-    }
+    const look = {
+      hazard: { glow: "#ff9a9a", disc: "rgba(248,113,113,0.7)", emoji: item.spin > 0 ? "💀" : "🦇" },
+      bonus: { glow: "#f0d9ff", disc: "rgba(216,180,254,0.75)", emoji: "✦" },
+      rare: { glow: "#ffd38a", disc: "rgba(255,179,71,0.75)", emoji: "🎃" },
+      treat: { glow: "#bbf7d0", disc: "rgba(74,222,128,0.7)", emoji: "🍬" },
+    }[item.type] || { glow: "#fff4d6", disc: "rgba(255,244,214,0.55)", emoji: "🍬" };
+    ctx.shadowColor = look.glow;
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = look.disc;
+    ctx.beginPath();
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff8ea";
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "32px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(look.emoji, 0, 1);
     ctx.restore();
   }
 
   function drawBg() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#12061a");
-    g.addColorStop(0.55, "#0a0712");
-    g.addColorStop(1, "#14080c");
+    g.addColorStop(0, "#2c1540");
+    g.addColorStop(0.55, "#1c1028");
+    g.addColorStop(1, "#2a1418");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "rgba(255,244,214,0.7)";
@@ -310,7 +303,7 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
       item.rot += item.spin * dt;
     });
     items = items.filter((item) => {
-      const hit = item.y > H - 58 && item.y < H - 8 && Math.abs(item.x - paddleX) < 48;
+      const hit = item.y > H - 62 && item.y < H - 4 && Math.abs(item.x - paddleX) < 54;
       if (hit) {
         applyCatch(item);
         return false;

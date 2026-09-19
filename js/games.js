@@ -1,5 +1,5 @@
 import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js";
-import { setupCatchArcade } from "./catch-arcade.js";
+import { setupCatchArcade } from "./catch-arcade.js?v=map102";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["🎃", "🦇", "👻", "🍬", "💀", "🕸️", "🐱", "🌙", "🧛", "🧪", "🕯️", "🦉"];
@@ -594,9 +594,14 @@ function setupMemory() {
     return Math.max(0, bonus + 400 - seconds * 4 - misses * 18);
   }
 
+  function currentSpec() {
+    return DIFFS[diffEl?.value] || DIFFS.medium;
+  }
+
   function paintStatus() {
     if (!started) {
-      status.textContent = "Pick a difficulty, then start. Match every pair.";
+      const spec = currentSpec();
+      status.textContent = `${spec.label} · ${spec.pairs * 2} cards. Start when ready.`;
       return;
     }
     if (done) return;
@@ -656,6 +661,8 @@ function setupMemory() {
       }, 650);
     }
   });
+
+  diffEl?.addEventListener("change", () => resetMemoryRound());
 
   startBtn.addEventListener("click", () => {
     deal();

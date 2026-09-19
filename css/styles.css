@@ -41,6 +41,19 @@ html:not(.event-open) #eventApp {
 html.event-open .event-gate {
   display: none !important;
 }
+html.event-open,
+html.event-open body {
+  min-height: 100dvh;
+}
+#eventApp[data-event-app] {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+html.event-open main {
+  flex: 1 1 auto;
+  width: 100%;
+}
 
 .visually-hidden {
   position: absolute;
@@ -3817,17 +3830,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .guide-state__art {
   display: grid;
-  justify-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
   gap: 10px;
 }
 .guide-pin {
   width: 44px;
-  height: 58px;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  height: 44px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+}
+.guide-pin__ring {
+  fill: none;
+  stroke: rgba(255, 244, 214, 0.55);
+  stroke-width: 3;
 }
 .guide-pin__mark {
   stroke: rgba(255, 244, 214, 0.9);
-  stroke-width: 2.4;
+  stroke-width: 3;
 }
 .guide-pin--walkin .guide-pin__mark,
 .guide-pin--open .guide-pin__mark { fill: var(--open); }
@@ -4472,11 +4492,53 @@ body.is-board { background: #050308; }
     height: 18px;
     flex: 0 0 auto;
   }
+  html.event-open #eventApp[data-event-app] {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
   html.event-open main {
-    padding-bottom: 20px;
+    padding-bottom: 16px;
   }
   .site-footer {
-    padding-bottom: calc(20px + 72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 14px;
+  }
+  .house-grid,
+  .house-grid__gonow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .house-grid__gonow {
+    padding: 8px;
+  }
+  .house-card__open {
+    padding: 10px 10px 8px 12px;
+    gap: 6px;
+  }
+  .house-card__name {
+    font-size: 0.86rem;
+  }
+  .house-card__wait {
+    font-size: 1.22rem;
+  }
+  .house-card.is-walkin .house-card__wait {
+    font-size: 1.02rem;
+  }
+  .house-card .house-tags {
+    display: none;
+  }
+  .house-card .status-pill {
+    font-size: 0.62rem;
+    padding: 2px 6px;
+    min-height: 0;
+  }
+  .club-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .club-card {
+    padding: 12px;
+  }
+  .club-card h3 {
+    font-size: 0.88rem;
   }
   .game-subnav {
     gap: 0;
@@ -4710,7 +4772,7 @@ body.is-board { background: #050308; }
 .site-footer {
   position: relative;
   z-index: 1;
-  margin: 4px auto 0;
+  margin: auto auto 0;
   padding: 10px 16px 14px;
   max-width: 1280px;
   border-top: 1px solid var(--line);
