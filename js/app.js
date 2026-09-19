@@ -1,10 +1,10 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js";
+import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map104";
 import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
 import { SAFETY } from "./safety.js";
-import { applyGhostPass } from "./ghost-pass.js?v=map100";
+import { applyGhostPass } from "./ghost-pass.js?v=map104";
 import { createStore } from "./store.js";
 import {
   apiFetch,
@@ -395,6 +395,7 @@ function setView(name, extra) {
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
     paintStampUi();
+    requestAnimationFrame(layoutStampPage);
   }
   if (name === "map") {
     requestAnimationFrame(() => fitMap());
@@ -835,6 +836,50 @@ function stampCount(stamps = cardState.stamps) {
   return BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).length;
 }
 
+function cssVarPx(el, name, fallback) {
+  if (!el) return fallback;
+  const probe = document.createElement("span");
+  probe.style.cssText = `position:absolute;left:0;top:0;width:var(${name});height:0;overflow:hidden;visibility:hidden;pointer-events:none`;
+  el.appendChild(probe);
+  const width = probe.getBoundingClientRect().width;
+  probe.remove();
+  return width > 1 ? width : fallback;
+}
+
+function layoutLanternRunes() {
+  const lantern = document.querySelector("#fastPassCard .lantern") || document.querySelector(".lantern");
+  const ring = document.getElementById("lanternRunes");
+  if (!lantern || !ring) return;
+  const orbit = cssVarPx(lantern, "--rune-orbit", 104);
+  ring.querySelectorAll(".lantern__rune-slot").forEach((slot, index) => {
+    const parsed = Number.parseFloat(slot.style.getPropertyValue("--rune"));
+    const n = Number.isFinite(parsed) ? parsed : index;
+    const rad = (n * 60 - 90) * (Math.PI / 180);
+    slot.style.left = `${Math.cos(rad) * orbit}px`;
+    slot.style.top = `${Math.sin(rad) * orbit}px`;
+  });
+}
+
+function layoutStampArt() {
+  const board = els.stampRoadmap?.querySelector(".station-map__board");
+  if (!board) return;
+  const width = board.clientWidth;
+  const height = board.clientHeight;
+  if (width < 8 || height < 8) return;
+  board.querySelectorAll(".station-map__pin").forEach((pin) => {
+    const x = Number(pin.dataset.x);
+    const y = Number(pin.dataset.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    pin.style.left = `${(x / 100) * width}px`;
+    pin.style.top = `${(y / 100) * height}px`;
+  });
+}
+
+function layoutStampPage() {
+  layoutLanternRunes();
+  layoutStampArt();
+}
+
 async function loadCardFromServer() {
   const session = getStudentSession();
   if (!session) {
@@ -899,8 +944,8 @@ function roamGhost() {
   clone.setAttribute("role", "button");
   clone.setAttribute("tabindex", "0");
   clone.setAttribute("aria-label", "Shoo the spirit");
-  clone.style.setProperty("--ghost-h", hue);
-  clone.style.setProperty("--ghost-s", sat);
+  clone.style.setProperty("--ghost-h", hue.trim() || "28");
+  clone.style.setProperty("--ghost-s", sat.trim() || "92%");
   clone.style.width = `${start.width}px`;
   document.body.appendChild(clone);
 
@@ -1163,7 +1208,7 @@ function paintStampUi() {
       const stamped = isLit(booth.id);
       const side = booth.map.side || "s";
       return `
-        <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" style="left:${booth.map.x}%;top:${booth.map.y}%" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
+        <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
           <span class="station-map__icon" aria-hidden="true">${booth.icon}</span>
           <span class="station-map__name">${escapeHtml(booth.name)}</span>
         </button>`;
@@ -1202,6 +1247,9 @@ function paintStampUi() {
         art.style.webkitMaskComposite = "source-over";
       }
     }
+    const artEl = els.stampRoadmap.querySelector(".station-map__art");
+    if (artEl && !artEl.complete) artEl.addEventListener("load", layoutStampArt, { once: true });
+    layoutStampArt();
   }
 
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
@@ -1226,6 +1274,7 @@ function paintStampUi() {
     lit,
     complete,
   });
+  layoutLanternRunes();
   if (els.passKicker) {
     els.passKicker.textContent = redeemed
       ? "Spirit keepsake"
@@ -1739,7 +1788,11 @@ function bindMap() {
     if (pin.hasAttribute("data-open-booths")) openBooths();
     else if (pin.dataset.openHouse) openHouse(pin.dataset.openHouse);
   });
-  window.addEventListener("resize", fitMap);
+  window.addEventListener("resize", () => {
+    fitMap();
+    layoutStampPage();
+  });
+  window.visualViewport?.addEventListener("resize", layoutStampPage);
   const img = els.mapWorld.querySelector("img");
   if (img?.complete) fitMap();
   else img?.addEventListener("load", fitMap, { once: true });

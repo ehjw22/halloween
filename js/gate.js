@@ -231,15 +231,8 @@ function stripPreviewQuery() {
 }
 
 function syncToggle() {
-  const toggle = document.getElementById("eventViewToggle");
   const localBtn = document.getElementById("eventGateLocal");
-  const beforeEvent = Date.now() < GATES_AT;
   const open = document.documentElement.classList.contains("event-open");
-  if (toggle) {
-    toggle.hidden = !beforeEvent;
-    toggle.textContent = open ? "Countdown" : "View site";
-    toggle.setAttribute("aria-pressed", open ? "true" : "false");
-  }
   if (localBtn) localBtn.hidden = open;
 }
 
@@ -310,21 +303,7 @@ function previewSite() {
   openEventGate();
 }
 
-function showCountdown() {
-  if (Date.now() >= GATES_AT) return;
-  sessionStorage.removeItem(PREVIEW_KEY);
-  lockEventGate();
-}
-
 export function initEventGate() {
-  const toggle = document.getElementById("eventViewToggle");
-  if (toggle) {
-    toggle.addEventListener("click", () => {
-      if (document.documentElement.classList.contains("event-open"))
-        showCountdown();
-      else previewSite();
-    });
-  }
   document
     .getElementById("eventGateLocal")
     ?.addEventListener("click", previewSite);
