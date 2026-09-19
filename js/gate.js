@@ -66,19 +66,28 @@ function setHand(id, deg) {
   if (hand) hand.setAttribute("transform", `rotate(${deg} 60 74)`);
 }
 
+function singaporeClock() {
+  const bits = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Singapore",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const n = (type) => Number(bits.find((p) => p.type === type)?.value || 0);
+  return { hour: n("hour"), minute: n("minute"), second: n("second") };
+}
+
 function paintAnalog(parts) {
   const gate = document.getElementById("eventGate");
   const analog = document.getElementById("gateAnalog");
-  const show = !parts.done && parts.totalSec < 86400 && parts.totalSec >= 60;
+  const show = !parts.done && parts.totalSec < 86400 && parts.totalSec > 10;
   if (gate) gate.dataset.gateClock = show ? "on" : "off";
   if (!show || !analog) return;
-  const elapsed = Math.max(0, 86400 - parts.totalSec);
-  const sec = elapsed % 60;
-  const min = Math.floor(elapsed / 60) % 60;
-  const hour = Math.floor(elapsed / 3600) % 12;
-  setHand("gateHandSecond", sec * 6);
-  setHand("gateHandMinute", min * 6 + sec * 0.1);
-  setHand("gateHandHour", hour * 30 + min * 0.5);
+  const { hour, minute, second } = singaporeClock();
+  setHand("gateHandSecond", second * 6);
+  setHand("gateHandMinute", minute * 6 + second * 0.1);
+  setHand("gateHandHour", (hour % 12) * 30 + minute * 0.5);
 }
 
 function applyGatePhase(parts) {

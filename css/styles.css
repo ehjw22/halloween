@@ -23,6 +23,7 @@
   --tap: 44px;
   --focus: #ffe0b0;
   --type-kicker: 0.72rem;
+  --mobile-nav-clear: calc(56px + env(safe-area-inset-bottom, 0px));
   font-family: "Outfit", system-ui, sans-serif;
   line-height: 1.45;
   color-scheme: dark;
@@ -44,6 +45,7 @@ html.event-open .event-gate {
 html.event-open,
 html.event-open body {
   min-height: 100dvh;
+  overflow-x: clip;
 }
 #eventApp[data-event-app] {
   min-height: 100dvh;
@@ -113,32 +115,10 @@ html.event-open main {
   background: radial-gradient(ellipse at 84% 18%, rgba(255, 90, 20, 0.16), transparent 48%);
   animation: gate-mist 20s ease-in-out infinite alternate-reverse;
 }
-.event-gate__wisp {
-  position: absolute;
-  left: -30%;
-  width: 160%;
-  height: 28%;
-  filter: blur(18px);
-  opacity: 0.22;
-  background: linear-gradient(90deg, transparent, rgba(255, 214, 170, 0.35), rgba(180, 74, 255, 0.18), transparent);
-}
-.event-gate__wisp--a {
-  top: 18%;
-  animation: gate-wisp 22s linear infinite;
-}
-.event-gate__wisp--b {
-  top: 46%;
-  height: 22%;
-  opacity: 0.16;
-  animation: gate-wisp 28s linear infinite reverse;
-  animation-delay: -8s;
-}
-.event-gate__wisp--c {
-  top: 68%;
-  height: 26%;
-  opacity: 0.2;
-  animation: gate-wisp 26s linear infinite;
-  animation-delay: -14s;
+.event-gate__wisp,
+.event-gate__ember,
+.event-gate__fly {
+  display: none !important;
 }
 .event-gate__haze {
   position: absolute;
@@ -226,7 +206,7 @@ html.event-open main {
 .trailer-modal {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 240;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -340,8 +320,6 @@ html.event-open main {
   font-family: "Creepster", cursive;
   font-size: clamp(2.8rem, 10vw, 5.2rem);
   color: #e0893a;
-  text-shadow: 0 0 14px rgba(255, 122, 24, 0.28);
-  animation: gate-title-glow 6s ease-in-out infinite;
 }
 .event-gate__when{
   margin: 0;
@@ -433,7 +411,6 @@ html.event-open main {
   overflow: visible;
   transform: scale(1);
 }
-.event-gate[data-gate-phase="finalmin"] .gate-analog,
 .event-gate[data-gate-phase="finale"] .gate-analog,
 .event-gate[data-gate-phase="sting"] .gate-analog {
   max-height: 0;
@@ -904,7 +881,7 @@ body {
   font-weight: 700;
   color: #14080c;
   background: linear-gradient(145deg, var(--orange-2), var(--orange));
-  box-shadow: 0 0 24px rgba(255, 122, 24, 0.45);
+  box-shadow: none;
 }
 .brand h1 {
   font-family: "Creepster", cursive;
@@ -999,18 +976,18 @@ body {
   font: inherit;
   cursor: pointer;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #ff8a2a, #d94b00);
+  background: #ff7a18;
   color: #14080c;
   font-weight: 700;
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   padding: 10px 16px;
   min-height: var(--tap);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 8px 20px rgba(217, 75, 0, 0.28);
-  transition: filter var(--ease), transform 80ms ease, box-shadow var(--ease), border-color var(--ease);
+  box-shadow: none;
+  transition: filter var(--ease), transform 80ms ease, border-color var(--ease);
 }
 .btn:hover { filter: brightness(1.06); }
 .btn:active { transform: translateY(1px); }
@@ -1055,7 +1032,7 @@ body {
   border: 1px solid var(--line);
   color: var(--muted);
   position: fixed;
-  top: calc(56px + env(safe-area-inset-top, 0px));
+  top: calc(48px + env(safe-area-inset-top, 0px));
   right: 10px;
   z-index: 28;
   background: rgba(7, 4, 10, 0.9);
@@ -1410,9 +1387,9 @@ html.event-open .header-meta {
   max-width: 980px;
   text-align: left;
 }
-@media (min-width: 900px) {
+@media (min-width: 1024px) {
   .clicker-layout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 360px);
+    grid-template-columns: minmax(0, 1.15fr) minmax(240px, 320px);
     align-items: start;
   }
 }
@@ -1528,9 +1505,11 @@ html.event-open .header-meta {
 .clicker-orb__core {
   position: relative;
   z-index: 1;
-  font-size: clamp(4.2rem, 18vw, 6rem);
-  line-height: 1;
-  filter: drop-shadow(0 8px 0 rgba(80, 20, 0, 0.35));
+  display: grid;
+  place-items: center;
+  width: 58%;
+  height: 58%;
+  margin: 0 auto;
 }
 .clicker-float {
   position: absolute;
@@ -1625,8 +1604,13 @@ html.event-open .header-meta {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 1.35rem;
   background: rgba(255, 122, 24, 0.12);
+}
+.stamp-pad__ink img,
+.station-map__icon img,
+.upgrade-card__icon img {
+  width: 70%;
+  height: 70%;
 }
 .upgrade-card__top {
   display: flex;
@@ -1711,7 +1695,50 @@ html.event-open .header-meta {
   color: var(--muted);
   font-size: 0.82rem;
 }
-.catch-legend span { margin-right: 4px; }
+.catch-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.mark--legend {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.mark--booth {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.mark--memory {
+  width: 70%;
+  height: 70%;
+  margin: 0 auto;
+}
+.mark--orb {
+  width: 100%;
+  height: 100%;
+}
+.catch-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.catch-swatch--treat { background: #4ade80; }
+.catch-swatch--rare { background: #ffb347; }
+.catch-swatch--bonus { background: #c084fc; }
+.catch-swatch--hazard { background: #f87171; }
 
 @keyframes orbPulse {
   0%, 100% { opacity: 0.55; transform: scale(1); }
@@ -1732,10 +1759,25 @@ html.event-open .header-meta {
 
 .game-panel { max-width: 980px; margin: 0 auto; text-align: center; }
 .game-panel--arcade { text-align: left; }
-.game-panel--arcade .section-head { text-align: center; }
 .game-panel[hidden] { display: none; }
-.game-panel .section-head { text-align: center; }
-.game-panel .game-actions { justify-content: center; }
+.game-panel .section-head {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.game-panel .section-head h2,
+.game-panel .section-head p {
+  text-align: center;
+}
+.game-panel .game-meta,
+.game-panel .catch-status,
+.game-panel #memoryStatus {
+  text-align: center;
+}
+.game-panel .game-actions {
+  justify-content: center;
+  align-items: flex-end;
+}
 
 .roadmap__title {
   font-family: "Special Elite", ui-monospace, monospace;
@@ -1849,7 +1891,9 @@ html.event-open .header-meta {
   height: 36px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  font-size: 1.15rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   background: #14080e;
   border: 1px solid rgba(255, 179, 71, 0.32);
   box-shadow: 0 0 0 3px rgba(7, 3, 8, 0.55);
@@ -2073,7 +2117,9 @@ html.event-open .header-meta {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  font-size: 1.02rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   background: #14080e;
   border: 1px solid rgba(255, 179, 71, 0.32);
   box-shadow: 0 0 0 3px rgba(7, 3, 8, 0.7);
@@ -2143,8 +2189,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
 
 .section-head { margin: 8px 0 16px; }
 .section-head h2 {
-  font-family: "Creepster", cursive;
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-family: "Outfit", system-ui, sans-serif;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
   color: var(--orange);
   margin: 0 0 6px;
 }
@@ -2613,10 +2661,9 @@ html.event-welcome .view:not([data-view="welcome"]) {
   animation-delay: var(--d, 0s);
   opacity: 0.72;
 }
+.haunt-fx__fly,
 .haunt-fx__fly--rev {
-  left: auto;
-  right: -18%;
-  animation-name: haunt-cross-rev;
+  display: none !important;
 }
 @keyframes haunt-pulse {
   0%, 100% { opacity: 0.7; }
@@ -3045,26 +3092,29 @@ html.event-welcome .view:not([data-view="welcome"]) {
   animation: rune-ember 1.8s ease-in-out infinite;
 }
 .lantern__rune-slot {
+  --rune: 0;
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 56px;
+  margin: -28px -24px;
+  transform: none;
 }
 .lantern__rune {
   pointer-events: auto;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 54px;
-  height: 62px;
-  margin: -31px -27px;
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
   cursor: pointer;
   color: inherit;
-  animation: rune-orbit 26s linear infinite reverse;
 }
 .lantern__rune-glow {
   position: absolute;
@@ -3102,7 +3152,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   inset: 6px 8px;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.82;
 }
 .lantern__rune-etch svg {
   display: block;
@@ -3119,17 +3169,16 @@ html.event-welcome .view:not([data-view="welcome"]) {
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 1.15rem;
-  line-height: 1;
-  filter: grayscale(0.9) brightness(0.62);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  width: 58%;
+  height: 58%;
+  margin: auto;
+  filter: none;
+  animation: rune-spin 26s linear infinite;
 }
 .lantern__runes:hover,
 .lantern__runes:focus-within,
-.lantern__runes:hover .lantern__rune,
-.lantern__runes:focus-within .lantern__rune,
+.lantern__runes:hover .lantern__rune-glyph,
+.lantern__runes:focus-within .lantern__rune-glyph,
 .lantern__core:has(.lantern__runes:hover) .lantern__sigil-wrap,
 .lantern__core:has(.lantern__runes:focus-within) .lantern__sigil-wrap,
 .lantern__core:has(.lantern__runes:hover) .lantern__sigil-aura,
@@ -3171,7 +3220,6 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .lantern__rune.is-lit .lantern__rune-glyph {
   filter: none;
-  text-shadow: 0 0 10px hsl(var(--ghost-h) 90% 60% / 0.7);
 }
 .lantern__rune:focus-visible {
   outline: 2px solid var(--focus);
@@ -3539,6 +3587,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+@keyframes rune-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
 @keyframes sigil-chase {
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: -96; }
@@ -3632,7 +3684,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 240;
   display: grid;
   place-items: center;
   pointer-events: auto;
@@ -3718,6 +3770,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .game-subnav[hidden] { display: none; }
 .game-meta { color: var(--muted); }
 .game-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+#memoryDifficulty,
+#memoryStart {
+  box-sizing: border-box;
+  height: var(--tap);
+  min-height: var(--tap);
+  padding: 0 12px;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 10px;
+}
+#memoryStart {
+  width: auto;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  font-weight: 700;
+}
 .catch-canvas {
   display: block;
   width: 100%;
@@ -3741,17 +3809,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   max-width: 640px;
 }
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .memory-grid[data-diff="hard"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .memory-card {
   aspect-ratio: 1;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 10px;
   background: #1a0d16;
   color: var(--ink);
-  font-size: 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 700;
   cursor: pointer;
+}
+.memory-card span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
 }
 .memory-card.is-up, .memory-card.is-match {
   background: #2a1210;
@@ -3851,6 +3926,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   min-height: 0;
   pointer-events: none;
 }
+.house-card--sample .house-card__open {
+  grid-template-rows: auto 1.3em auto auto;
+}
+.house-card--sample .house-card__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.house-card--sample .house-card__wait,
+.house-card--sample.is-walkin .house-card__wait,
+.house-card--sample.status-closed .house-card__wait {
+  font-size: 1.35rem;
+  min-height: 1.35em;
+}
 .house-card--sample:hover {
   transform: none;
   box-shadow: var(--shadow-sm);
@@ -3896,7 +3986,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .club-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
   gap: 12px;
   max-width: 980px;
   margin: 0 auto 32px;
@@ -4186,7 +4276,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
-  width: min(320px, calc(100vw - 32px));
+  width: min(320px, calc(100% - 32px));
   pointer-events: none;
 }
 .announce-toasts {
@@ -4197,7 +4287,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
-  width: min(320px, calc(100vw - 32px));
+  width: min(320px, calc(100% - 32px));
   pointer-events: none;
 }
 .wait-toast {
@@ -4232,14 +4322,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .wait-toast--announce strong { color: #ddd6fe; }
 @media (max-width: 800px) {
-  .wait-toasts {
-    right: 12px;
-    left: auto;
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  }
+  .wait-toasts,
   .announce-toasts {
     left: 12px;
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    width: auto;
+  }
+  .wait-toasts {
+    bottom: calc(var(--mobile-nav-clear) + 12px);
+  }
+  .announce-toasts {
+    bottom: calc(var(--mobile-nav-clear) + 120px);
   }
 }
 .site-live-note {
@@ -4354,7 +4447,7 @@ body.is-board { background: #050308; }
   html.event-open .header-meta { padding-right: 0; }
   .version-chip { display: none; }
   .live-chip {
-    top: calc(56px + env(safe-area-inset-top, 0px));
+    top: calc(48px + env(safe-area-inset-top, 0px));
     right: 10px;
     font-size: 0.68rem;
     padding: 5px 9px;
@@ -4378,7 +4471,7 @@ body.is-board { background: #050308; }
   }
   .session-chip button {
     flex: 0 0 auto;
-    min-height: 36px;
+    min-height: 44px;
     padding: 6px 8px;
     font-size: 0.75rem;
   }
@@ -4465,6 +4558,8 @@ body.is-board { background: #050308; }
     gap: 6px;
     box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.45);
     z-index: 50;
+    max-height: min(70dvh, calc(100dvh - var(--mobile-nav-clear) - 12px));
+    overflow-y: auto;
   }
   .nav-more-menu:not([hidden]) {
     display: grid;
@@ -4489,7 +4584,7 @@ body.is-board { background: #050308; }
     flex: 0 0 auto;
   }
   html.event-open #eventApp[data-event-app] {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--mobile-nav-clear) + 8px);
   }
   html.event-open main {
     padding-bottom: 16px;
@@ -4525,6 +4620,9 @@ body.is-board { background: #050308; }
     font-size: 0.62rem;
     padding: 2px 6px;
     min-height: 0;
+  }
+  .house-card__watch {
+    min-height: 44px;
   }
   .club-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4668,6 +4766,15 @@ body.is-board { background: #050308; }
   min-height: var(--tap);
 }
 
+[data-game-panel="memory"] #memoryDifficulty,
+[data-game-panel="memory"] #memoryStart {
+  height: var(--tap);
+  min-height: var(--tap);
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
 .nav-more-menu .nav__btn { min-height: var(--tap); }
 
 .live-chip {
@@ -4723,12 +4830,26 @@ body.is-board { background: #050308; }
   .auth-card { margin: 12px auto 20px; padding: 18px; }
   .passport { padding: 16px; }
   main { padding: 14px 12px 20px; }
-  .map-viewport { height: min(30vh, 248px); }
-  .station-map { height: auto; }
-  .station-map__board { width: 100%; }
+  .map-viewport { height: min(42dvh, 320px); }
+  .station-map { height: auto; overflow: hidden; }
+  .station-map__board { width: 100%; overflow: hidden; }
   .stamp-grid { --stamp-inset: 8px; gap: 0; padding: var(--stamp-inset); }
   .stamp-pad__meta strong { font-size: 0.6rem; }
   .stamp-pad__meta small { font-size: 0.52rem; }
+  .roadmap__stop:nth-child(odd),
+  .roadmap__stop:nth-child(even) {
+    justify-content: flex-start;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .roadmap__node { width: 100%; }
+  .staff-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .staff-tabs .nav__btn {
+    flex: 0 0 auto;
+  }
   .passport,
   .passport .fast-pass,
   .lantern,
@@ -4736,9 +4857,9 @@ body.is-board { background: #050308; }
     overflow: visible;
   }
   .lantern {
-    --rune-orbit: 112px;
+    --rune-orbit: 128px;
     width: min(100%, 360px);
-    padding: 84px 0 108px;
+    padding: 92px 0 116px;
   }
   .lantern__handle {
     width: 36px;
@@ -4773,26 +4894,43 @@ body.is-board { background: #050308; }
   .ghost__sheet { height: 66px; }
   .fast-pass[data-body="tall"] .ghost__sheet { height: 72px; }
   .fast-pass[data-body="wide"] .ghost__sheet { height: 56px; }
+  .lantern__rune-slot {
+    width: 42px;
+    height: 48px;
+    margin: -24px -21px;
+  }
   .lantern__rune {
-    width: 44px;
-    height: 50px;
-    margin: -25px -22px;
+    width: 100%;
+    height: 100%;
+    margin: 0;
   }
   .lantern__rune-glyph { font-size: 1rem; }
   .lantern__hint { margin-top: calc(var(--rune-orbit) - 40px); }
+  .lantern__halo {
+    width: 168px;
+    height: 168px;
+    margin: -84px;
+  }
+  .lantern__halo--outer {
+    width: 212px;
+    height: 212px;
+    margin: -106px;
+  }
+  .lantern__motes i:nth-child(n) { --r: 68px; }
+  .lantern__sparks i:nth-child(n) { --r: 108px; }
   #staffUnlockForm .btn { width: 100%; }
   .event-gate__unit { min-width: 4.15rem; padding: 12px 10px 11px; gap: 6px; }
   .event-gate__unit span { font-size: clamp(1.7rem, 8vw, 2.15rem); line-height: 1; }
   .event-gate__unit small { font-size: 0.62rem; }
   .modal {
     place-items: center;
-    padding: 52px 12px calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 52px 12px calc(var(--mobile-nav-clear) + 16px);
   }
   .modal__panel {
     margin: 0 auto;
     border-radius: 16px;
     width: min(560px, calc(100% - 8px));
-    max-height: min(70dvh, calc(100dvh - 140px));
+    max-height: calc(100dvh - var(--mobile-nav-clear) - 64px);
   }
 }
 
@@ -4804,7 +4942,7 @@ body.is-board { background: #050308; }
     scroll-behavior: auto !important;
   }
   .house-card:hover, .club-card:hover { transform: none; }
-  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__sigil-wrap, .lantern__sigil-aura, .lantern__sigil-seeker, .lantern__sigil-flow, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays, .ghost-trail, .ghost-wisp { animation: none !important; }
+  .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__rune-glyph, .lantern__sigil-wrap, .lantern__sigil-aura, .lantern__sigil-seeker, .lantern__sigil-flow, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays, .ghost-trail, .ghost-wisp { animation: none !important; }
 }
 
 .site-footer {
@@ -4812,6 +4950,7 @@ body.is-board { background: #050308; }
   z-index: 1;
   margin: auto auto 0;
   padding: 10px 16px 14px;
+  width: 100%;
   max-width: 1280px;
   border-top: 1px solid var(--line);
   text-align: center;
@@ -4903,5 +5042,44 @@ li.empty-state { list-style: none; }
     padding: 0 12px;
   }
   input, select, textarea { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  .short-waits__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .event-gate__unit {
+    min-width: 4rem;
+    padding: 10px 8px 10px;
+  }
+}
+@media (max-width: 430px) {
+  .stamp-pad__meta { display: none; }
+  .house-card__open {
+    padding: 12px 10px 10px 12px;
+  }
+  .house-card__name { font-size: 0.9rem; }
+  .club-card { padding: 14px 12px; }
+  .session-chip span { max-width: min(40vw, 9rem); }
+  .station-map__name {
+    max-width: 4.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-width: 400px) {
+  .arcade-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 360px) {
+  .event-gate__clock { gap: 6px; }
+  .event-gate__unit { min-width: 3.6rem; padding: 8px 6px; }
+  .welcome-night__actions .btn { min-width: 0; flex: 1 1 8rem; }
+}
+@media (max-width: 800px) and (orientation: landscape) {
+  .map-viewport { height: min(56dvh, 280px); }
+  .modal__panel {
+    max-height: calc(100dvh - var(--mobile-nav-clear) - 24px);
+  }
 }
 

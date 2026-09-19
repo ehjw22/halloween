@@ -50,7 +50,7 @@ async function vapidKey() {
 export async function registerPushWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/sw.js?v=map104", { scope: "/" });
+    return await navigator.serviceWorker.register("/sw.js?v=map113", { scope: "/" });
   } catch {
     return null;
   }

@@ -1,8 +1,9 @@
 import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js";
-import { setupCatchArcade } from "./catch-arcade.js?v=map102";
+import { setupCatchArcade } from "./catch-arcade.js?v=map115";
+import { markImg } from "./marks.js?v=map117";
 
 const GAMES = ["clicker", "memory", "catch"];
-const ICONS = ["🎃", "🦇", "👻", "🍬", "💀", "🕸️", "🐱", "🌙", "🧛", "🧪", "🕯️", "🦉"];
+const ICONS = ["pumpkin", "bat", "ghost", "web", "candy", "crypt", "moon", "flask", "owl", "fang", "key", "lantern"];
 
 try {
   localStorage.removeItem("scream-clicker-v2");
@@ -20,11 +21,11 @@ const DIFFS = {
 const REDUCE_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const UPGRADES = [
-  { id: "bite", name: "Bigger bites", icon: "⚡", blurb: "Raises candy per tap.", base: 20, grow: 1.18, unlock: 0 },
-  { id: "spirits", name: "Spirit helpers", icon: "👻", blurb: "Passive candy while you wait.", base: 50, grow: 1.22, unlock: 0 },
-  { id: "relay", name: "Night relay", icon: "📡", blurb: "Extra idle nodes on the grid.", base: 90, grow: 1.2, unlock: 120 },
-  { id: "crit", name: "Jackpot slice", icon: "✦", blurb: "Chance of a 7× tap.", base: 120, grow: 1.25, unlock: 40 },
-  { id: "fortune", name: "Candy moon", icon: "🌙", blurb: "Multiplies all candy earned.", base: 400, grow: 1.28, unlock: 250 },
+  { id: "bite", name: "Bigger bites", icon: "bite", blurb: "Raises candy per tap.", base: 20, grow: 1.18, unlock: 0 },
+  { id: "spirits", name: "Spirit helpers", icon: "ghost", blurb: "Passive candy while you wait.", base: 50, grow: 1.22, unlock: 0 },
+  { id: "relay", name: "Night relay", icon: "relay", blurb: "Extra idle nodes on the grid.", base: 90, grow: 1.2, unlock: 120 },
+  { id: "crit", name: "Jackpot slice", icon: "spark", blurb: "Chance of a 7× tap.", base: 120, grow: 1.25, unlock: 40 },
+  { id: "fortune", name: "Candy moon", icon: "moon", blurb: "Multiplies all candy earned.", base: 400, grow: 1.28, unlock: 250 },
 ];
 
 const ACHIEVES = [
@@ -377,7 +378,7 @@ function setupClicker() {
         level > 0 ? "is-bought" : "",
       ].filter(Boolean).join(" ");
       return `<button class="${cls}" type="button" data-upgrade="${def.id}" ${gated ? "disabled" : ""}>
-        <span class="upgrade-card__icon">${def.icon}</span>
+        <span class="upgrade-card__icon">${markImg(def.icon)}</span>
         <span class="upgrade-card__body">
           <span class="upgrade-card__top"><strong>${def.name}</strong><span class="upgrade-card__lv">Lv ${level}</span></span>
           <small class="upgrade-card__desc">${gated ? `Unlocks at ${def.unlock} lifetime candy` : def.blurb}</small>
@@ -406,7 +407,7 @@ function setupClicker() {
     achieveSig = next;
     achieveEl.innerHTML = ACHIEVES.map((a) => {
       const on = state.achievements.includes(a.id);
-      return `<li class="${on ? "is-done" : ""}"><strong>${on ? "★" : "☆"} ${a.name}</strong><span>${a.desc}</span></li>`;
+      return `<li class="${on ? "is-done" : ""}"><strong>${on ? "+" : "-"} ${a.name}</strong><span>${a.desc}</span></li>`;
     }).join("");
   }
 
@@ -629,7 +630,7 @@ function setupMemory() {
     const btn = event.target.closest(".memory-card");
     if (!started || done || lock || !btn || btn.classList.contains("is-match") || btn.classList.contains("is-up")) return;
     btn.classList.add("is-up");
-    btn.querySelector("span").textContent = btn.dataset.icon;
+    btn.querySelector("span").innerHTML = markImg(btn.dataset.icon, "mark mark--memory");
     flipped.push(btn);
     if (flipped.length < 2) return;
     lock = true;
@@ -743,7 +744,7 @@ function setupCatch() {
       y: -20,
       speed: 2.2 + Math.random() * 2.4,
       good,
-      icon: good ? (Math.random() > 0.5 ? "🍬" : "🎃") : Math.random() > 0.5 ? "🦇" : "💀",
+      icon: good ? (Math.random() > 0.5 ? "T" : "R") : Math.random() > 0.5 ? "H" : "X",
     });
   }
 
@@ -770,15 +771,14 @@ function setupCatch() {
     }
     ctx.fillStyle = "#2d6a4f";
     ctx.fillRect(x - 3, y - 28, 6, 8);
-    ctx.font = "16px serif";
-    ctx.fillText("🎃", x - 10, y + 6);
   }
 
   function draw() {
     ctx.fillStyle = "#0c070c";
     ctx.fillRect(0, 0, W, H);
-    ctx.font = "28px serif";
-    items.forEach((item) => ctx.fillText(item.icon, item.x - 14, item.y));
+    ctx.fillStyle = "#fff4d6";
+    ctx.font = "14px Outfit, sans-serif";
+    items.forEach((item) => ctx.fillText(item.icon, item.x - 8, item.y));
     drawBasket(pumpkinX, H - 16);
     ctx.fillStyle = "#fff4d6";
     ctx.font = "14px Outfit, sans-serif";

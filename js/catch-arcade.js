@@ -1,3 +1,5 @@
+import { markUrl } from "./marks.js?v=map116";
+
 export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCatchApi }) {
   const canvas = document.getElementById("catchCanvas");
   const status = document.getElementById("catchStatus");
@@ -11,6 +13,14 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
   if (!canvas || !status || !startBtn) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
+
+  const markArt = {
+    treat: Object.assign(new Image(), { src: markUrl("candy") }),
+    rare: Object.assign(new Image(), { src: markUrl("pumpkin") }),
+    bonus: Object.assign(new Image(), { src: markUrl("spark") }),
+    hazard: Object.assign(new Image(), { src: markUrl("hazard") }),
+    basket: Object.assign(new Image(), { src: markUrl("pumpkin") }),
+  };
 
   let W = 360;
   let H = 480;
@@ -140,9 +150,10 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     ctx.beginPath();
     ctx.ellipse(0, -2, 22, 5, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.font = "16px serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🎃", 0, 6);
+    const basket = markArt.basket;
+    if (basket.complete && basket.naturalWidth) {
+      ctx.drawImage(basket, -16, -18, 32, 32);
+    }
     ctx.restore();
   }
 
@@ -151,11 +162,11 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     ctx.translate(item.x, item.y);
     ctx.rotate(item.rot);
     const look = {
-      hazard: { glow: "#ff9a9a", disc: "rgba(248,113,113,0.7)", emoji: item.spin > 0 ? "💀" : "🦇" },
-      bonus: { glow: "#f0d9ff", disc: "rgba(216,180,254,0.75)", emoji: "✦" },
-      rare: { glow: "#ffd38a", disc: "rgba(255,179,71,0.75)", emoji: "🎃" },
-      treat: { glow: "#bbf7d0", disc: "rgba(74,222,128,0.7)", emoji: "🍬" },
-    }[item.type] || { glow: "#fff4d6", disc: "rgba(255,244,214,0.55)", emoji: "🍬" };
+      hazard: { glow: "#ff9a9a", disc: "rgba(248,113,113,0.7)", mark: "x" },
+      bonus: { glow: "#f0d9ff", disc: "rgba(216,180,254,0.75)", mark: "+" },
+      rare: { glow: "#ffd38a", disc: "rgba(255,179,71,0.75)", mark: "r" },
+      treat: { glow: "#bbf7d0", disc: "rgba(74,222,128,0.7)", mark: "t" },
+    }[item.type] || { glow: "#fff4d6", disc: "rgba(255,244,214,0.55)", mark: "t" };
     ctx.shadowColor = look.glow;
     ctx.shadowBlur = 28;
     ctx.fillStyle = look.disc;
@@ -167,10 +178,10 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     ctx.beginPath();
     ctx.arc(0, 0, 12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.font = "32px serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(look.emoji, 0, 1);
+    const art = markArt[item.type] || markArt.treat;
+    if (art.complete && art.naturalWidth) {
+      ctx.drawImage(art, -11, -11, 22, 22);
+    }
     ctx.restore();
   }
 

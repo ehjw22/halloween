@@ -1,7 +1,7 @@
 export const BOOTHS = [
   {
     id: "1",
-    icon: "🎃",
+    icon: "pumpkin",
     name: "Pumpkin Gate",
     short: "Booth 01",
     code: "PG",
@@ -13,7 +13,7 @@ export const BOOTHS = [
   },
   {
     id: "2",
-    icon: "🦇",
+    icon: "bat",
     name: "Bat Colony",
     short: "Booth 02",
     code: "BAT",
@@ -25,7 +25,7 @@ export const BOOTHS = [
   },
   {
     id: "3",
-    icon: "👻",
+    icon: "ghost",
     name: "Plaza Ghost",
     short: "Booth 03",
     code: "GH3",
@@ -37,7 +37,7 @@ export const BOOTHS = [
   },
   {
     id: "4",
-    icon: "🕸️",
+    icon: "web",
     name: "Web Lab",
     short: "Booth 04",
     code: "WEB",
@@ -49,7 +49,7 @@ export const BOOTHS = [
   },
   {
     id: "5",
-    icon: "🍬",
+    icon: "candy",
     name: "Candy Court",
     short: "Booth 05",
     code: "CND",
@@ -61,7 +61,7 @@ export const BOOTHS = [
   },
   {
     id: "6",
-    icon: "💀",
+    icon: "crypt",
     name: "Crypt Keep",
     short: "Booth 06",
     code: "CRY",

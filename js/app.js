@@ -1,10 +1,11 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map104";
+import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map110";
 import { CLUBS } from "./clubs.js";
 import { HOUSES, STATUSES } from "./houses.js";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
 import { SAFETY } from "./safety.js";
-import { applyGhostPass } from "./ghost-pass.js?v=map104";
+import { applyGhostPass } from "./ghost-pass.js?v=map106";
+import { markImg } from "./marks.js?v=map117";
 import { createStore } from "./store.js";
 import {
   apiFetch,
@@ -676,7 +677,7 @@ function paintBoothsPinList() {
   if (!list || list.dataset.filled) return;
   list.innerHTML = BOOTHS.map(
     (b) => `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(b.id)}">
-      <span>${escapeHtml(b.icon)} ${escapeHtml(b.short)}</span>
+      <span>${markImg(b.icon, "mark mark--booth")} ${escapeHtml(b.short)}</span>
       <strong>${escapeHtml(b.name)}</strong>
       <small>${escapeHtml(b.place)}</small>
     </button>`
@@ -847,16 +848,17 @@ function cssVarPx(el, name, fallback) {
 }
 
 function layoutLanternRunes() {
-  const lantern = document.querySelector("#fastPassCard .lantern") || document.querySelector(".lantern");
-  const ring = document.getElementById("lanternRunes");
-  if (!lantern || !ring) return;
-  const orbit = cssVarPx(lantern, "--rune-orbit", 104);
-  ring.querySelectorAll(".lantern__rune-slot").forEach((slot, index) => {
-    const parsed = Number.parseFloat(slot.style.getPropertyValue("--rune"));
-    const n = Number.isFinite(parsed) ? parsed : index;
-    const rad = (n * 60 - 90) * (Math.PI / 180);
-    slot.style.left = `${Math.cos(rad) * orbit}px`;
-    slot.style.top = `${Math.sin(rad) * orbit}px`;
+  document.querySelectorAll(".lantern").forEach((lantern) => {
+    const ring = lantern.querySelector(".lantern__runes");
+    if (!ring) return;
+    const orbit = parseFloat(getComputedStyle(lantern).getPropertyValue("--rune-orbit")) || 168;
+    ring.querySelectorAll(".lantern__rune-slot").forEach((slot, index) => {
+      const n = Number.parseFloat(String(slot.style.getPropertyValue("--rune") || index));
+      const i = Number.isFinite(n) ? n : index;
+      const rad = (i * 60 - 90) * (Math.PI / 180);
+      slot.style.left = `${Math.cos(rad) * orbit}px`;
+      slot.style.top = `${Math.sin(rad) * orbit}px`;
+    });
   });
 }
 
@@ -1168,7 +1170,7 @@ function paintStampUi() {
       const cls = ["stamp-pad", stamped ? "is-lit" : "", ...joins].filter(Boolean).join(" ");
       return `
         <button class="${cls}" type="button" data-stamp="${booth.id}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}${stamped ? " · stamped" : " · empty"}">
-          <span class="stamp-pad__ink" aria-hidden="true">${booth.icon}</span>
+          <span class="stamp-pad__ink" aria-hidden="true">${markImg(booth.icon)}</span>
           <span class="stamp-pad__meta">
             <strong>${escapeHtml(booth.name)}</strong>
             <small>${escapeHtml(booth.short)}</small>
@@ -1209,7 +1211,7 @@ function paintStampUi() {
       const side = booth.map.side || "s";
       return `
         <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
-          <span class="station-map__icon" aria-hidden="true">${booth.icon}</span>
+          <span class="station-map__icon" aria-hidden="true">${markImg(booth.icon)}</span>
           <span class="station-map__name">${escapeHtml(booth.name)}</span>
         </button>`;
     }).join("");
@@ -2404,7 +2406,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=map102")
+  import("./games.js?v=map118")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
