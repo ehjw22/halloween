@@ -1,6 +1,6 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map110";
 import { CLUBS } from "./clubs.js";
-import { HOUSES, STATUSES } from "./houses.js";
+import { HOUSES, STATUSES } from "./houses.js?v=map123";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
 import { SAFETY } from "./safety.js";
@@ -623,15 +623,6 @@ function stopBoard() {
   boardTimer = 0;
 }
 
-function mapImageSize() {
-  const img = els.mapWorld?.querySelector("img");
-  return {
-    img,
-    width: img?.naturalWidth || img?.clientWidth || 0,
-    height: img?.naturalHeight || img?.clientHeight || 0,
-  };
-}
-
 const BOOTHS_PIN = { x: 67.14, y: 35.23 };
 const MAP_NATURAL = { w: 2301, h: 1405 };
 
@@ -645,9 +636,6 @@ function pinPoint(xPct, yPct, width, height) {
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
   if (!layer) return;
-  const sized = mapImageSize();
-  const width = sized.width || MAP_NATURAL.w;
-  const height = sized.height || MAP_NATURAL.h;
   const watching = new Set(readNight().watch);
   const filtering = filterIsActive();
   const bell = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>`;
@@ -658,21 +646,25 @@ function renderPins() {
     const match = houseMatchesFilter(row);
     const dim = filtering && !match;
     const on = watching.has(house.id);
-    const { x, y } = pinPoint(house.x, house.y, width, height);
-    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px">
-      <button class="map-pin__hit" type="button" data-open-house="${escapeHtml(house.id)}" aria-label="${escapeHtml(house.name)}">
-        <span class="map-pin__label">${label}</span>
-        <span class="map-pin__mark"></span>
-      </button>
-      <button class="map-pin__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(house.id)}" aria-pressed="${on}" aria-label="Walk-in alert for ${escapeHtml(house.name)}">${bell}</button>
+    const { x, y } = pinPoint(house.x, house.y, MAP_NATURAL.w, MAP_NATURAL.h);
+    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px)">
+      <div class="map-pin__gfx">
+        <button class="map-pin__hit" type="button" data-open-house="${escapeHtml(house.id)}" aria-label="${escapeHtml(house.name)}">
+          <span class="map-pin__label">${label}</span>
+          <span class="map-pin__mark"></span>
+        </button>
+        <button class="map-pin__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(house.id)}" aria-pressed="${on}" aria-label="Walk-in alert for ${escapeHtml(house.name)}">${bell}</button>
+      </div>
     </div>`;
   });
-  const booth = pinPoint(BOOTHS_PIN.x, BOOTHS_PIN.y, width, height);
-  const boothPin = `<div class="map-pin map-pin--booths" style="left:${booth.x.toFixed(1)}px;top:${booth.y.toFixed(1)}px">
-    <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths at Eleven Square">
-      <span class="map-pin__label">Booths</span>
-      <span class="map-pin__mark"></span>
-    </button>
+  const booth = pinPoint(BOOTHS_PIN.x, BOOTHS_PIN.y, MAP_NATURAL.w, MAP_NATURAL.h);
+  const boothPin = `<div class="map-pin map-pin--booths" style="transform:translate(${booth.x.toFixed(1)}px,${booth.y.toFixed(1)}px)">
+    <div class="map-pin__gfx">
+      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths at Eleven Square">
+        <span class="map-pin__label">Booths</span>
+        <span class="map-pin__mark"></span>
+      </button>
+    </div>
   </div>`;
   layer.innerHTML = housePins.join("") + boothPin;
 }
@@ -706,23 +698,15 @@ function applyMapTransform() {
 }
 
 function sizeMapWorld() {
-  const { img, width, height } = mapImageSize();
-  if (!img || !width || !height || !els.mapWorld) return;
-  const w = `${width}px`;
-  const h = `${height}px`;
-  img.style.width = w;
-  img.style.height = h;
+  if (!els.mapWorld) return;
+  const w = `${MAP_NATURAL.w}px`;
+  const h = `${MAP_NATURAL.h}px`;
+  const img = els.mapWorld.querySelector("img");
   els.mapWorld.style.width = w;
   els.mapWorld.style.height = h;
-  const stage = document.getElementById("mapStage");
-  const layer = document.getElementById("mapPinLayer");
-  if (stage) {
-    stage.style.width = w;
-    stage.style.height = h;
-  }
-  if (layer) {
-    layer.style.width = w;
-    layer.style.height = h;
+  if (img) {
+    img.style.width = w;
+    img.style.height = h;
   }
 }
 
@@ -732,10 +716,11 @@ function fitMap() {
   sizeMapWorld();
   renderPins();
   const vp = els.mapViewport.getBoundingClientRect();
-  const w = img.naturalWidth || img.clientWidth || 1600;
-  const h = img.naturalHeight || img.clientHeight || 900;
-  if (!vp.width || !vp.height || !w || !h) return;
+  const w = MAP_NATURAL.w;
+  const h = MAP_NATURAL.h;
+  if (vp.width < 8 || vp.height < 8) return;
   const fit = Math.min(vp.width / w, vp.height / h);
+  if (!fit) return;
   mapState.min = fit * 0.85;
   mapState.max = Math.max(2.4, fit * 6);
   mapState.scale = Math.min(mapState.max, fit);
