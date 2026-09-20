@@ -2465,7 +2465,8 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .map-pins {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   z-index: 2;
   overflow: visible;
   pointer-events: none;
