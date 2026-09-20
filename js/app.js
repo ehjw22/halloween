@@ -1,11 +1,11 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map110";
+import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
 import { CLUBS } from "./clubs.js";
-import { HOUSES, STATUSES } from "./houses.js?v=map124";
+import { HOUSES, STATUSES } from "./houses.js?v=r6";
 import { BOOTHS, boothById } from "./booths.js";
-import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
+import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { SAFETY } from "./safety.js";
-import { applyGhostPass } from "./ghost-pass.js?v=map106";
-import { markImg } from "./marks.js?v=map117";
+import { applyGhostPass } from "./ghost-pass.js?v=r6";
+import { markImg } from "./marks.js?v=r6";
 import { createStore } from "./store.js";
 import {
   apiFetch,
@@ -406,6 +406,7 @@ function setView(name, extra) {
   if (name === "board") startBoard();
   else stopBoard();
   setMoreMenu(false);
+  window.scrollTo(0, 0);
 }
 
 function toggleWatchHouse(id) {
@@ -1171,7 +1172,7 @@ function paintStampUi() {
     }).join("");
     els.stampGrid.innerHTML = `
       <div class="stamp-grid__ticket" aria-hidden="true">
-        <img src="img/fast-pass-ticket.png?v=map70" alt="">
+        <img src="img/fast-pass-ticket.png?v=r6" alt="">
       </div>
       ${pads}`;
     const ticket = els.stampGrid.querySelector(".stamp-grid__ticket");
@@ -1212,7 +1213,7 @@ function paintStampUi() {
     els.stampRoadmap.innerHTML = `
       <div class="station-map__board">
         <div class="station-map__fog" aria-hidden="true"></div>
-        <img class="station-map__art" src="img/fast-pass-ticket.png?v=map70" alt="">
+        <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
         ${pins}
       </div>`;
     const art = els.stampRoadmap.querySelector(".station-map__art");
@@ -2405,7 +2406,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=map118")
+  import("./games.js?v=r6")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

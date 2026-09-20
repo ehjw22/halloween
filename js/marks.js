@@ -1,4 +1,4 @@
-const MARK_V = "map117";
+const MARK_V = "r6";
 
 export const MARK_IDS = [
   "pumpkin",

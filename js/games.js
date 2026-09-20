@@ -1,6 +1,6 @@
 import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js";
-import { setupCatchArcade } from "./catch-arcade.js?v=map115";
-import { markImg } from "./marks.js?v=map117";
+import { setupCatchArcade } from "./catch-arcade.js?v=r6";
+import { markImg } from "./marks.js?v=r6";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["pumpkin", "bat", "ghost", "web", "candy", "crypt", "moon", "flask", "owl", "fang", "key", "lantern"];
@@ -407,7 +407,7 @@ function setupClicker() {
     achieveSig = next;
     achieveEl.innerHTML = ACHIEVES.map((a) => {
       const on = state.achievements.includes(a.id);
-      return `<li class="${on ? "is-done" : ""}"><strong>${on ? "+" : "-"} ${a.name}</strong><span>${a.desc}</span></li>`;
+      return `<li class="${on ? "is-done" : ""}"><strong>${a.name}</strong><span>${a.desc}</span></li>`;
     }).join("");
   }
 
