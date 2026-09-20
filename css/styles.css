@@ -2480,13 +2480,27 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .map-pin {
   position: absolute;
-  left: 0;
-  top: 0;
   width: 0;
   height: 0;
   margin: 0;
   pointer-events: none;
 }
+.map-pin[data-pin="dover-gate"] { left: 57.8%; top: 11%; }
+.map-pin[data-pin="aerohub"] { left: 47.2%; top: 13.9%; }
+.map-pin[data-pin="innovillage"] { left: 77.4%; top: 49.8%; }
+.map-pin[data-pin="sports-complex"] { left: 30.4%; top: 43.4%; }
+.map-pin[data-pin="mp-field"] { left: 49.1%; top: 48.4%; }
+.map-pin[data-pin="atrium"] { left: 59.1%; top: 30.6%; }
+.map-pin[data-pin="witch-labs"] { left: 64.8%; top: 37%; }
+.map-pin[data-pin="library"] { left: 70.4%; top: 69.8%; }
+.map-pin[data-pin="admin"] { left: 66.1%; top: 66.9%; }
+.map-pin[data-pin="plaza"] { left: 55.8%; top: 25.6%; }
+.map-pin[data-pin="arena"] { left: 46.9%; top: 62.6%; }
+.map-pin[data-pin="moberly"] { left: 55.8%; top: 67.6%; }
+.map-pin[data-pin="west-wing"] { left: 82.6%; top: 78.3%; }
+.map-pin[data-pin="food-court"] { left: 43.5%; top: 49.8%; }
+.map-pin[data-pin="wsa"] { left: 79%; top: 88%; }
+.map-pin[data-pin="booths"] { left: 67.14%; top: 35.23%; }
 .map-pin__gfx {
   position: absolute;
   left: 0;

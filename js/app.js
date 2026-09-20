@@ -1,6 +1,6 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=map110";
 import { CLUBS } from "./clubs.js";
-import { HOUSES, STATUSES } from "./houses.js?v=map123";
+import { HOUSES, STATUSES } from "./houses.js?v=map124";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=map102";
 import { SAFETY } from "./safety.js";
@@ -623,15 +623,7 @@ function stopBoard() {
   boardTimer = 0;
 }
 
-const BOOTHS_PIN = { x: 67.14, y: 35.23 };
 const MAP_NATURAL = { w: 2301, h: 1405 };
-
-function pinPoint(xPct, yPct, width, height) {
-  return {
-    x: (Number(xPct) / 100) * width,
-    y: (Number(yPct) / 100) * height,
-  };
-}
 
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
@@ -646,8 +638,7 @@ function renderPins() {
     const match = houseMatchesFilter(row);
     const dim = filtering && !match;
     const on = watching.has(house.id);
-    const { x, y } = pinPoint(house.x, house.y, MAP_NATURAL.w, MAP_NATURAL.h);
-    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px)">
+    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" data-pin="${escapeHtml(house.id)}">
       <div class="map-pin__gfx">
         <button class="map-pin__hit" type="button" data-open-house="${escapeHtml(house.id)}" aria-label="${escapeHtml(house.name)}">
           <span class="map-pin__label">${label}</span>
@@ -657,8 +648,7 @@ function renderPins() {
       </div>
     </div>`;
   });
-  const booth = pinPoint(BOOTHS_PIN.x, BOOTHS_PIN.y, MAP_NATURAL.w, MAP_NATURAL.h);
-  const boothPin = `<div class="map-pin map-pin--booths" style="transform:translate(${booth.x.toFixed(1)}px,${booth.y.toFixed(1)}px)">
+  const boothPin = `<div class="map-pin map-pin--booths" data-pin="booths">
     <div class="map-pin__gfx">
       <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths at Eleven Square">
         <span class="map-pin__label">Booths</span>
