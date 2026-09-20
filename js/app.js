@@ -632,43 +632,35 @@ function mapImageSize() {
   };
 }
 
-const MAP_VB = { w: 2301, h: 1405 };
 const BOOTHS_PIN = { x: 67.14, y: 35.23 };
-
-function pctToSvg(x, y) {
-  return { cx: (Number(x) / 100) * MAP_VB.w, cy: (Number(y) / 100) * MAP_VB.h };
-}
 
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
   if (!layer) return;
   const watching = new Set(readNight().watch);
   const filtering = filterIsActive();
+  const bell = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>`;
   const housePins = HOUSES.map((house) => {
-    const { cx, cy } = pctToSvg(house.x, house.y);
     const row = houses.find((h) => h.id === house.id) || house;
     const status = statusFromWait(row.wait_minutes ?? house.wait);
     const label = escapeHtml(house.short || house.name);
     const match = houseMatchesFilter(row);
     const dim = filtering && !match;
     const on = watching.has(house.id);
-    const wx = (cx + 34).toFixed(1);
-    const wy = (cy - 22).toFixed(1);
-    return `<g class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" data-open-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="${escapeHtml(house.name)}">
-      <text class="map-pin__label" x="${cx.toFixed(1)}" y="${(cy - 34).toFixed(1)}" text-anchor="middle">${label}</text>
-      <circle class="map-pin__ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="30"></circle>
-      <circle class="map-pin__mark" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="22"></circle>
-      <g class="map-pin__watch${on ? " is-on" : ""}" data-watch-house="${escapeHtml(house.id)}" tabindex="0" role="button" aria-label="Walk-in alert">
-        <circle class="map-pin__watch-hit" cx="${wx}" cy="${wy}" r="16"></circle>
-        <path class="map-pin__watch-icon" d="M${Number(wx) - 7} ${Number(wy) + 2}c0-5 3-8 7-8s7 3 7 8v4l2 3H${Number(wx) - 9}l2-3z M${wx} ${Number(wy) + 10}a2.5 2.5 0 0 0 2.5-2.5" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-      </g>
-    </g>`;
+    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" style="left:${Number(house.x)}%;top:${Number(house.y)}%">
+      <button class="map-pin__hit" type="button" data-open-house="${escapeHtml(house.id)}" aria-label="${escapeHtml(house.name)}">
+        <span class="map-pin__label">${label}</span>
+        <span class="map-pin__mark"></span>
+      </button>
+      <button class="map-pin__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(house.id)}" aria-pressed="${on}" aria-label="Walk-in alert for ${escapeHtml(house.name)}">${bell}</button>
+    </div>`;
   });
-  const booth = pctToSvg(BOOTHS_PIN.x, BOOTHS_PIN.y);
-  const boothPin = `<g class="map-pin map-pin--booths" data-open-booths tabindex="0" role="button" aria-label="Booths at Eleven Square">
-    <text class="map-pin__label" x="${booth.cx.toFixed(1)}" y="${(booth.cy - 34).toFixed(1)}" text-anchor="middle">Booths</text>
-    <circle class="map-pin__mark" cx="${booth.cx.toFixed(1)}" cy="${booth.cy.toFixed(1)}" r="22"></circle>
-  </g>`;
+  const boothPin = `<div class="map-pin map-pin--booths" style="left:${BOOTHS_PIN.x}%;top:${BOOTHS_PIN.y}%">
+    <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths at Eleven Square">
+      <span class="map-pin__label">Booths</span>
+      <span class="map-pin__mark"></span>
+    </button>
+  </div>`;
   layer.innerHTML = housePins.join("") + boothPin;
 }
 
@@ -1768,11 +1760,13 @@ function bindMap() {
   if (pinFade && pinLayer) {
     let saved = 100;
     try {
-      saved = Number(localStorage.getItem("scream-pin-opacity"));
+      const raw = localStorage.getItem("scream-pin-opacity");
+      saved = raw == null ? 100 : Number(raw);
     } catch {
       saved = 100;
     }
-    applyPinFade(Number.isFinite(saved) ? saved : 100);
+    if (!Number.isFinite(saved) || saved < 8) saved = 100;
+    applyPinFade(saved);
     pinFade.addEventListener("input", () => applyPinFade(pinFade.value));
     pinFade.addEventListener("change", () => applyPinFade(pinFade.value));
   }
@@ -1784,11 +1778,16 @@ function bindMap() {
       toggleWatchHouse(watch.dataset.watchHouse);
       return;
     }
-    const pin = event.target.closest(".map-pin");
-    if (!pin) return;
+    const booths = event.target.closest("[data-open-booths]");
+    if (booths) {
+      event.preventDefault();
+      openBooths();
+      return;
+    }
+    const house = event.target.closest("[data-open-house]");
+    if (!house) return;
     event.preventDefault();
-    if (pin.hasAttribute("data-open-booths")) openBooths();
-    else if (pin.dataset.openHouse) openHouse(pin.dataset.openHouse);
+    openHouse(house.dataset.openHouse);
   });
   window.addEventListener("resize", () => {
     fitMap();

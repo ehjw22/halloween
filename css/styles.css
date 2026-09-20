@@ -832,7 +832,7 @@ html.event-open main {
   background: var(--orange);
   box-shadow: 0 0 10px rgba(255, 122, 24, 0.7);
 }
-.map-pin-svg {
+.map-pins {
   transition: opacity 0.15s ease;
 }
 body {
@@ -2439,6 +2439,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .map-viewport:active { cursor: grabbing; }
 .map-world {
+  --map-scale: 1;
   transform-origin: 0 0;
   position: absolute;
   left: 0;
@@ -2448,13 +2449,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
   will-change: transform;
 }
 .map-stage {
-  display: grid;
+  position: relative;
+  display: block;
   width: max-content;
   line-height: 0;
-}
-.map-stage > img,
-.map-stage > .map-pin-svg {
-  grid-area: 1 / 1;
 }
 .map-world img {
   display: block;
@@ -2465,62 +2463,108 @@ html.event-welcome .view:not([data-view="welcome"]) {
   pointer-events: none;
   filter: brightness(0.78) saturate(1.15) contrast(1.12) hue-rotate(8deg);
 }
-.map-pin-svg {
-  width: 100%;
-  height: 100%;
+.map-pins {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   overflow: visible;
   pointer-events: none;
-  z-index: 2;
 }
-.map-pin-svg .map-pin {
+.map-pin {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  transform: translate(-50%, -50%) scale(calc(1 / max(var(--map-scale, 1), 0.08)));
+  transform-origin: center center;
+  pointer-events: none;
+}
+.map-pin--dim {
+  opacity: 0.22;
+}
+.map-pin--dim .map-pin__hit,
+.map-pin--dim .map-pin__watch {
+  pointer-events: none;
+}
+.map-pin__hit,
+.map-pin__watch {
   pointer-events: auto;
   cursor: pointer;
 }
-.map-pin-svg .map-pin--dim {
-  opacity: 0.22;
-  pointer-events: none;
+.map-pin__hit {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
-.map-pin-svg .map-pin__ring {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 4;
+.map-pin__mark {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 244, 214, 0.92);
+  background: var(--open);
+  box-shadow: 0 0 0 3px rgba(7, 4, 10, 0.45), 0 0 12px rgba(74, 222, 128, 0.45);
 }
-.map-pin-svg .map-pin--watch .map-pin__ring {
-  stroke: #86efac;
+.map-pin.status-busy .map-pin__mark {
+  background: var(--busy);
+  box-shadow: 0 0 0 3px rgba(7, 4, 10, 0.45), 0 0 12px rgba(255, 179, 71, 0.45);
 }
-.map-pin-svg .map-pin__watch-hit {
-  fill: rgba(18, 8, 14, 0.85);
-  stroke: rgba(255, 244, 214, 0.7);
-  stroke-width: 2;
+.map-pin.status-closed .map-pin__mark {
+  background: var(--closed);
+  box-shadow: 0 0 0 3px rgba(7, 4, 10, 0.45), 0 0 12px rgba(248, 113, 113, 0.45);
 }
-.map-pin-svg .map-pin__watch.is-on .map-pin__watch-hit {
-  fill: #166534;
-  stroke: #86efac;
+.map-pin.status-at_capacity .map-pin__mark {
+  background: var(--full);
+  box-shadow: 0 0 0 3px rgba(7, 4, 10, 0.45), 0 0 12px rgba(192, 132, 252, 0.45);
 }
-.map-pin-svg .map-pin__watch-icon {
-  stroke: #fff4d6;
-  pointer-events: none;
+.map-pin.status-open .map-pin__mark { background: var(--open); }
+.map-pin--booths .map-pin__mark {
+  background: var(--orange);
+  box-shadow: 0 0 0 3px rgba(7, 4, 10, 0.45), 0 0 12px rgba(255, 122, 24, 0.55);
 }
-.map-pin-svg .map-pin__mark {
-  fill: var(--open);
-  stroke: rgba(255, 244, 214, 0.9);
-  stroke-width: 6;
+.map-pin--watch .map-pin__mark {
+  box-shadow: 0 0 0 3px #86efac, 0 0 12px rgba(134, 239, 172, 0.55);
 }
-.map-pin-svg .map-pin.status-busy .map-pin__mark { fill: var(--busy); }
-.map-pin-svg .map-pin.status-closed .map-pin__mark { fill: var(--closed); }
-.map-pin-svg .map-pin.status-at_capacity .map-pin__mark { fill: var(--full); }
-.map-pin-svg .map-pin.status-open .map-pin__mark { fill: var(--open); }
-.map-pin-svg .map-pin--booths .map-pin__mark {
-  fill: var(--orange);
-}
-.map-pin-svg .map-pin__label {
-  fill: var(--ink);
+.map-pin__label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 4px);
+  transform: translateX(-50%);
+  color: var(--ink);
   font-family: Outfit, sans-serif;
-  font-size: 32px;
+  font-size: 0.72rem;
   font-weight: 700;
-  paint-order: stroke fill;
-  stroke: rgba(10, 4, 12, 0.92);
-  stroke-width: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px #0a040c,
+    1px 0 0 #0a040c,
+    -1px 0 0 #0a040c,
+    0 1px 0 #0a040c,
+    0 -1px 0 #0a040c;
+  pointer-events: none;
+}
+.map-pin__watch {
+  position: absolute;
+  right: -8px;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid rgba(255, 244, 214, 0.7);
+  border-radius: 50%;
+  color: #fff4d6;
+  background: rgba(18, 8, 14, 0.9);
+}
+.map-pin__watch.is-on {
+  border-color: #86efac;
+  background: #166534;
 }
 
 .map-controls {
