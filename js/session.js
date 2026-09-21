@@ -116,6 +116,47 @@ export function getAdminSession() {
   return session;
 }
 
+function isStaffRoleName(value) {
+  const role = String(value || "").toLowerCase().trim();
+  return role === "admin" || role === "stamps" || role === "waits";
+}
+
+/** Staff nav and #admin require a staff cookie/token, or a student marked for the staff challenge. */
+export function canUseStaffUi() {
+  if (getAdminSession()) return true;
+  const student = getStudentSession();
+  if (!student) return false;
+  return Boolean(student.payload.staffChallenge) || isStaffRoleName(student.payload.accountRole);
+}
+
+export async function verifyAdminSession() {
+  const session = getAdminSession();
+  if (!session) return null;
+  if (session.payload.local && isBrowserLocal()) return session;
+  try {
+    const res = await apiFetch(apiUrl("admin-auth"), { asRole: "admin" });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.staff) {
+        const prev = readMeta(ADMIN_META, "admin") || { ...session.payload, role: "admin" };
+        writeMeta(ADMIN_META, {
+          ...prev,
+          role: "admin",
+          staffId: data.staff.staffId || prev.staffId,
+          name: data.staff.fullName || prev.name,
+          staffScope: data.staff.staffScope || prev.staffScope || "admin",
+          exp: prev.exp || session.payload.exp,
+        });
+      }
+      return getAdminSession();
+    }
+  } catch {
+    /* treat as signed out */
+  }
+  clearAdminSession();
+  return null;
+}
+
 export function setStudentToken(token) {
   localStorage.setItem(STUDENT_KEY, token);
 }
@@ -216,11 +257,6 @@ function writeLocalCard(studentNumber, card) {
   localStorage.setItem(stampsKey(studentNumber), JSON.stringify(card));
 }
 
-function isStaffRoleName(value) {
-  const role = String(value || "").toLowerCase().trim();
-  return role === "admin" || role === "stamps" || role === "waits";
-}
-
 export function applyStaffFlags(data) {
   if (!data) return;
   const challenge = Boolean(data.staffChallenge) || isStaffRoleName(data.accountRole);
@@ -277,7 +313,7 @@ function localSignIn({ id, fullName, password }) {
     role: "student",
     studentNumber: id,
     name: fullName,
-    staffChallenge: true,
+    staffChallenge: Boolean(pass),
   });
   setStudentToken(studentToken);
   if (!readLocalCard(id)) {
@@ -302,7 +338,7 @@ function localSignIn({ id, fullName, password }) {
     staff: false,
     student: { studentNumber: id, fullName },
     token: studentToken,
-    staffChallenge: true,
+    staffChallenge: false,
     local: true,
   };
 }
@@ -382,42 +418,14 @@ export async function fetchStamps() {
 export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
-  try {
-    const res = await apiFetch(apiUrl("lookup-student"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentNumber: normalizeAdminNumber(studentNumber) }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if (data.error && /student|admin number|sign in/i.test(data.error)) {
-        throw new Error(data.error);
-      }
-      return {
-        studentNumber: normalizeAdminNumber(studentNumber),
-        fullName: "Name not confirmed (offline)",
-        stamps: {},
-        stampCount: 0,
-        redeemedAt: null,
-        redeemedBy: null,
-        passId: `SP-FP-${normalizeAdminNumber(studentNumber)}`,
-        demo: true,
-      };
-    }
-    return data;
-  } catch (error) {
-    if (error.message && /student|admin number|Staff session/i.test(error.message)) throw error;
-    return {
-      studentNumber: normalizeAdminNumber(studentNumber),
-      fullName: "Name not confirmed (offline)",
-      stamps: {},
-      stampCount: 0,
-      redeemedAt: null,
-      redeemedBy: null,
-      passId: `SP-FP-${normalizeAdminNumber(studentNumber)}`,
-      demo: true,
-    };
-  }
+  const res = await apiFetch(apiUrl("lookup-student"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentNumber: normalizeAdminNumber(studentNumber) }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw apiFail(data, res, "Could not look up that student.");
+  return data;
 }
 
 export async function fetchOps() {
@@ -551,7 +559,11 @@ export async function fetchAnnouncements({ all = false } = {}) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw apiFail(data, res, "Could not load announcements.");
     return data.announcements || [];
-  } catch {
+  } catch (error) {
+    if (!isBrowserLocal()) {
+      if (all) throw error;
+      return [];
+    }
     const rows = readLocalAnnouncements();
     return all
       ? rows
@@ -579,9 +591,11 @@ export async function postAnnouncement(message, extra = {}) {
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data.announcement;
     if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+    if (!isBrowserLocal()) throw apiFail(data, res, "Could not post announcement.");
   } catch (error) {
-    if (error.message && error.message.includes("Staff session")) throw error;
+    if (!isBrowserLocal() || (error.message && error.message.includes("Staff session"))) throw error;
   }
+  if (!isBrowserLocal()) throw new Error("Could not post announcement.");
   const row = {
     id: `local-${Date.now()}`,
     message,
@@ -613,9 +627,11 @@ export async function setAnnouncementActive(id, active) {
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data.announcement;
     if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+    if (!isBrowserLocal()) throw apiFail(data, res, "Could not update announcement.");
   } catch (error) {
-    if (error.message && error.message.includes("Staff session")) throw error;
+    if (!isBrowserLocal() || (error.message && error.message.includes("Staff session"))) throw error;
   }
+  if (!isBrowserLocal()) throw new Error("Could not update announcement.");
   const next = readLocalAnnouncements().map((row) => (row.id === id ? { ...row, active } : row));
   writeLocalAnnouncements(next);
   return next.find((r) => r.id === id);

@@ -19,6 +19,8 @@ import {
   fetchStamps,
   getAdminSession,
   getStudentSession,
+  canUseStaffUi,
+  verifyAdminSession,
   lookupStudent,
   postAnnouncement,
   redeemPass,
@@ -343,7 +345,7 @@ function setHash(view, extra) {
 }
 
 function canSeeStaffTab() {
-  return Boolean(getAdminSession() || getStudentSession());
+  return canUseStaffUi();
 }
 
 function setView(name, extra) {
@@ -353,7 +355,7 @@ function setView(name, extra) {
   }
   const student = getStudentSession();
   const admin = getAdminSession();
-  if (name === "admin" && !admin && !canSeeStaffTab()) name = "login";
+  if (name === "admin" && !canSeeStaffTab()) name = student ? "stamps" : "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
   if (name === "house") {
@@ -1572,8 +1574,15 @@ function pushStaffLog(action, error) {
   paintStaffLog();
 }
 
-function renderAdmin() {
-  if (!isAdminUnlocked()) {
+async function renderAdmin() {
+  if (!canSeeStaffTab()) {
+    els.adminGate.hidden = true;
+    els.adminApp.hidden = true;
+    updateNav();
+    return;
+  }
+  const admin = await verifyAdminSession();
+  if (!admin) {
     els.adminGate.hidden = false;
     els.adminApp.hidden = true;
     updateNav();

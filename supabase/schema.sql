@@ -121,8 +121,6 @@ alter table public.announcements enable row level security;
 drop policy if exists "anon insert announcements" on public.announcements;
 drop policy if exists "anon update announcements" on public.announcements;
 drop policy if exists "anon read announcements" on public.announcements;
-create policy "anon read announcements"
-  on public.announcements for select using (true);
 
 alter table public.event_feedback add column if not exists rating smallint check (rating is null or (rating >= 1 and rating <= 5));
 
@@ -479,6 +477,27 @@ $$;
 revoke all on function public.lookup_scream_student(text) from public;
 revoke all on function public.lookup_scream_student(text) from anon, authenticated;
 grant execute on function public.lookup_scream_student(text) to service_role;
+
+-- Public clients may only read live house waits and active announcement copy.
+-- Student names, stamps, feedback, and staff audit stay on the service role.
+drop policy if exists "anon read live announcements" on public.announcements;
+create policy "anon read live announcements"
+  on public.announcements for select
+  using (active = true and (expires_at is null or expires_at > now()));
+
+revoke all on table public.announcements from anon, authenticated, public;
+grant select (id, message, created_at, audience, house_id, expires_at, active)
+  on table public.announcements to anon, authenticated;
+
+revoke all on table public.students from anon, authenticated, public;
+revoke all on table public.stamp_cards from anon, authenticated, public;
+revoke all on table public.event_feedback from anon, authenticated, public;
+revoke all on table public.staff_audit from anon, authenticated, public;
+revoke all on table public.game_saves from anon, authenticated, public;
+revoke all on table public.game_scores from anon, authenticated, public;
+revoke all on table public.push_subscriptions from anon, authenticated, public;
+grant select on table public.scare_houses to anon, authenticated;
+
 
 
 
