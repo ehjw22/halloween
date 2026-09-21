@@ -1,5 +1,5 @@
 import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js";
-import { setupCatchArcade } from "./catch-arcade.js?v=r6";
+import { setupCatchArcade } from "./catch-arcade.js?v=r7";
 import { markImg } from "./marks.js?v=r6";
 
 const GAMES = ["clicker", "memory", "catch"];
@@ -777,11 +777,11 @@ function setupCatch() {
     ctx.fillStyle = "#0c070c";
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "#fff4d6";
-    ctx.font = "14px Outfit, sans-serif";
+    ctx.font = "14px IBM Plex Sans, sans-serif";
     items.forEach((item) => ctx.fillText(item.icon, item.x - 8, item.y));
     drawBasket(pumpkinX, H - 16);
     ctx.fillStyle = "#fff4d6";
-    ctx.font = "14px Outfit, sans-serif";
+    ctx.font = "14px IBM Plex Sans, sans-serif";
     const tag = mode === "paused" ? "Paused" : `${left.toFixed(1)}s`;
     ctx.fillText(`Score ${score} · ${tag}`, 12, 22);
   }

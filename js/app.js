@@ -355,11 +355,42 @@ function setView(name, extra) {
   }
   const student = getStudentSession();
   const admin = getAdminSession();
+  const rawName = name;
+  let scrollId = "";
+  let hashName = name;
+  let navName = name;
+  if (name === "tonight") {
+    name = "map";
+    hashName = "tonight";
+    navName = "map";
+    scrollId = "night-programme";
+  } else if (name === "guide") {
+    name = "help";
+    hashName = "guide";
+    navName = "help";
+    scrollId = "help-how";
+  } else if (name === "safety") {
+    name = "help";
+    hashName = "safety";
+    navName = "help";
+    scrollId = "help-safety";
+  } else if (name === "follow") {
+    const current = document.querySelector(".view.is-active")?.dataset.view;
+    name = current && current !== "welcome" && current !== "follow" ? current : "map";
+    hashName = "follow";
+    navName = "";
+    scrollId = "follow-clubs";
+  }
   if (name === "admin" && !canSeeStaffTab()) name = student ? "stamps" : "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
+  if (!["tonight", "guide", "safety", "follow", "house"].includes(rawName)) {
+    navName = name;
+  }
   if (name === "house") {
     name = "map";
+    navName = "map";
+    hashName = extra ? "house" : "map";
     if (extra) openHouse(extra);
   } else {
     closeModals();
@@ -376,39 +407,49 @@ function setView(name, extra) {
   });
   document.body.classList.toggle("is-board", name === "board");
   document.querySelectorAll(".nav [data-nav]").forEach((btn) => {
-    const on = btn.dataset.nav === name;
+    const on = navName && btn.dataset.nav === navName;
     btn.classList.toggle("is-active", on);
     if (on) btn.setAttribute("aria-current", "page");
     else btn.removeAttribute("aria-current");
   });
   setGamesVisible(name === "games");
   if (!setView.skipHash) {
-    if (name === "map" && extra) setHash("house", extra);
-    else if (name === "map") setHash("map");
-    else setHash(name);
+    if (rawName === "tonight" || rawName === "guide" || rawName === "safety" || rawName === "follow") {
+      setHash(rawName);
+    } else if (name === "map" && extra) {
+      setHash("house", extra);
+    } else if (name === "map") {
+      setHash("map");
+    } else {
+      setHash(name);
+    }
   }
   setView.skipHash = false;
   setMoreMenu(false);
   updateNav();
   if (name === "admin") renderAdmin();
-  if (name === "tonight") {
+  if (name === "map") {
     renderTimeline();
     loadPublicAnnouncements();
+    requestAnimationFrame(() => fitMap());
   }
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
     paintStampUi();
     requestAnimationFrame(layoutStampPage);
   }
-  if (name === "map") {
-    requestAnimationFrame(() => fitMap());
-  }
-  if (name === "safety") paintSafety();
-  if (name === "follow") paintClubs();
+  if (name === "help") paintSafety();
+  paintClubs();
   if (name === "board") startBoard();
   else stopBoard();
   setMoreMenu(false);
-  window.scrollTo(0, 0);
+  if (scrollId) {
+    window.setTimeout(() => {
+      document.getElementById(scrollId)?.scrollIntoView({ block: "start" });
+    }, 50);
+  } else {
+    window.scrollTo(0, 0);
+  }
 }
 
 function toggleWatchHouse(id) {
@@ -579,23 +620,13 @@ function paintSafety() {
 }
 
 function paintClubs() {
-  const line = CLUBS.map((club) => club.abbr).join(" · ");
+  const html = CLUBS.map((club) =>
+    `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">${escapeHtml(club.abbr)}</a>`
+  ).join('<span class="club-sep" aria-hidden="true">·</span>');
   const credits = document.getElementById("clubCredits");
-  if (credits) credits.textContent = line;
+  if (credits) credits.innerHTML = html;
   const footer = document.getElementById("footerClubs");
-  if (footer) footer.textContent = line;
-  const list = document.getElementById("clubFollowList");
-  if (!list) return;
-  list.innerHTML = CLUBS.map((club) => `
-    <article class="club-card">
-      <p class="club-card__abbr">${escapeHtml(club.abbr)}</p>
-      <h3>${escapeHtml(club.name)}</h3>
-      <p class="club-card__links">
-        <a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>
-        <a href="mailto:${escapeHtml(club.email)}">Email</a>
-      </p>
-    </article>
-  `).join("");
+  if (footer) footer.innerHTML = html;
 }
 
 async function startBoard() {
@@ -1408,15 +1439,14 @@ function renderTimeline() {
   if (!els.nightTimeline) return;
   els.nightTimeline.innerHTML = SCHEDULE.map((item) => {
     const state = scheduleStatus(item);
-    const tag = state === "live" ? "Now" : state === "done" ? "Ended" : "Upcoming";
     return `<li class="night-stop is-${state}"${state === "live" ? " aria-current=\"true\"" : ""}>
       <time datetime="${item.start}">${item.start}–${item.end}</time>
-      <div>
-        <p class="night-stop__kind">${item.kind === "performance" ? "Performance" : "Event"} · ${tag}</p>
+      <div class="night-stop__body">
+        <p class="night-stop__kind">${item.kind === "performance" ? "Performance" : "Event"}${state === "live" ? " · Now" : ""}</p>
         <strong>${escapeHtml(item.title)}</strong>
-        <p>${escapeHtml(item.place)}</p>
-        <p class="muted">${escapeHtml(item.note)}</p>
+        <p class="night-stop__note">${escapeHtml(item.note)}</p>
       </div>
+      <p class="night-stop__place">${escapeHtml(item.place)}</p>
     </li>`;
   }).join("");
 }
@@ -1508,7 +1538,7 @@ async function loadAdminAnnouncements() {
           ${posted ? `<button class="btn btn--ghost" type="button" data-announce-off="${escapeHtml(row.id)}">Take down</button>` : ""}
         </li>`;
       }).join("")
-      : `<li class="empty-state"><p class="empty-state__title">No announcements yet</p><p class="empty-state__hint">Post a note above for Event Map and Tonight.</p></li>`;
+      : `<li class="empty-state"><p class="empty-state__title">No announcements yet</p><p class="empty-state__hint">Post a note above for the Map page.</p></li>`;
   } catch (error) {
     els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(error.message)}</li>`;
   }
@@ -2415,7 +2445,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r6")
+  import("./games.js?v=r7")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
@@ -2444,7 +2474,7 @@ async function init() {
   window.setInterval(() => {
     if (document.hidden) return;
     loadPublicAnnouncements();
-    if (document.querySelector(".view.is-active")?.dataset.view === "tonight") renderTimeline();
+    if (document.querySelector(".view.is-active")?.dataset.view === "map") renderTimeline();
   }, 20000);
 
   await (window.loadHalloweenConfig ? window.loadHalloweenConfig() : Promise.resolve());

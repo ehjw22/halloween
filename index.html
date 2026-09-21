@@ -26,10 +26,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Creepster&family=Outfit:wght@400;500;600;700&family=Special+Elite&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r7" />
+    <link rel="stylesheet" href="css/styles.css?v=r13" />
     <script src="js/boot.js?v=r6"></script>
   </head>
   <body>
@@ -257,9 +257,9 @@
         <button class="btn" type="button" id="watchTrailer">
           Watch trailer
         </button>
-        <p class="event-gate__by">Brought to you by</p>
+        <p class="event-gate__by">Organised by Singapore Polytechnic student clubs</p>
         <p class="event-gate__clubs" id="clubCredits">
-          SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC · ABEC ·
+          SPSU, CSCC, SPSSC, CLSC, SOCC, EEEC, MAEC, MADC, SBC, ABEC,
           SMAC
         </p>
         <button class="btn btn--ghost" type="button" id="eventGateLocal">
@@ -327,23 +327,8 @@
                 <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
                 <circle cx="12" cy="10" r="2.2" /></svg
             ></span>
-            <span class="nav__full">Event Map</span
+            <span class="nav__full">Map</span
             ><span class="nav__short">Map</span>
-          </button>
-          <button class="nav__btn" type="button" data-nav="tonight">
-            <span class="nav__icon" aria-hidden="true"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="4" y="5" width="16" height="15" rx="2" />
-                <path d="M8 3v4M16 3v4M4 10h16" /></svg
-            ></span>
-            Tonight
           </button>
           <button class="nav__btn" type="button" data-nav="stamps">
             <span class="nav__icon" aria-hidden="true"
@@ -362,6 +347,20 @@
             <span class="nav__full">Stamp Card</span
             ><span class="nav__short">Stamps</span>
           </button>
+          <button class="nav__btn" type="button" data-nav="games">
+            <span class="nav__icon" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 8v8M8 12h8" /></svg
+            ></span>
+            Games
+          </button>
           <button
             class="nav__btn nav__more"
             type="button"
@@ -378,20 +377,6 @@
             More
           </button>
           <div class="nav-more-menu" id="navMoreMenu" hidden>
-            <button class="nav__btn" type="button" data-nav="games">
-              <span class="nav__icon" aria-hidden="true"
-                ><svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                >
-                  <circle cx="12" cy="12" r="8" />
-                  <path d="M12 8v8M8 12h8" /></svg
-              ></span>
-              Games
-            </button>
             <button class="nav__btn" type="button" data-nav="feedback">
               <span class="nav__icon" aria-hidden="true"
                 ><svg
@@ -408,23 +393,7 @@
               ></span>
               Feedback
             </button>
-            <button class="nav__btn" type="button" data-nav="safety">
-              <span class="nav__icon" aria-hidden="true"
-                ><svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"
-                  /></svg
-              ></span>
-              Safety
-            </button>
-            <button class="nav__btn" type="button" data-nav="guide">
+            <button class="nav__btn" type="button" data-nav="help">
               <span class="nav__icon" aria-hidden="true"
                 ><svg
                   viewBox="0 0 24 24"
@@ -437,25 +406,7 @@
                   <path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z" />
                   <path d="M8 19V5.5" /></svg
               ></span>
-              <span class="nav__full">How to</span
-              ><span class="nav__short">Guide</span>
-            </button>
-            <button class="nav__btn" type="button" data-nav="follow">
-              <span class="nav__icon" aria-hidden="true"
-                ><svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                >
-                  <circle cx="9" cy="8" r="2.4" />
-                  <circle cx="16" cy="9" r="2" />
-                  <path
-                    d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"
-                  /></svg
-              ></span>
-              Follow us
+              Help
             </button>
             <button
               class="nav__btn"
@@ -500,20 +451,6 @@
               Staff
             </button>
           </div>
-          <button class="nav__btn nav__wide" type="button" data-nav="games">
-            <span class="nav__icon" aria-hidden="true"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              >
-                <circle cx="12" cy="12" r="8" />
-                <path d="M12 8v8M8 12h8" /></svg
-            ></span>
-            Games
-          </button>
           <button class="nav__btn nav__wide" type="button" data-nav="feedback">
             <span class="nav__icon" aria-hidden="true"
               ><svg
@@ -530,23 +467,7 @@
             ></span>
             Feedback
           </button>
-          <button class="nav__btn nav__wide" type="button" data-nav="safety">
-            <span class="nav__icon" aria-hidden="true"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M12 3.5 5 6.5v5.2c0 4.1 2.8 7.4 7 8.8 4.2-1.4 7-4.7 7-8.8V6.5L12 3.5z"
-                /></svg
-            ></span>
-            Safety
-          </button>
-          <button class="nav__btn nav__wide" type="button" data-nav="guide">
+          <button class="nav__btn nav__wide" type="button" data-nav="help">
             <span class="nav__icon" aria-hidden="true"
               ><svg
                 viewBox="0 0 24 24"
@@ -559,24 +480,7 @@
                 <path d="M6 5.5h11a2 2 0 0 1 2 2V19H8a2 2 0 0 1-2-2V5.5z" />
                 <path d="M8 19V5.5" /></svg
             ></span>
-            How to
-          </button>
-          <button class="nav__btn nav__wide" type="button" data-nav="follow">
-            <span class="nav__icon" aria-hidden="true"
-              ><svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              >
-                <circle cx="9" cy="8" r="2.4" />
-                <circle cx="16" cy="9" r="2" />
-                <path
-                  d="M4.5 18c.6-2.6 2.6-4 4.5-4s3.9 1.4 4.5 4M13 14.2c1.6-.4 3.3.4 4.2 2.8"
-                /></svg
-            ></span>
-            Follow us
+            Help
           </button>
           <button
             class="nav__btn nav__wide"
@@ -623,7 +527,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <div class="version-chip" title="App version">v1.7.1</div>
+          <div class="version-chip" title="App version">v1.7.2</div>
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -654,7 +558,7 @@
             <h2 class="welcome-night__title">The gates are open</h2>
             <p class="welcome-night__lead">
               Scream Fest is live. Fifteen scare houses, six booths, free
-              admission — start on the map, or read How to if it is your first
+              admission — start on the map, or read Help if it is your first
               time.
             </p>
             <ul class="event-gate__chips welcome-night__chips">
@@ -666,8 +570,8 @@
               <button class="btn" type="button" data-nav="map">
                 Enter the map
               </button>
-              <button class="btn btn--ghost" type="button" data-nav="guide">
-                How to
+              <button class="btn btn--ghost" type="button" data-nav="help">
+                Help
               </button>
             </div>
           </div>
@@ -677,6 +581,7 @@
             <h2>Campus Haunt Map</h2>
             <p>
               Pinch, scroll, or use the controls. Tap a pin for the storyline.
+              <a class="page-jump" href="#tonight">Tonight’s times</a>
             </p>
           </div>
           <div class="map-shell">
@@ -813,25 +718,16 @@
             </div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
-        </section>
-
-        <section class="view" data-view="tonight" hidden>
-          <div class="section-head">
-            <h2>Tonight at Scream Fest</h2>
-            <p id="scheduleDateLabel">
-              Performances and house hours for the night. Times are Singapore
-              time.
-            </p>
-          </div>
-          <div class="announce-board">
-            <h3 class="roadmap__title">Staff announcements</h3>
-            <p class="muted announce-board__hint">
-              Official updates from facilitators. Newest first.
-            </p>
-            <ul class="announce-list" id="announceList"></ul>
-          </div>
-          <h3 class="roadmap__title">Night programme</h3>
-          <ol class="night-timeline" id="nightTimeline"></ol>
+          <section class="night-programme" id="night-programme" aria-labelledby="nightProgrammeTitle">
+            <div class="section-head">
+              <h2 id="nightProgrammeTitle">Tonight at Scream Fest</h2>
+              <p id="scheduleDateLabel">
+                Performances and house hours for the night. Times are Singapore
+                time.
+              </p>
+            </div>
+            <ol class="night-timeline" id="nightTimeline"></ol>
+          </section>
         </section>
 
         <section class="view" data-view="login" hidden>
@@ -1556,9 +1452,9 @@
           </form>
         </section>
 
-        <section class="view" data-view="guide" hidden>
-          <div class="section-head">
-            <h2>How to use this site</h2>
+        <section class="view" data-view="help" hidden>
+          <div class="section-head" id="help-how">
+            <h2>Help</h2>
             <p>
               Keep this tab open — wait times update on their own. Pins and
               house cards use the same colours.
@@ -1717,8 +1613,9 @@
           <h3 class="guide-heading">Using the rest of the site</h3>
           <ol class="how-list">
             <li>
-              Use <strong>Event Map</strong> to tap pins or house cards. Times
-              are Singapore time, published by staff.
+              Use <strong>Map</strong> to tap pins or house cards. The night
+              programme sits under the wait list on that same page. Times are
+              Singapore time, published by staff.
             </li>
             <li>
               <strong>Sign in</strong> with your admin number and name to open
@@ -1730,7 +1627,7 @@
               mark it used on their side.
             </li>
             <li>
-              <strong>Tonight</strong> is the programme.
+              The night programme is on <strong>Map</strong>.
               <strong>Games</strong> are optional. Send
               <strong>Feedback</strong> if a house or booth needs a note.
             </li>
@@ -1740,33 +1637,17 @@
               first.
             </li>
             <li>
-              Help desk, meetup, and skip-house notes live on
-              <strong>Safety</strong>.
+              Help desk, meetup, and skip-house notes are in
+              <strong>Safety</strong> below.
             </li>
           </ol>
-        </section>
 
-        <section class="view" data-view="safety" hidden>
-          <div class="section-head">
-            <h2>Stay safe tonight</h2>
-            <p>
-              General notes for SP Scream Fest. Follow staff instructions on the
-              ground.
-            </p>
-          </div>
+          <h3 class="guide-heading" id="help-safety">Stay safe tonight</h3>
+          <p class="guide-lead">
+            General notes for SP Scream Fest. Follow staff instructions on the
+            ground.
+          </p>
           <ul class="safety-list" id="safetyList"></ul>
-        </section>
-
-        <section class="view" data-view="follow" hidden>
-          <div class="section-head">
-            <h2>Follow us</h2>
-            <p>
-              Scream Fest is brought to you by these SP student clubs. Instagram
-              and email links are placeholders until the official accounts are
-              confirmed.
-            </p>
-          </div>
-          <div class="club-grid" id="clubFollowList"></div>
         </section>
 
         <section class="view" data-view="admin" hidden>
@@ -2042,8 +1923,8 @@
               <div class="section-head">
                 <h2>Staff announcements</h2>
                 <p>
-                  Posted notes show under Staff announcements on Event Map and
-                  Tonight. Leave scare house blank for a general note.
+                  Posted notes show under Staff announcements on Map. Leave scare
+                  house blank for a general note.
                 </p>
               </div>
               <form class="auth-card" id="announceForm">
@@ -2097,13 +1978,12 @@
         </section>
       </main>
 
-      <footer class="site-footer">
+      <footer class="site-footer" id="follow-clubs">
         <p class="site-footer__credit">
           Brought to you by
-          <span id="footerClubs"
-            >SPSU · CSCC · SPSSC · CLSC · SOCC · EEEC · MAEC · MADC · SBC ·
-            ABEC · SMAC</span
-          >
+        </p>
+        <p class="site-footer__clubs" id="footerClubs">
+          SPSU, CSCC, SPSSC, CLSC, SOCC, EEEC, MAEC, MADC, SBC, ABEC, SMAC
         </p>
       </footer>
 
@@ -2193,7 +2073,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r8"></script>
+      <script type="module" src="js/app.js?v=r13"></script>
     </div>
   </body>
 </html>

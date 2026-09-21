@@ -229,7 +229,7 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
     pops.forEach((p) => {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.good ? "#fff4d6" : "#fca5a5";
-      ctx.font = "700 14px Outfit, sans-serif";
+      ctx.font = "700 14px IBM Plex Sans, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(p.text, p.x, p.y);
     });
@@ -239,7 +239,7 @@ export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCa
       ctx.fillStyle = "rgba(7,4,10,0.45)";
       ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = "#fff4d6";
-      ctx.font = "700 22px Outfit, sans-serif";
+      ctx.font = "700 22px IBM Plex Sans, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("PAUSED", W / 2, H / 2);
     }
