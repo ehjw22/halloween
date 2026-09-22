@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r13" />
+    <link rel="stylesheet" href="css/styles.css?v=r17" />
     <script src="js/boot.js?v=r6"></script>
   </head>
   <body>
@@ -251,7 +251,7 @@
         </div>
         <ul class="event-gate__chips">
           <li>15 Scare Houses</li>
-          <li>6 Booths</li>
+          <li>7 Booths</li>
           <li>1 Free Admission</li>
         </ul>
         <button class="btn" type="button" id="watchTrailer">
@@ -527,7 +527,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <div class="version-chip" title="App version">v1.7.2</div>
+          <div class="version-chip" title="App version">v1.7.4</div>
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -557,13 +557,13 @@
             <p class="welcome-night__kicker">Singapore Polytechnic</p>
             <h2 class="welcome-night__title">The gates are open</h2>
             <p class="welcome-night__lead">
-              Scream Fest is live. Fifteen scare houses, six booths, free
-              admission — start on the map, or read Help if it is your first
-              time.
+              Scream Fest is live. Fifteen scare houses in four clusters, seven
+              booths, free admission — start on the map, or read Help if it is
+              your first time.
             </p>
             <ul class="event-gate__chips welcome-night__chips">
               <li>15 Scare Houses</li>
-              <li>6 Booths</li>
+              <li>7 Booths</li>
               <li>1 Free Admission</li>
             </ul>
             <div class="welcome-night__actions">
@@ -580,8 +580,7 @@
           <div class="section-head section-head--map">
             <h2>Campus Haunt Map</h2>
             <p>
-              Pinch, scroll, or use the controls. Tap a pin for the storyline.
-              <a class="page-jump" href="#tonight">Tonight’s times</a>
+              Pinch, scroll, or use the controls. Tap a pin for the houses there.
             </p>
           </div>
           <div class="map-shell">
@@ -636,10 +635,10 @@
             <ul class="announce-list" id="announceStrip"></ul>
           </details>
           <div class="section-head">
-            <h2>Scare House Wait Times</h2>
+            <h2>Scare houses</h2>
             <p>
-              Fifteen haunts across campus. Sorted by wait. Times show when
-              staff last published.
+              Each card is a house. They are grouped by cluster. Tap a card for
+              the rooms and what you are walking into.
             </p>
           </div>
           <div class="house-filters" id="houseFilters">
@@ -648,7 +647,7 @@
               <input
                 id="houseSearch"
                 type="search"
-                placeholder="Search name or code (T11, library)"
+                placeholder="Search a house, room, or cluster"
                 autocomplete="off"
               />
             </label>
@@ -686,48 +685,8 @@
                 Closed
               </button>
             </div>
-            <div class="house-filters__chips" role="group" aria-label="Access">
-              <button
-                type="button"
-                class="filter-chip"
-                data-filter-tag="strobe"
-              >
-                Strobe
-              </button>
-              <button
-                type="button"
-                class="filter-chip"
-                data-filter-tag="stairs"
-              >
-                Stairs
-              </button>
-              <button
-                type="button"
-                class="filter-chip"
-                data-filter-tag="jumpscare"
-              >
-                Jumpscare
-              </button>
-              <button
-                type="button"
-                class="filter-chip"
-                data-filter-tag="outdoors"
-              >
-                Outdoors
-              </button>
-            </div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
-          <section class="night-programme" id="night-programme" aria-labelledby="nightProgrammeTitle">
-            <div class="section-head">
-              <h2 id="nightProgrammeTitle">Tonight at Scream Fest</h2>
-              <p id="scheduleDateLabel">
-                Performances and house hours for the night. Times are Singapore
-                time.
-              </p>
-            </div>
-            <ol class="night-timeline" id="nightTimeline"></ol>
-          </section>
         </section>
 
         <section class="view" data-view="login" hidden>
@@ -791,7 +750,7 @@
               digits). Use the same Sign in page as the rest of the night.
             </p>
             <ul class="stamp-gate-points">
-              <li>Six booth stamps unlock Fast Pass</li>
+              <li>Seven booth stamps unlock Fast Pass</li>
               <li>Staff stamp you at the booth — you cannot stamp yourself</li>
               <li>Come back with the same admin number and name</li>
             </ul>
@@ -836,7 +795,7 @@
                   <h2 id="stampHolderName">Student</h2>
                   <p class="passport__idno" id="stampHolderId"></p>
                   <p class="stamp-progress" id="stampProgress">
-                    0 / 6 runes lit
+                    0 / 7 runes lit
                   </p>
                 </div>
               </div>
@@ -859,8 +818,7 @@
                     Stamp card grid
                   </h3>
                   <p class="station-map__lead">
-                    Three pads on top, three below. Each booth inks one pad and
-                    uncovers 1/6 of the Fast Pass.
+                    Seven pads, three across. Each booth inks one pad.
                   </p>
                   <div class="stamp-grid" id="stampGrid"></div>
                 </section>
@@ -872,7 +830,7 @@
                   <h3 class="roadmap__title" id="stampMapTitle">Ticket map</h3>
                   <p class="station-map__lead">
                     Pins on the ticket; fog punches a hole around each stamp.
-                    Six stamps uncage the lantern.
+                    Seven stamps uncage the lantern.
                   </p>
                   <div class="station-map" id="stampRoadmap"></div>
                 </section>
@@ -1058,7 +1016,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="1"
-                          aria-label="Pumpkin Gate"
+                          aria-label="Trick-or-Ink"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1077,7 +1035,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="2"
-                          aria-label="Bat Colony"
+                          aria-label="Hat Trick"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1094,7 +1052,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="3"
-                          aria-label="Plaza Ghost"
+                          aria-label="Ghoulish Glam"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1114,7 +1072,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="4"
-                          aria-label="Web Lab"
+                          aria-label="Make a Monster"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1132,7 +1090,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="5"
-                          aria-label="Candy Court"
+                          aria-label="Tarot Reading"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1150,7 +1108,7 @@
                           class="lantern__rune"
                           type="button"
                           data-stamp="6"
-                          aria-label="Crypt Keep"
+                          aria-label="Drawn Alive"
                         >
                           <span class="lantern__rune-glow"></span
                           ><span class="lantern__rune-stone"></span
@@ -1173,7 +1131,7 @@
                   <p class="pass-plate__name" id="passHolder"></p>
                   <p class="pass-plate__admin" id="passAdmin"></p>
                   <p class="fast-pass__id is-locked" id="passId">
-                    Locked · 0 / 6 runes lit
+                    Locked · 0 / 7 runes lit
                   </p>
                   <span class="fast-pass__used" id="passUsedMark" hidden
                     >Laid to rest</span
@@ -1480,10 +1438,10 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T18A</span>
+                      <span class="house-card__short">Spectrum</span>
                       <span class="status-pill status-walkin">Walk-in</span>
                     </span>
-                    <strong class="house-card__name">Aerohub</strong>
+                    <strong class="house-card__name">The Last Laugh</strong>
                     <span class="house-card__metric">
                       <span class="house-card__wait">Walk in</span>
                       <span class="house-card__unit">No queue</span>
@@ -1516,10 +1474,10 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">EW22</span>
+                      <span class="house-card__short">T14</span>
                       <span class="status-pill">Open</span>
                     </span>
-                    <strong class="house-card__name">Dover Gate</strong>
+                    <strong class="house-card__name">The Three Doors</strong>
                     <span class="house-card__metric">
                       <span class="house-card__wait">8</span>
                       <span class="house-card__unit">min wait</span>
@@ -1551,10 +1509,10 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T12</span>
+                      <span class="house-card__short">T12A</span>
                       <span class="status-pill">Busy</span>
                     </span>
-                    <strong class="house-card__name">Atrium</strong>
+                    <strong class="house-card__name">Abandoned Asylum</strong>
                     <span class="house-card__metric">
                       <span class="house-card__wait">32</span>
                       <span class="house-card__unit">min wait</span>
@@ -1587,10 +1545,10 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">WSA</span>
+                      <span class="house-card__short">T16</span>
                       <span class="status-pill">Closed</span>
                     </span>
-                    <strong class="house-card__name">West Coast</strong>
+                    <strong class="house-card__name">Prisoner of Spirits</strong>
                     <span class="house-card__metric">
                       <span class="house-card__wait">Closed</span>
                       <span class="house-card__unit">Not running</span>
@@ -1613,9 +1571,9 @@
           <h3 class="guide-heading">Using the rest of the site</h3>
           <ol class="how-list">
             <li>
-              Use <strong>Map</strong> to tap pins or house cards. The night
-              programme sits under the wait list on that same page. Times are
-              Singapore time, published by staff.
+              Use <strong>Map</strong> to tap pins or house cards. Houses are
+              grouped by cluster. Wait times are Singapore time, published by
+              staff.
             </li>
             <li>
               <strong>Sign in</strong> with your admin number and name to open
@@ -1623,11 +1581,10 @@
               yourself.
             </li>
             <li>
-              Six stamps unlock Fast Pass. Show it at the Fast Pass desk; staff
+              Seven stamps unlock Fast Pass. Show it at the Fast Pass desk; staff
               mark it used on their side.
             </li>
             <li>
-              The night programme is on <strong>Map</strong>.
               <strong>Games</strong> are optional. Send
               <strong>Feedback</strong> if a house or booth needs a note.
             </li>
@@ -1987,6 +1944,23 @@
         </p>
       </footer>
 
+      <div class="modal" id="clusterModal" hidden>
+        <div class="modal__backdrop" data-close-modal></div>
+        <div
+          class="modal__panel modal__panel--cluster"
+          tabindex="-1"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clusterModalTitle"
+        >
+          <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+          <p class="modal__code" data-cluster-kicker></p>
+          <h3 id="clusterModalTitle" data-cluster-title></h3>
+          <p class="modal__story" data-cluster-story></p>
+          <ul class="cluster-houses" data-cluster-houses></ul>
+        </div>
+      </div>
+
       <div class="modal" id="detailModal" hidden>
         <div class="modal__backdrop" data-close-modal></div>
         <div
@@ -2040,7 +2014,7 @@
           </button>
           <p class="modal__code">Eleven Square</p>
           <h3 id="boothsModalTitle">Booths</h3>
-          <p class="muted">Six stamp stations. Tap a booth for the brief.</p>
+          <p class="muted">Seven stamp stations. Tap a booth for the brief.</p>
           <div class="booths-list" id="boothsPinList"></div>
         </div>
       </div>
@@ -2073,7 +2047,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r13"></script>
+      <script type="module" src="js/app.js?v=r17"></script>
     </div>
   </body>
 </html>

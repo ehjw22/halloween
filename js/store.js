@@ -1,18 +1,18 @@
-import { HOUSES } from "./houses.js";
+import { HOUSES } from "./houses.js?v=r17";
 import { getAdminSession, apiUrl, apiFetch } from "./session.js";
 
 const CHANNEL = "halloween-wait-times";
-const STORAGE_KEY = "sp-halloween-houses-v1";
+const STORAGE_KEY = "sp-halloween-houses-v2";
 const SYNC_KEY = "sp-halloween-waits-sync-v1";
 const POLL_MS = 4000;
 
 function cloneHouses() {
-  return HOUSES.map((h) => ({
+  return HOUSES.filter((h) => h.kind !== "screening").map((h) => ({
     id: h.id,
     name: h.name,
     wait_minutes: h.wait,
     status: h.status,
-    updated_at: new Date().toISOString(),
+    updated_at: h.wait == null ? null : new Date().toISOString(),
   }));
 }
 

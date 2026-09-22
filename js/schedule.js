@@ -4,7 +4,7 @@ export const EVENT_TZ = "Asia/Singapore";
 export const EVENT_ISO_DATE = "2026-10-24";
 
 export const SCHEDULE = [
-  { start: "17:30", end: "18:00", title: "Gates open", place: "Gate 1 / Dover", kind: "ops", note: "Stamp cards and safety brief at Pumpkin Gate." },
+  { start: "17:30", end: "18:00", title: "Gates open", place: "Gate 1 / Dover", kind: "ops", note: "Stamp cards and safety brief at the Eleven Square booths." },
   { start: "18:00", end: "18:25", title: "Opening act", place: "Plaza", kind: "performance", note: "Host intro and opening dance." },
   { start: "18:00", end: "22:30", title: "Scare houses open", place: "Campus haunts", kind: "ops", note: "Last entry 22:00. Watch wait times on the map." },
   { start: "18:30", end: "18:55", title: "Vocal set", place: "Plaza stage", kind: "performance", note: "Student singers." },

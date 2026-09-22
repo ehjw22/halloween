@@ -1,6 +1,6 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
 import { CLUBS } from "./clubs.js";
-import { HOUSES, STATUSES } from "./houses.js?v=r6";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
 import { BOOTHS, boothById } from "./booths.js";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { SAFETY } from "./safety.js";
@@ -59,6 +59,7 @@ const els = {
   stampGrid: document.getElementById("stampGrid"),
   boothModal: document.getElementById("boothModal"),
   boothsModal: document.getElementById("boothsModal"),
+  clusterModal: document.getElementById("clusterModal"),
   stampHolderName: document.getElementById("stampHolderName"),
   stampHolderId: document.getElementById("stampHolderId"),
   stampFill: document.getElementById("stampFill"),
@@ -103,23 +104,31 @@ const els = {
 };
 
 function statusFromWait(minutes) {
+  if (minutes === null || minutes === undefined || minutes === "") return "open";
   const wait = Math.max(0, Number(minutes) || 0);
   if (wait >= 60) return "closed";
   if (wait >= 30) return "busy";
   return "open";
 }
 
+function hasPublishedWait(row) {
+  const wait = row?.wait_minutes;
+  return wait !== null && wait !== undefined && wait !== "" && Number.isFinite(Number(wait));
+}
+
 function normalizeHouseRow(row) {
-  const wait = Math.max(0, Number(row.wait_minutes ?? row.wait) || 0);
+  const raw = row.wait_minutes ?? row.wait;
+  const published = raw !== null && raw !== undefined && raw !== "";
+  const wait = published ? Math.max(0, Number(raw) || 0) : null;
   return {
     ...row,
     wait_minutes: wait,
-    status: statusFromWait(wait),
+    status: published ? statusFromWait(wait) : "open",
   };
 }
 
 let store;
-let houses = HOUSES.map((h) => normalizeHouseRow({
+let houses = HOUSES.filter((h) => h.kind !== "screening").map((h) => normalizeHouseRow({
   id: h.id,
   name: h.name,
   wait_minutes: h.wait,
@@ -150,16 +159,19 @@ function houseMeta(id) {
 }
 
 function waitLabel(minutes, status) {
+  if (minutes === null || minutes === undefined || minutes === "") return "Not published";
   if (status === "closed" || statusFromWait(minutes) === "closed") return "Closed";
   if (!minutes) return "Walk in";
   return `${minutes} min`;
 }
 
 function isWalkInHouse(row) {
+  if (!hasPublishedWait(row)) return false;
   return statusFromWait(row.wait_minutes) !== "closed" && !(Number(row.wait_minutes) > 0);
 }
 
 function isGoNowHouse(row) {
+  if (!hasPublishedWait(row)) return false;
   return statusFromWait(row.wait_minutes) !== "closed" && Number(row.wait_minutes) < 15;
 }
 
@@ -169,6 +181,7 @@ function statusPillLabel(row) {
 }
 
 function waitMetric(row) {
+  if (!hasPublishedWait(row)) return { value: "—", unit: "Not published", kind: "queue" };
   const minutes = Number(row.wait_minutes) || 0;
   const status = statusFromWait(minutes);
   if (status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
@@ -188,7 +201,8 @@ function sortedHouses(list = houses) {
 
 function houseSearchHay(row) {
   const meta = houseMeta(row.id);
-  return `${row.name} ${meta?.short || ""} ${row.id}`.toLowerCase();
+  const cluster = clusterById(meta?.cluster);
+  return `${row.name} ${meta?.short || ""} ${meta?.rooms || ""} ${cluster?.name || ""} ${row.id}`.toLowerCase();
 }
 
 function houseMatchesFilter(row) {
@@ -254,6 +268,7 @@ function houseCardOpenInner(row, meta) {
       <span class="house-card__unit">${escapeHtml(metric.unit)}</span>
     </span>
     <span class="house-card__meta">
+      ${meta?.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
       <span class="fresh">${escapeHtml(freshnessLabel(row.updated_at))}</span>
       ${tags ? `<span class="house-tags">${tags}</span>` : ""}
     </span>`;
@@ -299,6 +314,7 @@ function writeNight(data) {
 
 let watchSnapshot = new Map();
 let openHouseId = "";
+let openClusterKey = "";
 let boardTimer = 0;
 
 const WELCOME_SEEN_KEY = "scream-welcome-seen";
@@ -361,9 +377,8 @@ function setView(name, extra) {
   let navName = name;
   if (name === "tonight") {
     name = "map";
-    hashName = "tonight";
+    hashName = "map";
     navName = "map";
-    scrollId = "night-programme";
   } else if (name === "guide") {
     name = "help";
     hashName = "guide";
@@ -414,7 +429,7 @@ function setView(name, extra) {
   });
   setGamesVisible(name === "games");
   if (!setView.skipHash) {
-    if (rawName === "tonight" || rawName === "guide" || rawName === "safety" || rawName === "follow") {
+    if (rawName === "guide" || rawName === "safety" || rawName === "follow") {
       setHash(rawName);
     } else if (name === "map" && extra) {
       setHash("house", extra);
@@ -461,6 +476,7 @@ function toggleWatchHouse(id) {
   renderDashboard();
   renderPins();
   if (openHouseId === id && els.modal && !els.modal.hidden) openHouse(id);
+  if (openClusterKey && els.clusterModal && !els.clusterModal.hidden) paintClusterModal(openClusterKey);
   if (!watching) {
     setWantsPush(true);
     enablePushNotifications(night.watch).then((result) => {
@@ -504,24 +520,77 @@ function houseCardHtml(row, watching) {
   </article>`;
 }
 
+function clusterMembers(clusterId) {
+  return HOUSES.filter((house) => house.cluster === clusterId);
+}
+
+function listingMatches(meta) {
+  if (meta.kind === "screening") {
+    if (houseFilter.status || houseFilter.tag) return false;
+    const q = houseFilter.q.trim().toLowerCase();
+    if (!q) return true;
+    const cluster = clusterById(meta.cluster);
+    return `${meta.name} ${meta.rooms} ${meta.short} ${cluster?.name || ""}`.toLowerCase().includes(q);
+  }
+  const row = houses.find((h) => h.id === meta.id);
+  return Boolean(row && houseMatchesFilter(row));
+}
+
 function renderDashboard() {
   paintHouseFilters();
   if (!els.houseGrid) return;
-  const list = filteredHouses();
   const watching = new Set(readNight().watch);
-  if (!list.length) {
+  const goNow = sortedHouses().filter((row) => houseMatchesFilter(row) && isGoNowHouse(row));
+  const groups = CLUSTERS.map((cluster) => ({
+    cluster,
+    members: clusterMembers(cluster.id).filter(listingMatches),
+  })).filter((group) => group.members.length);
+  if (!goNow.length && !groups.length) {
     els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Clear a filter or try a different search.</p></div>`;
     return;
   }
-  const goNow = list.filter(isGoNowHouse);
-  const rest = list.filter((row) => !isGoNowHouse(row));
-  const goNowBlock = goNow.length
+  const showGoNow = goNow.length || !filterIsActive();
+  const goNowBlock = showGoNow
     ? `<div class="house-grid__gonow">
         <p class="house-grid__gonow-kicker">Go now</p>
-        ${goNow.map((row) => houseCardHtml(row, watching)).join("")}
+        ${goNow.length
+          ? goNow.map((row) => houseCardHtml(row, watching)).join("")
+          : `<p class="gonow-empty">No house is under 15 minutes yet. Staff publish the waits.</p>`}
       </div>`
     : "";
-  els.houseGrid.innerHTML = `${goNowBlock}${rest.map((row) => houseCardHtml(row, watching)).join("")}`;
+  const clusterBlock = groups.map(({ cluster, members }) => {
+    const places = [...new Set(members.map((house) => pinById(house.pin)?.label || house.short))].join(" · ");
+    const cards = members.map((meta) => {
+      if (meta.kind === "screening") return screeningCardHtml(meta);
+      const row = houses.find((h) => h.id === meta.id);
+      return row ? houseCardHtml(row, watching) : "";
+    }).join("");
+    return `<section class="cluster-group">
+      <header class="cluster-group__head">
+        <p class="cluster-group__kicker">${escapeHtml(cluster.kicker)} · ${escapeHtml(places)}</p>
+        <h3>${escapeHtml(cluster.name)}</h3>
+      </header>
+      <div class="cluster-group__grid">${cards}</div>
+    </section>`;
+  }).join("");
+  els.houseGrid.innerHTML = `${goNowBlock}${clusterBlock}`;
+}
+
+function screeningCardHtml(meta) {
+  return `<article class="house-card">
+    <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
+      <span class="house-card__rail" aria-hidden="true"></span>
+      <span class="house-card__top">
+        <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
+        <span class="status-pill">Screening</span>
+      </span>
+      <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
+      <span class="house-card__metric">
+        <span class="house-card__wait">${escapeHtml(meta.rooms || "")}</span>
+        <span class="house-card__unit">Movie</span>
+      </span>
+    </button>
+  </article>`;
 }
 
 function showWaitToast(title, body, walkIn = false) {
@@ -662,23 +731,22 @@ const MAP_NATURAL = { w: 2301, h: 1405 };
 function renderPins() {
   const layer = document.getElementById("mapPinLayer");
   if (!layer) return;
-  const watching = new Set(readNight().watch);
-  const filtering = filterIsActive();
-  const bell = `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>`;
-  const housePins = HOUSES.map((house) => {
-    const row = houses.find((h) => h.id === house.id) || house;
-    const status = statusFromWait(row.wait_minutes ?? house.wait);
-    const label = escapeHtml(house.short || house.name);
-    const match = houseMatchesFilter(row);
-    const dim = filtering && !match;
-    const on = watching.has(house.id);
-    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}${on ? " map-pin--watch" : ""}" data-pin="${escapeHtml(house.id)}">
+  const housePins = PINS.map((pin) => {
+    const atPin = HOUSES.filter((house) => house.pin === pin.id);
+    const scare = atPin.filter((house) => house.kind !== "screening");
+    const rows = scare.map((house) => houses.find((row) => row.id === house.id)).filter(Boolean);
+    const matched = atPin.some(listingMatches);
+    const dim = filterIsActive() && !matched;
+    const ranked = rows.filter(hasPublishedWait).sort((a, b) => waitRank(a) - waitRank(b));
+    const lead = ranked[0];
+    const status = lead ? statusFromWait(lead.wait_minutes) : "open";
+    const names = atPin.map((house) => house.name).join(", ");
+    return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}" data-pin="${escapeHtml(pin.id)}">
       <div class="map-pin__gfx">
-        <button class="map-pin__hit" type="button" data-open-house="${escapeHtml(house.id)}" aria-label="${escapeHtml(house.name)}">
-          <span class="map-pin__label">${label}</span>
+        <button class="map-pin__hit" type="button" data-open-pin="${escapeHtml(pin.id)}" aria-label="${escapeHtml(pin.label)}: ${escapeHtml(names)}">
+          <span class="map-pin__label">${escapeHtml(pin.label)}</span>
           <span class="map-pin__mark"></span>
         </button>
-        <button class="map-pin__watch${on ? " is-on" : ""}" type="button" data-watch-house="${escapeHtml(house.id)}" aria-pressed="${on}" aria-label="Walk-in alert for ${escapeHtml(house.name)}">${bell}</button>
       </div>
     </div>`;
   });
@@ -772,25 +840,98 @@ function resetMap() {
 function openHouse(id) {
   const meta = houseMeta(id);
   const row = houses.find((h) => h.id === id);
-  if (!meta || !row || !els.modal) return;
-  openHouseId = id;
+  if (!meta || !els.modal) return;
+  if (meta.kind !== "screening" && !row) return;
+  openHouseId = meta.kind === "screening" ? "" : id;
+  openClusterKey = "";
+  if (els.clusterModal) els.clusterModal.hidden = true;
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
-  const status = statusFromWait(row.wait_minutes);
-  els.modal.querySelector("[data-modal-wait]").textContent = waitLabel(row.wait_minutes, status);
-  els.modal.querySelector("[data-modal-status]").textContent = statusPillLabel(row);
-  els.modal.querySelector("[data-modal-status]").className = `status-pill status-${status}`;
-  els.modal.querySelector("[data-modal-story]").textContent = meta.story;
-  els.modal.querySelector("[data-modal-code]").textContent = meta.short;
+  const status = row ? statusFromWait(row.wait_minutes) : "open";
+  els.modal.querySelector("[data-modal-wait]").textContent = row ? waitLabel(row.wait_minutes, status) : "Screening";
+  els.modal.querySelector("[data-modal-status]").textContent = row ? statusPillLabel(row) : "Screening";
+  els.modal.querySelector("[data-modal-status]").className = `status-pill${row ? ` status-${status}` : ""}`;
+  const cluster = clusterById(meta.cluster);
+  els.modal.querySelector("[data-modal-story]").textContent = [cluster?.story, meta.blurb].filter(Boolean).join(" ");
+  els.modal.querySelector("[data-modal-code]").textContent = meta.rooms || meta.short;
   const tagsEl = els.modal.querySelector("[data-modal-tags]");
   if (tagsEl) tagsEl.innerHTML = tagChips(meta) || "";
   const upd = els.modal.querySelector("[data-modal-updated]");
-  if (upd) upd.textContent = freshnessLabel(row.updated_at);
+  if (upd) upd.textContent = row ? freshnessLabel(row.updated_at) : "";
   const night = readNight();
   const watchBtn = document.getElementById("modalWatch");
-  if (watchBtn) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
+  if (watchBtn) {
+    watchBtn.hidden = meta.kind === "screening";
+    if (row) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
+  }
   els.modal.hidden = false;
   els.modal.querySelector(".modal__panel").focus();
-  setHash("house", id);
+  if (row) setHash("house", id);
+}
+
+function clusterHouseHtml(meta, watching) {
+  const row = houses.find((h) => h.id === meta.id);
+  const wait = row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "Screening";
+  const on = watching.has(meta.id);
+  const alert = meta.kind === "screening"
+    ? ""
+    : `<button class="btn btn--ghost cluster-house__alert" type="button" data-watch-house="${escapeHtml(meta.id)}" aria-pressed="${on}">${on ? "Alert on" : "Alert when walk-in"}</button>`;
+  return `<li class="cluster-house">
+    <div>
+      <h4>${escapeHtml(meta.name)}</h4>
+      <p class="cluster-house__where">${escapeHtml(meta.rooms || meta.short)} · ${escapeHtml(wait)}</p>
+      <p>${escapeHtml(meta.blurb || "")}</p>
+    </div>
+    ${alert}
+  </li>`;
+}
+
+function paintClusterModal(key) {
+  const modal = els.clusterModal;
+  if (!modal) return;
+  const [mode, id] = key.split(":");
+  const watching = new Set(readNight().watch);
+  let title = "";
+  let kicker = "";
+  let story = "";
+  let members = [];
+  if (mode === "cluster") {
+    const cluster = clusterById(id);
+    if (!cluster) return;
+    title = cluster.name;
+    kicker = cluster.kicker;
+    story = cluster.story;
+    members = clusterMembers(id);
+  } else {
+    const pin = pinById(id);
+    if (!pin) return;
+    members = HOUSES.filter((house) => house.pin === id);
+    const clusters = [...new Set(members.map((house) => clusterById(house.cluster)?.name).filter(Boolean))];
+    title = pin.label;
+    kicker = clusters.join(" · ");
+    story = clusters.length === 1
+      ? clusterById(members[0].cluster)?.story || ""
+      : "Houses from more than one cluster share this building.";
+  }
+  modal.querySelector("[data-cluster-kicker]").textContent = kicker;
+  modal.querySelector("[data-cluster-title]").textContent = title;
+  modal.querySelector("[data-cluster-story]").textContent = story;
+  modal.querySelector("[data-cluster-houses]").innerHTML = members.map((meta) => clusterHouseHtml(meta, watching)).join("");
+  modal.hidden = false;
+  modal.querySelector(".modal__panel")?.focus();
+}
+
+function openCluster(id) {
+  openHouseId = "";
+  openClusterKey = `cluster:${id}`;
+  if (els.modal) els.modal.hidden = true;
+  paintClusterModal(openClusterKey);
+}
+
+function openPin(id) {
+  openHouseId = "";
+  openClusterKey = `pin:${id}`;
+  if (els.modal) els.modal.hidden = true;
+  paintClusterModal(openClusterKey);
 }
 
 function openBooth(id) {
@@ -815,9 +956,11 @@ function slotKey(id) {
 }
 
 function closeModals() {
+  openClusterKey = "";
   if (els.modal) els.modal.hidden = true;
   if (els.boothModal) els.boothModal.hidden = true;
   if (els.boothsModal) els.boothsModal.hidden = true;
+  if (els.clusterModal) els.clusterModal.hidden = true;
 }
 
 function isAdminUnlocked() {
@@ -1168,14 +1311,15 @@ function paintStampUi() {
 
   const stamps = cardState.stamps;
   const filled = stampCount(stamps);
-  const complete = filled === 6;
+  const goal = BOOTHS.length;
+  const complete = filled === goal;
   const sessionName = cardState.fullName || session.payload.name;
   const sessionNum = cardState.studentNumber || session.payload.studentNumber;
   if (els.stampHolderName) els.stampHolderName.textContent = sessionName || "Student";
   if (els.stampHolderId) els.stampHolderId.textContent = sessionNum || "";
-  if (els.stampProgress) els.stampProgress.textContent = `${filled} / 6 runes lit`;
+  if (els.stampProgress) els.stampProgress.textContent = `${filled} / ${goal} runes lit`;
   if (els.stampFill) {
-    const offset = 100 - (filled / 6) * 100;
+    const offset = 100 - (filled / goal) * 100;
     els.stampFill.style.strokeDashoffset = String(offset);
   }
 
@@ -1188,10 +1332,11 @@ function paintStampUi() {
       const stamped = litFlags[index];
       const col = index % 3;
       const row = Math.floor(index / 3);
+      const rows = Math.ceil(litFlags.length / 3);
       const joins = [];
       if (stamped && col < 2 && litFlags[index + 1]) joins.push("is-join-e");
       if (stamped && col > 0 && litFlags[index - 1]) joins.push("is-join-w");
-      if (stamped && row < 1 && litFlags[index + 3]) joins.push("is-join-s");
+      if (stamped && row < rows - 1 && litFlags[index + 3]) joins.push("is-join-s");
       if (stamped && row > 0 && litFlags[index - 3]) joins.push("is-join-n");
       const cls = ["stamp-pad", stamped ? "is-lit" : "", ...joins].filter(Boolean).join(" ");
       return `
@@ -1219,7 +1364,8 @@ function paintStampUi() {
             if (!lit) return "";
             const col = index % 3;
             const row = Math.floor(index / 3);
-            return `linear-gradient(#fff, #fff) ${(col / 3) * 100}% ${(row / 2) * 100}% / 33.34% 50% no-repeat`;
+            const rows = Math.ceil(litFlags.length / 3);
+            return `linear-gradient(#fff, #fff) ${(col / 3) * 100}% ${(row / rows) * 100}% / 33.34% ${100 / rows}% no-repeat`;
           })
           .filter(Boolean);
         const mask = cells.length ? cells.join(", ") : "linear-gradient(transparent, transparent)";
@@ -1293,7 +1439,7 @@ function paintStampUi() {
     els.passId.classList.remove("is-rested");
     els.passId.textContent = complete
       ? cardState.passId
-      : `Locked · ${filled} / 6 runes lit`;
+      : `Locked · ${filled} / ${goal} runes lit`;
   }
   applyGhostPass(els.fastPassCard, {
     seed: adminNo || cardState.passId,
@@ -1315,7 +1461,7 @@ function paintStampUi() {
     els.lanternHint.hidden = hideHint;
     if (!hideHint) {
       els.lanternHint.textContent = filled
-        ? `Uncover ${6 - filled} more piece${6 - filled === 1 ? "" : "s"} of your Fast Pass`
+        ? `Uncover ${goal - filled} more piece${goal - filled === 1 ? "" : "s"} of your Fast Pass`
         : "The spirit is caged. Stamp booths to uncover your ticket";
     }
   }
@@ -1365,7 +1511,7 @@ function fillFeedbackTargets(selectEl, kind) {
   const type = kind || els.feedbackKind?.value || "scare_house";
   const options = type === "booth"
     ? BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`)
-    : HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`);
+    : HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`);
   const keep = el.value;
   el.innerHTML = options.join("");
   if ([...el.options].some((o) => o.value === keep)) el.value = keep;
@@ -1427,7 +1573,7 @@ function paintAdminFeedbackTargetSelect() {
   wrap.hidden = false;
   const items = feedbackKindFilter === "booth"
     ? BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`)
-    : HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`);
+    : HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`);
   select.innerHTML = `<option value="">All in this type</option>${items.join("")}`;
 }
 
@@ -1623,8 +1769,12 @@ async function renderAdmin() {
   els.adminApp.hidden = false;
   updateNav();
 
-  els.adminTable.innerHTML = houses
-    .map((row) => {
+  els.adminTable.innerHTML = CLUSTERS.map((cluster) => {
+    const members = houses.filter((row) => houseMeta(row.id)?.cluster === cluster.id);
+    if (!members.length) return "";
+    const head = `<tr class="admin-cluster"><td colspan="3">${escapeHtml(cluster.kicker)} · ${escapeHtml(cluster.name)}</td></tr>`;
+    const body = members.map((row) => {
+      const meta = houseMeta(row.id);
       const draft = drafts.get(row.id) || {
         wait_minutes: row.wait_minutes,
         status: statusFromWait(row.wait_minutes),
@@ -1633,13 +1783,13 @@ async function renderAdmin() {
       return `
         <tr data-admin-row="${row.id}">
           <td>
-            <strong>${row.name}</strong>
-            <div class="muted">${houseMeta(row.id)?.short || ""}</div>
+            <strong>${escapeHtml(row.name)}</strong>
+            <div class="muted">${escapeHtml(meta?.rooms || meta?.short || "")}</div>
           </td>
           <td>
             <div class="wait-editor">
               <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
-              <input type="number" min="0" max="180" step="1" value="${draft.wait_minutes}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <input type="number" min="0" max="180" step="1" value="${draft.wait_minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
               <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
             <div class="muted" data-status-label>${STATUS_LABEL[status]}</div>
@@ -1648,12 +1798,13 @@ async function renderAdmin() {
             <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
           </td>
         </tr>`;
-    })
-    .join("");
+    }).join("");
+    return head + body;
+  }).join("");
   fillAwardBoothSelect();
   const houseSel = document.getElementById("announceHouse");
   if (houseSel && !houseSel.dataset.filled) {
-    houseSel.innerHTML = `<option value="">General — not tied to a house</option>${HOUSES.map((h) => `<option value="${h.id}">${h.name}</option>`).join("")}`;
+    houseSel.innerHTML = `<option value="">General — not tied to a house</option>${HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`).join("")}`;
     houseSel.dataset.filled = "1";
   }
   const scope = staffScope();
@@ -1824,6 +1975,12 @@ function bindMap() {
       openBooths();
       return;
     }
+    const pin = event.target.closest("[data-open-pin]");
+    if (pin) {
+      event.preventDefault();
+      openPin(pin.dataset.openPin);
+      return;
+    }
     const house = event.target.closest("[data-open-house]");
     if (!house) return;
     event.preventDefault();
@@ -1920,6 +2077,16 @@ function bindUi() {
       event.preventDefault();
       event.stopPropagation();
       toggleWatchHouse(watchBtn.dataset.watchHouse);
+      return;
+    }
+    const clusterBtn = event.target.closest("[data-open-cluster]");
+    if (clusterBtn) {
+      openCluster(clusterBtn.dataset.openCluster);
+      return;
+    }
+    const pinBtn = event.target.closest("[data-open-pin]");
+    if (pinBtn) {
+      openPin(pinBtn.dataset.openPin);
       return;
     }
     const houseBtn = event.target.closest("[data-open-house]");
@@ -2098,8 +2265,8 @@ function bindUi() {
         showStaffUsedPass({ ...data, passId });
         return;
       }
-      if (filled < 6) {
-        throw new Error(`This student has ${filled} / 6 stamps. Fast Pass is not unlocked.`);
+      if (filled < BOOTHS.length) {
+        throw new Error(`This student has ${filled} / ${BOOTHS.length} stamps. Fast Pass is not unlocked.`);
       }
       const form = document.getElementById("staffRedeemLookupForm");
       const ready = document.getElementById("staffRedeemReady");
@@ -2109,7 +2276,7 @@ function bindUi() {
       if (ready) ready.hidden = false;
       document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
       document.getElementById("staffRedeemId").textContent = passId;
-      document.getElementById("staffRedeemStamps").textContent = `${filled} / 6 stamps · ready to skip the wait line`;
+      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${BOOTHS.length} stamps · ready to skip the wait line`;
       document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
     } catch (error) {
       pushStaffLog("Redeem lookup", error);

@@ -21,22 +21,23 @@ drop policy if exists "public upsert scare houses" on public.scare_houses;
 drop policy if exists "public update scare houses" on public.scare_houses;
 
 insert into public.scare_houses (id, name, wait_minutes, status) values
-  ('dover-gate', 'Dover Gate Ghouls', 5, 'open'),
-  ('aerohub', 'Aerohub Crypt', 20, 'open'),
-  ('innovillage', 'Innovillage Incubus', 10, 'open'),
-  ('sports-complex', 'Trackside Terror', 0, 'open'),
-  ('mp-field', 'Fog on the Field', 15, 'open'),
-  ('atrium', 'Atrium Abyss (T12)', 32, 'busy'),
-  ('witch-labs', 'T11 Witch Labs', 8, 'open'),
-  ('library', 'Library of Lost Souls', 35, 'busy'),
-  ('admin', 'Admin Hex', 12, 'open'),
-  ('plaza', 'Plaza Phantom', 18, 'open'),
-  ('arena', 'Sports Arena Haunt', 22, 'open'),
-  ('moberly', 'Moberly Manor', 6, 'open'),
-  ('west-wing', 'West Wing Wraiths', 60, 'closed'),
-  ('food-court', 'FC Cursed Kitchen', 9, 'open'),
-  ('wsa', 'WSA Warehouse Whispers', 40, 'busy')
-on conflict (id) do nothing;
+  ('three-doors', 'The Three Doors', 8, 'open'),
+  ('marionette', 'The Marionette''s Lullaby', 12, 'open'),
+  ('caligari', 'Cold Case: The Caligari Circus', 18, 'open'),
+  ('clowns', 'The Clowns That Never Died', 22, 'open'),
+  ('illusionist', 'The Illusionist: After The Curtain Falls', 15, 'open'),
+  ('last-laugh', 'The Last Laugh: Clown Alley', 6, 'open'),
+  ('cursed-cavern', 'The Cursed Cavern', 25, 'open'),
+  ('no-one-leaves', 'No One Leaves', 10, 'open'),
+  ('prisoner', 'Prisoner of Spirits', 32, 'busy'),
+  ('whispering-woods', 'Whispering Woods', 14, 'open'),
+  ('slenderman', 'Slenderman''s Lair', 28, 'open'),
+  ('he-who-watches', 'He Who Watches', 9, 'open'),
+  ('abandoned-asylum', 'Abandoned Asylum', 35, 'busy'),
+  ('forever-patients', 'Forever Patients: Dover''s Madness', 16, 'open'),
+  ('living-dead', 'Hall of the Living Dead', 20, 'open')
+on conflict (id) do update
+  set name = excluded.name;
 
 create table if not exists public.students (
   student_number text primary key,
@@ -376,7 +377,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
   booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
-  if booth !~ '^[1-6]$' then
+  if booth !~ '^[1-7]$' then
     return jsonb_build_object('ok', false, 'error', 'bad_booth');
   end if;
 

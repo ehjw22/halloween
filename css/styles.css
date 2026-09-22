@@ -2285,6 +2285,50 @@ html.event-welcome .view:not([data-view="welcome"]) {
   height: 1px;
   background: var(--border);
 }
+.gonow-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+.cluster-group {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--s3);
+}
+.cluster-group__head h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.cluster-group__kicker {
+  margin: 0 0 var(--s1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cluster-group__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: var(--s3);
+}
+.cluster-houses {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+}
+.cluster-house {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--border);
+}
+.cluster-house h4 { margin: 0; font-size: 1rem; }
+.cluster-house p { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; }
+.cluster-house__where { color: var(--ink-3); font-size: var(--fs-xs); }
+.cluster-house__alert { justify-self: start; }
+.modal__panel--cluster { width: min(640px, calc(100% - 24px)); }
 .house-filters {
   display: grid;
   gap: var(--s3);
@@ -2581,22 +2625,15 @@ html.event-welcome .view:not([data-view="welcome"]) {
   margin: 0;
   pointer-events: none;
 }
-.map-pin[data-pin="dover-gate"] { left: 57.8%; top: 11%; }
-.map-pin[data-pin="aerohub"] { left: 47.2%; top: 13.9%; }
-.map-pin[data-pin="innovillage"] { left: 77.4%; top: 49.8%; }
-.map-pin[data-pin="sports-complex"] { left: 30.4%; top: 43.4%; }
-.map-pin[data-pin="mp-field"] { left: 49.1%; top: 48.4%; }
-.map-pin[data-pin="atrium"] { left: 59.1%; top: 30.6%; }
-.map-pin[data-pin="witch-labs"] { left: 64.8%; top: 37%; }
-.map-pin[data-pin="library"] { left: 70.4%; top: 69.8%; }
-.map-pin[data-pin="admin"] { left: 66.1%; top: 66.9%; }
-.map-pin[data-pin="plaza"] { left: 55.8%; top: 25.6%; }
-.map-pin[data-pin="arena"] { left: 46.9%; top: 62.6%; }
-.map-pin[data-pin="moberly"] { left: 55.8%; top: 67.6%; }
-.map-pin[data-pin="west-wing"] { left: 82.6%; top: 78.3%; }
-.map-pin[data-pin="food-court"] { left: 43.5%; top: 49.8%; }
-.map-pin[data-pin="wsa"] { left: 79%; top: 88%; }
-.map-pin[data-pin="booths"] { left: 67.14%; top: 35.23%; }
+.map-pin[data-pin="t11b"] { left: 69.91%; top: 38.59%; }
+.map-pin[data-pin="t17"] { left: 49.11%; top: 28.29%; }
+.map-pin[data-pin="t16"] { left: 52.87%; top: 32.78%; }
+.map-pin[data-pin="t15"] { left: 56.95%; top: 38.46%; }
+.map-pin[data-pin="spectrum"] { left: 57.58%; top: 36.44%; }
+.map-pin[data-pin="t14"] { left: 61.28%; top: 39.61%; }
+.map-pin[data-pin="t12"] { left: 61.27%; top: 26.34%; }
+.map-pin[data-pin="t12a"] { left: 58.47%; top: 29.94%; }
+.map-pin[data-pin="booths"] { left: 67.47%; top: 36.57%; }
 .map-pin__gfx {
   position: absolute;
   left: 0;
@@ -3896,6 +3933,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   white-space: nowrap;
 }
 .admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-cluster td {
+  padding-top: var(--s4);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: transparent;
+}
 .admin-table tbody tr:hover td { background: var(--surface-2); }
 .wait-editor { display: flex; gap: var(--s2); align-items: center; }
 .wait-editor input { width: 4.5rem; min-height: var(--tap); text-align: center; }
@@ -4833,6 +4879,7 @@ body.is-board { background: #050308; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--s2);
   }
+  .cluster-group__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .house-grid__gonow {
     padding: var(--s3);
   }
