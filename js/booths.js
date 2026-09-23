@@ -85,6 +85,41 @@ export const BOOTHS = [
   },
 ];
 
+/** Food stalls. They show in the booths list and do not take a stamp. */
+export const FOOD_BOOTHS = [
+  {
+    id: "food-1",
+    icon: "candy",
+    name: "Food booth",
+    short: "Food",
+    place: "Eleven Square",
+    summary: "Add the stall name and what it serves.",
+    about: "Replace this with the stall's name and menu.",
+    food: true,
+  },
+  {
+    id: "food-2",
+    icon: "candy",
+    name: "Food booth",
+    short: "Food",
+    place: "Eleven Square",
+    summary: "Add the stall name and what it serves.",
+    about: "Replace this with the stall's name and menu.",
+    food: true,
+  },
+  {
+    id: "food-3",
+    icon: "candy",
+    name: "Food booth",
+    short: "Food",
+    place: "Eleven Square",
+    summary: "Add the stall name and what it serves.",
+    about: "Replace this with the stall's name and menu.",
+    food: true,
+  },
+];
+
 export function boothById(id) {
-  return BOOTHS.find((b) => String(b.id) === String(id));
+  const key = String(id);
+  return BOOTHS.find((b) => String(b.id) === key) || FOOD_BOOTHS.find((b) => String(b.id) === key);
 }

@@ -1,7 +1,8 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
 import { CLUBS } from "./clubs.js";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
-import { BOOTHS, boothById } from "./booths.js";
+import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r18";
+import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { SAFETY } from "./safety.js";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
@@ -318,6 +319,8 @@ let openClusterKey = "";
 let boardTimer = 0;
 
 const WELCOME_SEEN_KEY = "scream-welcome-seen";
+/** Set true to show the Games tab again. */
+const GAMES_ENABLED = false;
 
 function hashToView() {
   const raw = (location.hash || "#map").replace(/^#/, "");
@@ -396,6 +399,11 @@ function setView(name, extra) {
     navName = "";
     scrollId = "follow-clubs";
   }
+  if (name === "games" && !GAMES_ENABLED) {
+    name = "map";
+    hashName = "map";
+    navName = "map";
+  }
   if (name === "admin" && !canSeeStaffTab()) name = student ? "stamps" : "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
@@ -428,7 +436,9 @@ function setView(name, extra) {
     else btn.removeAttribute("aria-current");
   });
   setGamesVisible(name === "games");
-  if (!setView.skipHash) {
+  if (rawName === "games" && !GAMES_ENABLED) {
+    setHash("map");
+  } else if (!setView.skipHash) {
     if (rawName === "guide" || rawName === "safety" || rawName === "follow") {
       setHash(rawName);
     } else if (name === "map" && extra) {
@@ -455,6 +465,7 @@ function setView(name, extra) {
   }
   if (name === "help") paintSafety();
   paintClubs();
+  paintSponsors();
   if (name === "board") startBoard();
   else stopBoard();
   setMoreMenu(false);
@@ -689,13 +700,24 @@ function paintSafety() {
 }
 
 function paintClubs() {
-  const html = CLUBS.map((club) =>
+  const links = CLUBS.map((club) =>
     `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">${escapeHtml(club.abbr)}</a>`
-  ).join('<span class="club-sep" aria-hidden="true">·</span>');
+  );
   const credits = document.getElementById("clubCredits");
-  if (credits) credits.innerHTML = html;
+  if (credits) credits.innerHTML = links.join('<span class="club-sep" aria-hidden="true">·</span>');
   const footer = document.getElementById("footerClubs");
-  if (footer) footer.innerHTML = html;
+  if (footer) footer.innerHTML = links.join("");
+}
+
+function paintSponsors() {
+  const list = document.getElementById("sponsorList");
+  if (!list) return;
+  list.innerHTML = SPONSORS.map(
+    (sponsor) => `<li class="site-sponsors__item">
+      <img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="" width="64" height="64">
+      <span>${escapeHtml(sponsor.name)}</span>
+    </li>`
+  ).join("");
 }
 
 async function startBoard() {
@@ -761,17 +783,25 @@ function renderPins() {
   layer.innerHTML = housePins.join("") + boothPin;
 }
 
+function boothListButton(booth) {
+  return `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(booth.id)}">
+      <span>${markImg(booth.icon, "mark mark--booth")} ${escapeHtml(booth.short)}</span>
+      <strong>${escapeHtml(booth.name)}</strong>
+      <small>${escapeHtml(booth.place)}</small>
+    </button>`;
+}
+
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
-  if (!list || list.dataset.filled) return;
-  list.innerHTML = BOOTHS.map(
-    (b) => `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(b.id)}">
-      <span>${markImg(b.icon, "mark mark--booth")} ${escapeHtml(b.short)}</span>
-      <strong>${escapeHtml(b.name)}</strong>
-      <small>${escapeHtml(b.place)}</small>
-    </button>`
-  ).join("");
-  list.dataset.filled = "1";
+  if (list && !list.dataset.filled) {
+    list.innerHTML = BOOTHS.map(boothListButton).join("");
+    list.dataset.filled = "1";
+  }
+  const food = document.getElementById("foodBoothsList");
+  if (food && !food.dataset.filled) {
+    food.innerHTML = FOOD_BOOTHS.map(boothListButton).join("");
+    food.dataset.filled = "1";
+  }
 }
 
 function openBooths() {
@@ -944,9 +974,14 @@ function openBooth(id) {
   modal.querySelector("[data-booth-place]").textContent = booth.place;
   modal.querySelector("[data-booth-summary]").textContent = booth.summary;
   modal.querySelector("[data-booth-about]").textContent = booth.about;
-  modal.querySelector("[data-booth-stamp]").textContent = stamped
-    ? `Collected · staff ${stamped.by}`
-    : "Not on your card yet. Staff award this after you finish the booth.";
+  const stampLine = modal.querySelector("[data-booth-stamp]");
+  if (booth.food) {
+    stampLine.textContent = "Food stall. No stamp.";
+  } else {
+    stampLine.textContent = stamped
+      ? `Collected · staff ${stamped.by}`
+      : "Not on your card yet. Staff award this after you finish the booth.";
+  }
   modal.hidden = false;
   modal.querySelector(".modal__panel").focus();
 }
@@ -973,7 +1008,8 @@ function updateNav() {
   const staffTab = canSeeStaffTab();
   document.querySelectorAll("[data-nav]").forEach((btn) => {
     const show = btn.dataset.navShow;
-    if (show === "guest") btn.hidden = student || admin;
+    if (btn.dataset.nav === "games" && !GAMES_ENABLED) btn.hidden = true;
+    else if (show === "guest") btn.hidden = student || admin;
     else if (show === "admin") btn.hidden = !staffTab;
     else btn.hidden = false;
   });
@@ -2598,6 +2634,7 @@ async function init() {
     bindUi();
     paintSafety();
     paintClubs();
+    paintSponsors();
   } catch (error) {
     console.warn("UI bind failed", error);
   }

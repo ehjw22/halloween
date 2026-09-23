@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r17" />
+    <link rel="stylesheet" href="css/styles.css?v=r19" />
     <script src="js/boot.js?v=r6"></script>
   </head>
   <body>
@@ -527,7 +527,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <div class="version-chip" title="App version">v1.7.4</div>
+          <div class="version-chip" title="App version">v1.7.5</div>
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -1942,6 +1942,10 @@
         <p class="site-footer__clubs" id="footerClubs">
           SPSU, CSCC, SPSSC, CLSC, SOCC, EEEC, MAEC, MADC, SBC, ABEC, SMAC
         </p>
+        <div class="site-sponsors">
+          <p class="site-sponsors__credit">Proudly sponsored by</p>
+          <ul class="site-sponsors__list" id="sponsorList"></ul>
+        </div>
       </footer>
 
       <div class="modal" id="clusterModal" hidden>
@@ -2016,6 +2020,9 @@
           <h3 id="boothsModalTitle">Booths</h3>
           <p class="muted">Seven stamp stations. Tap a booth for the brief.</p>
           <div class="booths-list" id="boothsPinList"></div>
+          <h4 class="booths-list__heading">Food booths</h4>
+          <p class="muted">Stalls on the night. These do not take a stamp.</p>
+          <div class="booths-list" id="foodBoothsList"></div>
         </div>
       </div>
 
@@ -2047,7 +2054,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r17"></script>
+      <script type="module" src="js/app.js?v=r21"></script>
     </div>
   </body>
 </html>
