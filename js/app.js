@@ -1,7 +1,7 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
 import { CLUBS } from "./clubs.js";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
-import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r24";
+import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { SAFETY } from "./safety.js";
@@ -1086,30 +1086,28 @@ function layoutStampArt() {
   const complete = els.stampRoadmap.classList.contains("is-complete");
   const lit = [...board.querySelectorAll(".station-map__pin.is-lit")];
   if (complete) {
-    art.style.maskImage = "none";
-    art.style.webkitMaskImage = "none";
+    art.style.mask = "none";
+    art.style.webkitMask = "none";
     return;
   }
-  if (!lit.length) {
-    const hidden = "linear-gradient(transparent, transparent)";
-    art.style.maskImage = hidden;
-    art.style.webkitMaskImage = hidden;
-    return;
-  }
-  const radius = Math.round(Math.min(width, height) * 0.22);
-  const spots = lit
+  const shapes = lit
     .map((pin) => {
-      const x = pin.dataset.x;
-      const y = pin.dataset.y;
-      return `radial-gradient(circle at ${x}% ${y}%, #fff ${Math.round(radius * 0.55)}px, transparent ${radius}px)`;
+      const booth = BOOTHS.find((item) => String(item.id) === String(pin.dataset.stamp));
+      if (!booth?.map?.region) return "";
+      return `<polygon points="${booth.map.region}" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round"/>`;
     })
-    .join(", ");
-  art.style.maskImage = spots;
-  art.style.webkitMaskImage = spots;
-  art.style.maskRepeat = "no-repeat";
-  art.style.webkitMaskRepeat = "no-repeat";
-  art.style.maskComposite = "add";
-  art.style.webkitMaskComposite = "source-over";
+    .filter(Boolean)
+    .join("");
+  if (!shapes) {
+    const hidden = "linear-gradient(transparent, transparent)";
+    art.style.mask = hidden;
+    art.style.webkitMask = hidden;
+    return;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">${shapes}</svg>`;
+  const mask = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  art.style.mask = `${mask} center / 100% 100% no-repeat`;
+  art.style.webkitMask = `${mask} center / 100% 100% no-repeat`;
 }
 
 function layoutStampPage() {
@@ -1452,12 +1450,14 @@ function paintStampUi() {
           <span class="station-map__name">${escapeHtml(booth.name)}</span>
         </button>`;
     }).join("");
+    const regions = BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("");
     els.stampRoadmap.classList.toggle("is-complete", complete);
     els.stampRoadmap.classList.toggle("is-inked", filled > 0);
     els.stampRoadmap.innerHTML = `
       <div class="station-map__board">
         <div class="station-map__fog" aria-hidden="true"></div>
         <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
+        <svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${regions}</svg>
         ${pins}
       </div>`;
     const artEl = els.stampRoadmap.querySelector(".station-map__art");
