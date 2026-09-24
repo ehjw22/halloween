@@ -1,7 +1,7 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
 import { CLUBS } from "./clubs.js";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
-import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r18";
+import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r24";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { SAFETY } from "./safety.js";
@@ -1060,7 +1060,8 @@ function layoutLanternRunes() {
     ring.querySelectorAll(".lantern__rune-slot").forEach((slot, index) => {
       const n = Number.parseFloat(String(slot.style.getPropertyValue("--rune") || index));
       const i = Number.isFinite(n) ? n : index;
-      const rad = (i * 60 - 90) * (Math.PI / 180);
+      const count = ring.querySelectorAll(".lantern__rune-slot").length || 7;
+      const rad = (i * (360 / count) - 90) * (Math.PI / 180);
       slot.style.left = `${Math.cos(rad) * orbit}px`;
       slot.style.top = `${Math.sin(rad) * orbit}px`;
     });
@@ -1080,6 +1081,35 @@ function layoutStampArt() {
     pin.style.left = `${(x / 100) * width}px`;
     pin.style.top = `${(y / 100) * height}px`;
   });
+  const art = board.querySelector(".station-map__art");
+  if (!art) return;
+  const complete = els.stampRoadmap.classList.contains("is-complete");
+  const lit = [...board.querySelectorAll(".station-map__pin.is-lit")];
+  if (complete) {
+    art.style.maskImage = "none";
+    art.style.webkitMaskImage = "none";
+    return;
+  }
+  if (!lit.length) {
+    const hidden = "linear-gradient(transparent, transparent)";
+    art.style.maskImage = hidden;
+    art.style.webkitMaskImage = hidden;
+    return;
+  }
+  const radius = Math.round(Math.min(width, height) * 0.22);
+  const spots = lit
+    .map((pin) => {
+      const x = pin.dataset.x;
+      const y = pin.dataset.y;
+      return `radial-gradient(circle at ${x}% ${y}%, #fff ${Math.round(radius * 0.55)}px, transparent ${radius}px)`;
+    })
+    .join(", ");
+  art.style.maskImage = spots;
+  art.style.webkitMaskImage = spots;
+  art.style.maskRepeat = "no-repeat";
+  art.style.webkitMaskRepeat = "no-repeat";
+  art.style.maskComposite = "add";
+  art.style.webkitMaskComposite = "source-over";
 }
 
 function layoutStampPage() {
@@ -1413,7 +1443,6 @@ function paintStampUi() {
 
   if (els.stampRoadmap) {
     const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
-    const litBooths = BOOTHS.filter((booth) => isLit(booth.id));
     const pins = BOOTHS.map((booth) => {
       const stamped = isLit(booth.id);
       const side = booth.map.side || "s";
@@ -1431,32 +1460,6 @@ function paintStampUi() {
         <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
         ${pins}
       </div>`;
-    const art = els.stampRoadmap.querySelector(".station-map__art");
-    if (art) {
-      if (complete) {
-        art.style.maskImage = "none";
-        art.style.webkitMaskImage = "none";
-      } else if (!litBooths.length) {
-        const hidden = "linear-gradient(transparent, transparent)";
-        art.style.maskImage = hidden;
-        art.style.webkitMaskImage = hidden;
-      } else {
-        const spots = litBooths
-          .map((booth) => {
-            const r = booth.map.r || 28;
-            return `radial-gradient(circle at ${booth.map.x}% ${booth.map.y}%, #fff 0 ${r * 0.4}%, transparent ${r}%)`;
-          })
-          .join(", ");
-        art.style.maskImage = spots;
-        art.style.webkitMaskImage = spots;
-        art.style.maskRepeat = "no-repeat";
-        art.style.webkitMaskRepeat = "no-repeat";
-        art.style.maskSize = "100% 100%";
-        art.style.webkitMaskSize = "100% 100%";
-        art.style.maskComposite = "add";
-        art.style.webkitMaskComposite = "source-over";
-      }
-    }
     const artEl = els.stampRoadmap.querySelector(".station-map__art");
     if (artEl && !artEl.complete) artEl.addEventListener("load", layoutStampArt, { once: true });
     layoutStampArt();

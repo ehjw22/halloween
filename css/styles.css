@@ -2091,7 +2091,7 @@ html.event-open .header-meta {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  min-height: 168px;
+  min-height: 0;
   overflow: visible;
   border-radius: 12px;
 }
@@ -2104,7 +2104,7 @@ html.event-open .header-meta {
   object-fit: fill;
   object-position: center;
   border-radius: 12px;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
 }
 .station-map__fog {
@@ -2167,14 +2167,14 @@ html.event-open .header-meta {
 .station-map__name {
   position: absolute;
   width: max-content;
-  max-width: 7.2rem;
+  max-width: 6.4rem;
   margin: 0;
   padding: 1px 0;
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0;
-  white-space: nowrap;
+  white-space: normal;
   color: #fff4d6;
   text-shadow: 0 1px 4px #070308, 0 0 8px #070308;
   pointer-events: none;
@@ -3328,7 +3328,8 @@ html.event-welcome .view:not([data-view="welcome"]) {
 .fast-pass[data-runes="3"] .lantern__sigil { opacity: 0.78; }
 .fast-pass[data-runes="4"] .lantern__sigil { opacity: 0.88; }
 .fast-pass[data-runes="5"] .lantern__sigil,
-.fast-pass[data-runes="6"] .lantern__sigil { opacity: 1; }
+.fast-pass[data-runes="6"] .lantern__sigil,
+.fast-pass[data-runes="7"] .lantern__sigil { opacity: 1; }
 .fast-pass.is-complete .lantern__sigil {
   color: hsl(var(--ghost-h) 78% 68%);
   filter: drop-shadow(0 0 16px hsl(var(--ghost-h) 90% 55% / 0.55));
@@ -5143,8 +5144,8 @@ body.is-board { background: #050308; }
   .passport { padding: 16px; }
   main { padding: 14px 12px 20px; }
   .map-viewport { height: min(42dvh, 320px); }
-  .station-map { height: auto; overflow: hidden; }
-  .station-map__board { width: 100%; overflow: hidden; }
+  .station-map { height: auto; overflow: visible; }
+  .station-map__board { width: 100%; overflow: visible; }
   .stamp-grid { --stamp-inset: 8px; gap: 0; padding: var(--stamp-inset); }
   .stamp-pad__meta strong { font-size: 0.6rem; }
   .stamp-pad__meta small { font-size: 0.52rem; }
@@ -5429,11 +5430,6 @@ li.empty-state { list-style: none; }
   .house-card__name { font-size: 0.9rem; }
   .club-card { padding: 14px 12px; }
   .session-chip span { max-width: min(40vw, 9rem); }
-  .station-map__name {
-    max-width: 4.8rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }
 @media (max-width: 400px) {
   .arcade-hud {
