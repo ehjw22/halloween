@@ -1,8 +1,8 @@
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
-const PREVIEW_KEY = "scream-gate-open";
+const DEV_KEY = "scream-dev-view";
+const DEV_PARAM = "dev";
+const DEV_VALUE = "scream";
 export const WELCOME_PENDING_KEY = "scream-welcome-pending";
-const TRAILER_YOUTUBE_ID = "ek1ePFp-nBI";
-const TRAILER_SRC = `https://www.youtube-nocookie.com/embed/${TRAILER_YOUTUBE_ID}?autoplay=1&rel=0`;
 const STING_MS = 1500;
 
 let tickId = 0;
@@ -13,15 +13,19 @@ let lastLiveSecond = null;
 let lastPhase = null;
 let stingStarted = false;
 
-export function isEventOpen() {
-  if (Date.now() >= GATES_AT) return true;
-  if (new URLSearchParams(location.search).get("preview") === "1") return true;
+function hasDevView() {
   try {
-    if (sessionStorage.getItem(PREVIEW_KEY) === "1") return true;
+    if (new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE) return true;
+    if (sessionStorage.getItem(DEV_KEY) === "1") return true;
   } catch {
     /* private mode */
   }
   return false;
+}
+
+export function isEventOpen() {
+  if (Date.now() >= GATES_AT) return true;
+  return hasDevView();
 }
 
 function prefersReducedMotion() {
@@ -195,7 +199,6 @@ function clearSting() {
 
 function finishUnlock() {
   try {
-    sessionStorage.setItem(PREVIEW_KEY, "1");
     sessionStorage.setItem(WELCOME_PENDING_KEY, "1");
   } catch {
     /* private mode */
@@ -231,37 +234,25 @@ function startClock() {
   }, 250);
 }
 
-function stripPreviewQuery() {
+function stripDevQuery() {
   const url = new URL(location.href);
-  if (!url.searchParams.has("preview")) return;
-  url.searchParams.delete("preview");
+  if (url.searchParams.get(DEV_PARAM) !== DEV_VALUE) return;
+  url.searchParams.delete(DEV_PARAM);
   const search = url.searchParams.toString();
-  history.replaceState(null, "", url.pathname + (search ? `?${search}` : ""));
+  history.replaceState(null, "", url.pathname + (search ? `?${search}` : "") + url.hash);
 }
 
-function syncToggle() {
-  const localBtn = document.getElementById("eventGateLocal");
-  const open = document.documentElement.classList.contains("event-open");
-  if (localBtn) localBtn.hidden = open;
-}
-
-function closeTrailer() {
-  const modal = document.getElementById("trailerModal");
-  const frame = document.getElementById("trailerFrame");
-  if (modal) modal.hidden = true;
-  if (frame) frame.removeAttribute("src");
-}
-
-function openTrailer() {
-  const modal = document.getElementById("trailerModal");
-  const frame = document.getElementById("trailerFrame");
-  if (!modal || !frame) return;
-  frame.src = TRAILER_SRC;
-  modal.hidden = false;
+function rememberDevView() {
+  if (new URLSearchParams(location.search).get(DEV_PARAM) !== DEV_VALUE) return;
+  try {
+    sessionStorage.setItem(DEV_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  stripDevQuery();
 }
 
 export function openEventGate() {
-  closeTrailer();
   clearSting();
   stopClock();
   document.documentElement.classList.add("event-open");
@@ -278,14 +269,12 @@ export function openEventGate() {
     node.removeAttribute("inert");
     node.removeAttribute("aria-hidden");
   });
-  syncToggle();
   window.dispatchEvent(
     new CustomEvent("scream-gates-opened", { detail: { welcome: true } }),
   );
 }
 
 export function lockEventGate() {
-  closeTrailer();
   document.documentElement.classList.remove("event-open");
   const gate = document.getElementById("eventGate");
   if (gate) {
@@ -296,43 +285,13 @@ export function lockEventGate() {
     node.setAttribute("inert", "");
     node.setAttribute("aria-hidden", "true");
   });
-  stripPreviewQuery();
   if (location.hash)
     history.replaceState(null, "", location.pathname + location.search);
   startClock();
-  syncToggle();
-}
-
-function previewSite() {
-  try {
-    sessionStorage.setItem(PREVIEW_KEY, "1");
-  } catch {
-    /* private mode */
-  }
-  openEventGate();
 }
 
 export function initEventGate() {
-  document
-    .getElementById("eventGateLocal")
-    ?.addEventListener("click", previewSite);
-  document
-    .getElementById("watchTrailer")
-    ?.addEventListener("click", openTrailer);
-  document
-    .getElementById("trailerModal")
-    ?.addEventListener("click", (event) => {
-      if (event.target.closest("[data-close-trailer]")) closeTrailer();
-    });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape") return;
-    const modal = document.getElementById("trailerModal");
-    if (modal && !modal.hidden) {
-      event.preventDefault();
-      closeTrailer();
-    }
-  });
-
+  rememberDevView();
   if (isEventOpen()) {
     openEventGate();
     return;

@@ -126,7 +126,7 @@ html.event-open main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 0 0;
+  padding: 0;
   text-align: center;
   overflow-x: hidden;
   overflow-y: auto;
@@ -222,30 +222,27 @@ html.event-open main {
   right: -12%;
   animation-name: gate-fly-rev;
 }
-.event-gate__skip {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  right: max(16px, env(safe-area-inset-right));
-  z-index: 6;
-}
 .event-gate__core {
   position: relative;
   z-index: 2;
   display: grid;
+  align-content: center;
   justify-items: center;
   gap: 16px;
+  flex: 0 0 73vh;
+  min-height: 73vh;
   max-width: 40rem;
   width: calc(100% - 40px);
-  margin: auto auto 0;
-  padding: 12px 20px 0;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 20px 0;
 }
 .event-gate__credits {
   position: relative;
   z-index: 2;
   width: 100%;
-  margin-top: auto;
-  padding: 7.5rem max(var(--s4), env(safe-area-inset-left)) 2.5rem;
-  background: linear-gradient(to bottom, transparent, #f3e7db 7.5rem);
+  margin-top: 0;
+  padding: 3.5rem max(var(--s4), env(safe-area-inset-left)) 2.5rem;
+  background: linear-gradient(to bottom, transparent, #f3e7db 3.5rem);
   color: #3c2a32;
   text-align: center;
 }
@@ -282,54 +279,6 @@ html.event-open main {
   font-size: var(--fs-xs);
   letter-spacing: 0.02em;
   color: var(--ink-2);
-}
-.trailer-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 240;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-}
-.trailer-modal[hidden] { display: none !important; }
-.trailer-modal__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(4, 2, 6, 0.78);
-}
-.trailer-modal__panel {
-  position: relative;
-  z-index: 1;
-  width: min(92vw, 860px);
-  padding: 12px 12px 14px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: #120814;
-  box-shadow: var(--shadow);
-  text-align: left;
-}
-.trailer-modal__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.trailer-modal__bar h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-.trailer-modal__frame {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #000;
-}
-.trailer-modal__frame iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
 }
 @keyframes gate-fly {
   from { transform: translateX(0) translateY(0); }
@@ -381,6 +330,7 @@ html.event-open main {
   .event-gate__wisp,
   .event-gate__wash,
   .event-gate__title,
+  .welcome-night__mark,
   .event-gate__finale,
   .event-gate__unit.is-minute-flip,
   .event-gate__unit.is-minute-flip span,
@@ -401,7 +351,7 @@ html.event-open main {
   font-size: clamp(2.8rem, 10vw, 5.2rem);
   color: #e0893a;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
-  animation: none;
+  animation: gate-title-glow 6s ease-in-out infinite;
 }
 .event-gate__when{
   margin: 0;
@@ -409,13 +359,9 @@ html.event-open main {
   color: var(--muted);
   transition: opacity 0.7s ease, max-height 0.7s ease, margin 0.7s ease, visibility 0.7s ease;
 }
-.event-gate__chips,
 .event-gate__by,
 .event-gate__clubs {
   transition: opacity 0.7s ease, max-height 0.7s ease, margin 0.7s ease, visibility 0.7s ease;
-}
-.event-gate__core #watchTrailer {
-  transition: opacity 0.7s ease, visibility 0.7s ease, max-height 0.7s ease, margin 0.7s ease;
 }
 .event-gate__clock {
   display: flex;
@@ -623,9 +569,7 @@ html.event-open main {
   pointer-events: none;
 }
 .event-gate[data-gate-phase="finalmin"] .event-gate__when,
-.event-gate[data-gate-phase="finalmin"] .event-gate__chips,
-.event-gate[data-gate-phase="finalmin"] .event-gate__credits,
-.event-gate[data-gate-phase="finalmin"] #watchTrailer {
+.event-gate[data-gate-phase="finalmin"] .event-gate__credits {
   opacity: 0.4;
   transition: opacity 0.7s ease;
 }
@@ -650,14 +594,10 @@ html.event-open main {
   animation-duration: 2.4s;
 }
 
-.event-gate[data-gate-phase="finale"] .event-gate__chips,
 .event-gate[data-gate-phase="finale"] .event-gate__when,
 .event-gate[data-gate-phase="finale"] .event-gate__credits,
-.event-gate[data-gate-phase="finale"] #watchTrailer,
-.event-gate[data-gate-phase="sting"] .event-gate__chips,
 .event-gate[data-gate-phase="sting"] .event-gate__when,
-.event-gate[data-gate-phase="sting"] .event-gate__credits,
-.event-gate[data-gate-phase="sting"] #watchTrailer {
+.event-gate[data-gate-phase="sting"] .event-gate__credits {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -817,6 +757,15 @@ html.event-open main {
   text-transform: none;
   font-size: 0.8125rem;
   color: var(--ink-3);
+}
+.welcome-night__mark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 9vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1;
+  color: #e0893a;
+  animation: gate-title-glow 6s ease-in-out infinite;
 }
 .welcome-night__title {
   margin: 0;
@@ -1324,6 +1273,68 @@ html.event-open .header-meta {
 }
 .auth-card__kicker {
   display: none;
+}
+.stamp-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+.view.is-locked {
+  position: relative;
+}
+#stampApp.is-ghost {
+  position: relative;
+  width: auto;
+  margin: 0;
+  transform-origin: top center;
+  filter: blur(3px);
+  pointer-events: none;
+  user-select: none;
+}
+#stampApp.is-ghost,
+#stampApp.is-ghost * {
+  animation: none !important;
+  transition: none !important;
+}
+.stamp-lock__chains {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.stamp-lock__chains ellipse {
+  fill: none;
+  stroke: #d9c7b2;
+  stroke-width: 2.6;
+}
+.stamp-lock__chains ellipse.is-cross {
+  stroke: #8c7968;
+  stroke-width: 2.4;
+}
+.stamp-lock__card {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(16.5rem, 78%);
+  padding: 1.15rem 1.2rem 1.2rem;
+  text-align: center;
+  pointer-events: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 168, 62, 0.62);
+  background: rgba(18, 8, 12, 0.92);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+.stamp-lock__card h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
 }
 .stamp-gate-points {
   margin: 0 0 8px;

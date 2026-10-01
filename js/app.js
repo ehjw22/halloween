@@ -1,4 +1,4 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
+import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r7";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
@@ -1065,8 +1065,7 @@ function layoutLanternRunes() {
   });
 }
 
-function layoutStampArt() {
-  const board = els.stampRoadmap?.querySelector(".station-map__board");
+function layoutStampBoard(board) {
   if (!board) return;
   const width = board.clientWidth;
   const height = board.clientHeight;
@@ -1080,7 +1079,8 @@ function layoutStampArt() {
   });
   const art = board.querySelector(".station-map__art");
   if (!art) return;
-  const complete = els.stampRoadmap.classList.contains("is-complete");
+  const map = board.closest(".station-map");
+  const complete = Boolean(map?.classList.contains("is-complete") || map?.classList.contains("is-preview"));
   const lit = [...board.querySelectorAll(".station-map__pin.is-lit")];
   if (complete) {
     art.style.mask = "none";
@@ -1107,9 +1107,109 @@ function layoutStampArt() {
   art.style.webkitMask = `${mask} center / 100% 100% no-repeat`;
 }
 
+function layoutStampArt() {
+  document.querySelectorAll(".station-map__board").forEach(layoutStampBoard);
+}
+
 function layoutStampPage() {
   layoutLanternRunes();
   layoutStampArt();
+  layoutStampLock();
+}
+
+function layoutStampLock() {
+  const stage = document.querySelector('[data-view="stamps"]');
+  const app = els.stampApp;
+  const chains = document.querySelector(".stamp-lock__chains");
+  const card = document.querySelector(".stamp-lock__card");
+  if (!stage || !app) return;
+  if (!stage.classList.contains("is-locked")) {
+    stage.style.removeProperty("height");
+    app.style.removeProperty("top");
+    app.style.removeProperty("transform");
+    if (card) card.style.removeProperty("top");
+    if (els.studentAuth) {
+      els.studentAuth.style.removeProperty("top");
+      els.studentAuth.style.removeProperty("bottom");
+      els.studentAuth.style.removeProperty("left");
+      els.studentAuth.style.removeProperty("width");
+    }
+    if (chains) chains.replaceChildren();
+    return;
+  }
+  stage.style.removeProperty("height");
+  app.style.removeProperty("top");
+  app.style.removeProperty("transform");
+  if (!chains || !card || !els.studentAuth) return;
+  const header = document.querySelector(".site-header");
+  const footer = document.querySelector(".site-footer");
+  const nav = document.querySelector("nav");
+  const natural = app.offsetHeight;
+  const stageBox = stage.getBoundingClientRect();
+  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+  const footerTop = footer ? footer.getBoundingClientRect().top : stageBox.bottom;
+  const padTop = Math.max(0, stageBox.top - headerBottom);
+  const padBottom = Math.max(0, footerTop - stageBox.bottom);
+  const navFixed = nav && getComputedStyle(nav).position === "fixed";
+  const bottomReserve = navFixed ? nav.getBoundingClientRect().height : 0;
+  const room = Math.max(160, window.innerHeight - headerBottom - bottomReserve - padTop - padBottom);
+  const scale = natural > 8 ? Math.min(1, room / natural) : 1;
+  if (scale < 0.995) {
+    app.style.transformOrigin = "top center";
+    app.style.transform = `scale(${scale})`;
+    stage.style.height = `${natural * scale}px`;
+  }
+  const fitted = stage.getBoundingClientRect();
+  const headerBottomNow = header ? header.getBoundingClientRect().bottom : 0;
+  const footerTopNow = footer ? footer.getBoundingClientRect().top : fitted.bottom;
+  const lock = els.studentAuth;
+  lock.style.top = `${headerBottomNow - fitted.top}px`;
+  lock.style.bottom = `${fitted.bottom - footerTopNow}px`;
+  lock.style.left = `${-fitted.left}px`;
+  lock.style.width = `${window.innerWidth}px`;
+  const s = lock.getBoundingClientRect();
+  const cardH = card.offsetHeight;
+  card.style.top = `${Math.max(12, (s.height - cardH) / 2)}px`;
+  const c = card.getBoundingClientRect();
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("width", String(s.width));
+  svg.setAttribute("height", String(s.height));
+  const runs = [
+    [0, 0, c.left - s.left, c.top - s.top],
+    [s.width, 0, c.right - s.left, c.top - s.top],
+    [0, s.height, c.left - s.left, c.bottom - s.top],
+    [s.width, s.height, c.right - s.left, c.bottom - s.top],
+  ];
+  const flats = [];
+  const crosses = [];
+  runs.forEach(([x1, y1, x2, y2]) => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 8) return;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const reach = 6;
+    const count = Math.max(2, Math.round((len - reach * 2) / 12) + 1);
+    for (let index = 0; index < count; index += 1) {
+      const dist = count === 1 ? len / 2 : reach + ((len - reach * 2) * index) / (count - 1);
+      const t = dist / len;
+      const cx = x1 + dx * t;
+      const cy = y1 + dy * t;
+      const cross = index !== 0 && index !== count - 1 && index % 2 === 1;
+      const el = document.createElementNS(ns, "ellipse");
+      el.setAttribute("cx", String(cx));
+      el.setAttribute("cy", String(cy));
+      el.setAttribute("rx", cross ? "5.2" : "9.2");
+      el.setAttribute("ry", cross ? "8.4" : "5.2");
+      el.setAttribute("transform", `rotate(${angle} ${cx} ${cy})`);
+      if (cross) el.classList.add("is-cross");
+      (cross ? crosses : flats).push(el);
+    }
+  });
+  chains.replaceChildren(svg);
+  flats.forEach((el) => svg.appendChild(el));
+  crosses.forEach((el) => svg.appendChild(el));
 }
 
 async function loadCardFromServer() {
@@ -1370,25 +1470,51 @@ function boothNameLines(name) {
   return lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
 }
 
-function paintStampUi() {
-  const session = getStudentSession();
-  if (!session) {
-    els.studentAuth.hidden = false;
-    els.stampApp.hidden = true;
-    updateNav();
-    return;
-  }
+function stampBoardHtml({ lit, interactive } = {}) {
+  const pins = BOOTHS.map((booth) => {
+    const stamped = lit ? lit(booth.id) : false;
+    const side = booth.map.side || "s";
+    const cls = `station-map__pin is-${side}${stamped ? " is-lit" : ""}`;
+    const inner = `
+        <span class="station-map__icon" aria-hidden="true">${markImg(booth.icon)}</span>
+        <span class="station-map__name">${boothNameLines(booth.name)}</span>`;
+    if (!interactive) {
+      return `<span class="${cls}" data-x="${booth.map.x}" data-y="${booth.map.y}">${inner}</span>`;
+    }
+    return `<button class="${cls}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">${inner}</button>`;
+  }).join("");
+  const regions = interactive
+    ? `<svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("")}</svg>`
+    : "";
+  return `
+    <div class="station-map__board">
+      <div class="station-map__fog" aria-hidden="true"></div>
+      <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
+      ${regions}
+      ${pins}
+    </div>`;
+}
 
-  els.studentAuth.hidden = true;
+function paintStampUi() {
+  const real = getStudentSession();
+  const locked = !real;
+  const session = real || { payload: { name: "Student", studentNumber: "" } };
+  const stampsView = document.querySelector('[data-view="stamps"]');
+  els.studentAuth.hidden = !locked;
   els.stampApp.hidden = false;
+  els.stampApp.classList.toggle("is-ghost", locked);
+  els.stampApp.toggleAttribute("inert", locked);
+  if (locked) els.stampApp.setAttribute("aria-hidden", "true");
+  else els.stampApp.removeAttribute("aria-hidden");
+  stampsView?.classList.toggle("is-locked", locked);
   updateNav();
 
-  const stamps = cardState.stamps;
+  const stamps = locked ? {} : cardState.stamps;
   const filled = stampCount(stamps);
   const goal = BOOTHS.length;
   const complete = filled === goal;
-  const sessionName = cardState.fullName || session.payload.name;
-  const sessionNum = cardState.studentNumber || session.payload.studentNumber;
+  const sessionName = locked ? "Student" : cardState.fullName || session.payload.name;
+  const sessionNum = locked ? "" : cardState.studentNumber || session.payload.studentNumber;
   if (els.stampHolderName) els.stampHolderName.textContent = sessionName || "Student";
   if (els.stampHolderId) els.stampHolderId.textContent = sessionNum || "";
   if (els.stampProgress) els.stampProgress.textContent = `${filled} / ${goal} runes lit`;
@@ -1451,25 +1577,9 @@ function paintStampUi() {
 
   if (els.stampRoadmap) {
     const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
-    const pins = BOOTHS.map((booth) => {
-      const stamped = isLit(booth.id);
-      const side = booth.map.side || "s";
-      return `
-        <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
-          <span class="station-map__icon" aria-hidden="true">${markImg(booth.icon)}</span>
-          <span class="station-map__name">${boothNameLines(booth.name)}</span>
-        </button>`;
-    }).join("");
-    const regions = BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("");
     els.stampRoadmap.classList.toggle("is-complete", complete);
     els.stampRoadmap.classList.toggle("is-inked", filled > 0);
-    els.stampRoadmap.innerHTML = `
-      <div class="station-map__board">
-        <div class="station-map__fog" aria-hidden="true"></div>
-        <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
-        <svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${regions}</svg>
-        ${pins}
-      </div>`;
+    els.stampRoadmap.innerHTML = stampBoardHtml({ lit: isLit, interactive: true });
     const artEl = els.stampRoadmap.querySelector(".station-map__art");
     if (artEl && !artEl.complete) artEl.addEventListener("load", layoutStampArt, { once: true });
     layoutStampArt();
@@ -1480,7 +1590,7 @@ function paintStampUi() {
   if (redeemed) spiritRaised = false;
   const lit = BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).map((booth) => booth.id);
   if (els.passHolder) {
-    els.passHolder.textContent = cardState.fullName || session.payload.name || "";
+    els.passHolder.textContent = locked ? "Student" : cardState.fullName || session.payload.name || "";
   }
   if (els.passAdmin) els.passAdmin.textContent = adminNo;
   if (els.passId) {
@@ -1522,6 +1632,7 @@ function paintStampUi() {
       els.redeemedNote.textContent = `Redeemed at ${when}`;
     }
   }
+  if (locked) requestAnimationFrame(layoutStampPage);
 }
 
 async function renderStamps({ refresh = false } = {}) {
