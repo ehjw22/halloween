@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r34" />
+    <link rel="stylesheet" href="css/styles.css?v=r36" />
     <script src="js/boot.js?v=r6"></script>
   </head>
   <body>
@@ -515,7 +515,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.0</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.1</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -703,8 +703,8 @@
               <label class="check-row">
                 <input id="studentNotifyOptIn" type="checkbox" />
                 <span
-                  >Notify this phone when a house I watch has no queue.
-                  iPhone: Add to Home Screen first.</span
+                  >Notify this phone at 10 minutes, at 5 minutes, and when a
+                  house I watch is open. iPhone: Add to Home Screen first.</span
                 >
               </label>
               <p class="form-error" id="studentLoginError" hidden></p>
@@ -1478,7 +1478,8 @@
           <ol class="how-list">
             <li>
               Sign in, then on a scare house tap
-              <strong>Alert when walk-in</strong>.
+              <strong>Alert when walk-in</strong>. You’ll be pinged at 10
+              minutes, at 5 minutes, and when it is open.
             </li>
             <li>Allow notifications when the phone asks.</li>
             <li>
@@ -1923,7 +1924,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r38"></script>
+      <script type="module" src="js/app.js?v=r40"></script>
     </div>
   </body>
 </html>

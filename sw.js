@@ -29,13 +29,17 @@ self.addEventListener("push", (event) => {
     body: data.body || "A scare house wait time changed.",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
-    tag: data.walkIn ? "scream-walk-in" : "scream-wait",
+    tag: data.tag || (data.houseId ? `scream-${data.houseId}-${data.level || "wait"}` : "scream-wait"),
     renotify: true,
     requireInteraction: Boolean(data.walkIn),
     vibrate: data.walkIn ? [200, 80, 200] : [120],
     data: { url: safeClientUrl(data.url || "/#map") },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (windows.some((client) => client.visibilityState === "visible")) return;
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {

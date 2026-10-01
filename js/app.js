@@ -37,7 +37,7 @@ import {
   resumePushIfWanted,
   setWantsPush,
   syncPushWatch,
-} from "./push.js";
+} from "./push.js?v=r2";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -495,7 +495,7 @@ function toggleWatchHouse(id) {
     enablePushNotifications(night.watch).then((result) => {
       paintPushHint();
       if (result?.ok) {
-        showWaitToast("Walk-in alert on", "We’ll ping this phone when there’s no queue.", false);
+        showWaitToast("Alerts on", "We’ll ping this phone at 10 minutes, at 5 minutes, and when the house is open.", false);
         return;
       }
       if (result?.reason === "ios-install") {
@@ -506,11 +506,11 @@ function toggleWatchHouse(id) {
         showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
         return;
       }
-      showWaitToast("Walk-in alert on", "You’ll see a message here when there’s no queue. Phone alerts need notification permission.", false);
+      showWaitToast("Alerts on", "You’ll see a message here at 10 minutes, at 5 minutes, and when the house is open.", false);
     }).catch(paintPushHint);
   } else {
     syncPushWatch(night.watch);
-    showWaitToast("Alert off", "This house will no longer ping you when there’s no queue.", false);
+    showWaitToast("Alert off", "This house will no longer ping you.", false);
   }
 }
 
@@ -632,30 +632,23 @@ function showAnnounceToast(row) {
   }, 12000);
 }
 
-function phoneNotify(title, body, url) {
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  const options = {
-    body,
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
-    tag: url || "scream-wait",
-    data: { url: url || "/#map" },
-  };
-  if (navigator.serviceWorker?.ready) {
-    navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, options)).catch(() => {
-      try {
-        new Notification(title, options);
-      } catch {
-        /* ignore */
-      }
-    });
-    return;
-  }
-  try {
-    new Notification(title, options);
-  } catch {
-    /* ignore */
-  }
+function crossedMilestone(prev, next, status) {
+  if (status === "closed") return null;
+  const n = Number(next);
+  const p = Number(prev);
+  if (!Number.isFinite(n) || !Number.isFinite(p) || n === p) return null;
+  if (n === 0 && p > 0) return "open";
+  if (n > 0 && n <= 5 && p > 5) return "five";
+  if (n > 5 && n <= 10 && p > 10) return "ten";
+  return null;
+}
+
+function milestoneCopy(level, name, wait) {
+  const minutes = Math.round(Number(wait) || 0);
+  if (level === "open") return { title: "Open now", body: `${name}. No queue — head over.` };
+  if (level === "five") return { title: "5 minutes", body: `${name} is down to ${minutes} minutes.` };
+  if (level === "ten") return { title: "10 minutes", body: `${name} is down to ${minutes} minutes.` };
+  return null;
 }
 
 function notifyWatches(nextHouses) {
@@ -670,17 +663,11 @@ function notifyWatches(nextHouses) {
     const key = `${row.wait_minutes}:${row.status}`;
     if (!prev || prev === key) return;
     const [prevWait] = String(prev).split(":");
-    const wasWait = Number(prevWait);
-    const nowWait = Number(row.wait_minutes) || 0;
-    const meta = houseMeta(row.id);
-    const label = meta?.short || row.name;
-    const walkIn = nowWait === 0 && statusFromWait(nowWait) !== "closed" && wasWait > 0;
-    const title = walkIn ? "No queue now" : label;
-    const body = walkIn
-      ? `${row.name}. Head over.`
-      : `${row.name}: ${waitLabel(row.wait_minutes, row.status)}`;
-    showWaitToast(title, body, walkIn);
-    if (walkIn || document.hidden) phoneNotify(title, body, `/#house/${row.id}`);
+    const level = crossedMilestone(prevWait, row.wait_minutes, row.status);
+    if (!level) return;
+    const copy = milestoneCopy(level, row.name, row.wait_minutes);
+    if (!copy || document.hidden) return;
+    showWaitToast(copy.title, copy.body, level === "open");
   });
   watchSnapshot = new Map(nextHouses.map((h) => [h.id, `${h.wait_minutes}:${h.status}`]));
 }
@@ -1370,6 +1357,19 @@ function isPassRedeemed(value) {
   return Number.isFinite(t);
 }
 
+function boothNameLines(name) {
+  const lines = {
+    "Trick-or-Ink": ["Trick-or-", "Ink"],
+    "Hat Trick": ["Hat", "Trick"],
+    "Ghoulish Glam": ["Ghoulish", "Glam"],
+    "Make a Monster": ["Make a", "Monster"],
+    "Tarot Reading": ["Tarot", "Reading"],
+    "Drawn Alive": ["Drawn", "Alive"],
+    Screamometer: ["Scream-", "ometer"],
+  }[name] || [name];
+  return lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
+}
+
 function paintStampUi() {
   const session = getStudentSession();
   if (!session) {
@@ -1457,7 +1457,7 @@ function paintStampUi() {
       return `
         <button class="station-map__pin is-${side}${stamped ? " is-lit" : ""}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">
           <span class="station-map__icon" aria-hidden="true">${markImg(booth.icon)}</span>
-          <span class="station-map__name">${escapeHtml(booth.name)}</span>
+          <span class="station-map__name">${boothNameLines(booth.name)}</span>
         </button>`;
     }).join("");
     const regions = BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("");
@@ -1469,10 +1469,7 @@ function paintStampUi() {
         <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
         <svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${regions}</svg>
         ${pins}
-      </div>
-      <ul class="station-map__key">
-        ${BOOTHS.map((booth) => `<li><span>${escapeHtml(booth.code)}</span> ${escapeHtml(booth.name)}</li>`).join("")}
-      </ul>`;
+      </div>`;
     const artEl = els.stampRoadmap.querySelector(".station-map__art");
     if (artEl && !artEl.complete) artEl.addEventListener("load", layoutStampArt, { once: true });
     layoutStampArt();
