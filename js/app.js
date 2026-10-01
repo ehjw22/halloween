@@ -6,7 +6,7 @@ import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r3";
+import { createStore } from "./store.js?v=r4";
 import {
   apiFetch,
   apiUrl,

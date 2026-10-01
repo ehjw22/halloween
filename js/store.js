@@ -79,6 +79,7 @@ export function createStore(onChange) {
   let wasLive = false;
   let failStreak = 0;
   const pending = new Map();
+  const ack = new Map();
 
   const getSync = () => ({ liveOk, wasLive, lastLiveAt: readLastLiveAt() });
   const emit = () => onChange(rows.map((r) => ({ ...r })), getSync());
@@ -105,6 +106,24 @@ export function createStore(onChange) {
         return { ...fallback, ...local, ...pending.get(fallback.id) };
       }
       const incoming = byId.get(fallback.id);
+      if (fromRemote) {
+        const held = ack.get(fallback.id);
+        if (held && Date.now() > held.until) ack.delete(fallback.id);
+        else if (held) {
+          const remoteWait = incoming ? incoming.wait_minutes ?? incoming.wait : null;
+          if (incoming && Number(remoteWait) === Number(held.wait_minutes)) ack.delete(fallback.id);
+          else {
+            const local = current.get(fallback.id) || fallback;
+            return {
+              ...fallback,
+              ...local,
+              wait_minutes: held.wait_minutes,
+              status: held.status,
+              updated_at: held.updated_at,
+            };
+          }
+        }
+      }
       const local = current.get(fallback.id);
       if (incoming && fromRemote) return rowFromRemote(fallback, incoming);
       if (incoming) return { ...fallback, ...incoming };
@@ -268,8 +287,8 @@ export function createStore(onChange) {
         body: JSON.stringify({
           id: row.id,
           name: row.name,
-          wait_minutes: row.wait_minutes,
-          status: row.status,
+          wait_minutes: patch.wait_minutes,
+          status: patch.status,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -281,6 +300,12 @@ export function createStore(onChange) {
         return { ok: false, error };
       }
       pending.delete(id);
+      ack.set(id, {
+        wait_minutes: patch.wait_minutes,
+        status: patch.status,
+        updated_at: data.house?.updated_at || updated_at,
+        until: Date.now() + 5000,
+      });
       if (data.house) {
         applyRows([data.house], { fromRemote: true, partial: true, broadcastLocal: true });
       }
