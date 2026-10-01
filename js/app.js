@@ -6,7 +6,7 @@ import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r2";
+import { createStore } from "./store.js?v=r3";
 import {
   apiFetch,
   apiUrl,
@@ -709,14 +709,25 @@ function paintClubs() {
 }
 
 function paintSponsors() {
-  const list = document.getElementById("sponsorList");
-  if (!list) return;
-  list.innerHTML = SPONSORS.map(
+  const html = SPONSORS.map(
     (sponsor) => `<li class="site-sponsors__item">
       <img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="" width="64" height="64">
       <span>${escapeHtml(sponsor.name)}</span>
     </li>`
   ).join("");
+  ["sponsorList", "gateSponsorList"].forEach((id) => {
+    const list = document.getElementById(id);
+    if (list) list.innerHTML = html;
+  });
+}
+
+function staffDeskError(error) {
+  const message = String(error?.message || "");
+  if (error?.code === "no_student" || /no student found/i.test(message)) {
+    return "No student found for that admin number. Please check again.";
+  }
+  const plain = message.split(" — ")[0].trim();
+  return plain || "Something went wrong. Please try again.";
 }
 
 async function startBoard() {
@@ -1458,7 +1469,10 @@ function paintStampUi() {
         <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
         <svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${regions}</svg>
         ${pins}
-      </div>`;
+      </div>
+      <ul class="station-map__key">
+        ${BOOTHS.map((booth) => `<li><span>${escapeHtml(booth.code)}</span> ${escapeHtml(booth.name)}</li>`).join("")}
+      </ul>`;
     const artEl = els.stampRoadmap.querySelector(".station-map__art");
     if (artEl && !artEl.complete) artEl.addEventListener("load", layoutStampArt, { once: true });
     layoutStampArt();
@@ -1665,17 +1679,17 @@ function announceItemHtml(row) {
   const when = [clock, relative].filter(Boolean).join(" · ");
   const audience = row.audience && row.audience !== "all" ? row.audience : "";
   const house = row.house_id ? houseMeta(row.house_id)?.short : "";
+  const where = [audience, house].filter(Boolean).join(" · ");
   return `<li class="announce-item">
-    <p class="announce-item__label">Staff announcement${audience ? ` · ${escapeHtml(audience)}${house ? ` ${escapeHtml(house)}` : ""}` : ""}</p>
-    <p class="announce-item__when">${escapeHtml(when)}</p>
     <p class="announce-item__body">${escapeHtml(row.message)}</p>
+    <p class="announce-item__when">${escapeHtml([when, where].filter(Boolean).join(" · "))}</p>
   </li>`;
 }
 
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
   noteNewAnnouncements(rows);
-  const empty = `<li class="empty-state"><p class="empty-state__title">No staff announcements yet</p><p class="empty-state__hint">Official notes from facilitators will show up here.</p></li>`;
+  const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No notes yet.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
@@ -1932,8 +1946,10 @@ async function persistHouse(id, patch) {
     setWaitSaveStatus("Saved to the live database.", false);
     return result;
   }
+  drafts.delete(id);
   setWaitSaveStatus(result?.error || "Could not save wait times to the database.");
   if (result?.error) pushStaffLog("Wait times", result.error);
+  renderAdmin();
   return result;
 }
 
@@ -2349,7 +2365,7 @@ function bindUi() {
       pushStaffLog("Redeem lookup", error);
       if (err) {
         err.hidden = false;
-        err.textContent = error.message;
+        err.textContent = staffDeskError(error);
       }
     }
   });
@@ -2372,7 +2388,7 @@ function bindUi() {
       pushStaffLog("Redeem Fast Pass", error);
       if (err) {
         err.hidden = false;
-        err.textContent = error.message;
+        err.textContent = staffDeskError(error);
       }
     } finally {
       btn.disabled = false;
@@ -2507,7 +2523,7 @@ function bindUi() {
       pushStaffLog("Award stamp", error);
       if (els.awardStampError) {
         els.awardStampError.hidden = false;
-        els.awardStampError.textContent = error.message;
+        els.awardStampError.textContent = staffDeskError(error);
       }
     } finally {
       window.clearInterval(tick);

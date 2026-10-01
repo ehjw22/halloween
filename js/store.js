@@ -49,6 +49,26 @@ function writeLastLiveAt(iso) {
   localStorage.setItem(SYNC_KEY, JSON.stringify({ lastLiveAt: iso }));
 }
 
+function statusFor(wait) {
+  const n = Number(wait) || 0;
+  if (n >= 60) return "closed";
+  if (n >= 30) return "busy";
+  return "open";
+}
+
+function rowFromRemote(fallback, incoming) {
+  const raw = incoming.wait_minutes ?? incoming.wait;
+  const published = raw !== null && raw !== undefined && raw !== "";
+  const wait = published ? Math.max(0, Number(raw) || 0) : null;
+  return {
+    id: fallback.id,
+    name: incoming.name || fallback.name,
+    wait_minutes: wait,
+    status: published ? incoming.status || statusFor(wait) : "open",
+    updated_at: incoming.updated_at || null,
+  };
+}
+
 export function createStore(onChange) {
   const readConfig = () => window.HALLOWEEN_CONFIG || {};
   let rows = readLocal();
@@ -58,6 +78,7 @@ export function createStore(onChange) {
   let liveOk = false;
   let wasLive = false;
   let failStreak = 0;
+  const pending = new Map();
 
   const getSync = () => ({ liveOk, wasLive, lastLiveAt: readLastLiveAt() });
   const emit = () => onChange(rows.map((r) => ({ ...r })), getSync());
@@ -73,22 +94,24 @@ export function createStore(onChange) {
     liveOk = false;
   }
 
-  function applyRows(next, { broadcastLocal = false } = {}) {
-    if (!next?.length) return false;
+  function applyRows(next, { broadcastLocal = false, fromRemote = false, partial = false } = {}) {
+    if (!Array.isArray(next)) return false;
+    if (!next.length && !fromRemote) return false;
     const byId = new Map(next.map((row) => [row.id, row]));
     const current = new Map(rows.map((row) => [row.id, row]));
-    const merged = cloneHouses().map((row) => {
-      const incoming = byId.get(row.id);
-      const local = current.get(row.id);
-      if (
-        local?.updated_at &&
-        incoming?.updated_at &&
-        String(incoming.updated_at) < String(local.updated_at) &&
-        Number(incoming.wait_minutes) !== Number(local.wait_minutes)
-      ) {
-        return { ...row, ...local };
+    const merged = cloneHouses().map((fallback) => {
+      if (pending.has(fallback.id)) {
+        const local = current.get(fallback.id) || fallback;
+        return { ...fallback, ...local, ...pending.get(fallback.id) };
       }
-      return { ...row, ...(incoming || local) };
+      const incoming = byId.get(fallback.id);
+      const local = current.get(fallback.id);
+      if (incoming && fromRemote) return rowFromRemote(fallback, incoming);
+      if (incoming) return { ...fallback, ...incoming };
+      if (fromRemote && !partial) {
+        return { ...fallback, wait_minutes: null, status: "open", updated_at: null };
+      }
+      return local ? { ...fallback, ...local } : fallback;
     });
     if (fingerprint(merged) === fingerprint(rows)) return false;
     rows = merged;
@@ -123,7 +146,7 @@ export function createStore(onChange) {
       return;
     }
     markLive();
-    const changed = applyRows(data, { broadcastLocal: true });
+    const changed = applyRows(data || [], { fromRemote: true, broadcastLocal: true });
     if (!changed) emit();
   }
 
@@ -164,8 +187,7 @@ export function createStore(onChange) {
     }
 
     markLive();
-    if (data?.length) applyRows(data);
-    else emit();
+    applyRows(data || [], { fromRemote: true });
 
     channel = client
       .channel("scare-houses-live", { config: { broadcast: { ack: false } } })
@@ -176,15 +198,13 @@ export function createStore(onChange) {
           const next = payload.new;
           if (!next?.id) return;
           markLive();
-          applyRows(rows.map((row) => (row.id === next.id ? { ...row, ...next } : row)), {
-            broadcastLocal: true,
-          });
+          applyRows([next], { fromRemote: true, partial: true, broadcastLocal: true });
         }
       )
       .on("broadcast", { event: "wait-times" }, ({ payload }) => {
         if (Array.isArray(payload?.rows)) {
           markLive();
-          applyRows(payload.rows);
+          applyRows(payload.rows, { fromRemote: true, partial: true });
         }
       })
       .subscribe((status) => {
@@ -209,19 +229,20 @@ export function createStore(onChange) {
   }
 
   async function publish(id, patch, { persist = true } = {}) {
-    const updated_at = new Date().toISOString();
-    applyRows(
-      rows.map((row) => (row.id === id ? { ...row, ...patch, updated_at } : row)),
-      { broadcastLocal: true }
-    );
-
-    if (!persist) return { ok: true, local: true };
-
     const row = rows.find((r) => r.id === id);
     if (!row) return { ok: false, error: "Unknown scare house." };
 
+    const updated_at = new Date().toISOString();
+    if (!persist) {
+      applyRows(
+        rows.map((item) => (item.id === id ? { ...item, ...patch, updated_at } : item)),
+        { broadcastLocal: true }
+      );
+      return { ok: true, local: true };
+    }
+
     const session = getAdminSession();
-    if (!session?.token) {
+    if (!session) {
       return { ok: false, error: "Staff session expired. Sign in again to save wait times." };
     }
     if (session.payload.local) {
@@ -230,6 +251,12 @@ export function createStore(onChange) {
         error: "This staff login is demo-only. Wait times stay on this device and are not written to Supabase.",
       };
     }
+
+    pending.set(id, { ...patch, updated_at });
+    applyRows(
+      rows.map((item) => (item.id === id ? { ...item, ...patch, updated_at } : item)),
+      { broadcastLocal: true }
+    );
 
     try {
       const res = await apiFetch(apiUrl("wait-times"), {
@@ -247,19 +274,20 @@ export function createStore(onChange) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        pending.delete(id);
         await refreshFromDb();
         const error = data.error || (res.status === 404 ? "Wait-time API was not found." : res.statusText);
         console.warn("Wait time save failed.", error);
         return { ok: false, error };
       }
+      pending.delete(id);
       if (data.house) {
-        applyRows(
-          rows.map((r) => (r.id === data.house.id ? { ...r, ...data.house } : r)),
-          { broadcastLocal: true }
-        );
+        applyRows([data.house], { fromRemote: true, partial: true, broadcastLocal: true });
       }
       return { ok: true };
     } catch (error) {
+      pending.delete(id);
+      await refreshFromDb();
       console.warn("Wait time save failed.", error.message);
       return { ok: false, error: error.message || "Could not reach the wait-time API." };
     }
