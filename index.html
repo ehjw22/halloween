@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r23" />
+    <link rel="stylesheet" href="css/styles.css?v=r30" />
     <script src="js/boot.js?v=r6"></script>
   </head>
   <body>
@@ -527,7 +527,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <div class="version-chip" title="App version">v1.7.7</div>
+          <!-- <div class="version-chip" title="App version">v1.7.8</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -762,6 +762,7 @@
           <div id="stampApp" hidden>
             <article class="passport">
               <div class="passport__id">
+                <div class="progress-ring-wrap">
                 <svg
                   class="progress-ring"
                   viewBox="0 0 42 42"
@@ -790,6 +791,8 @@
                     stroke-dashoffset="100"
                   ></circle>
                 </svg>
+                <img class="progress-ring__mark" src="img/marks/ghost.png" alt="" width="32" height="32">
+                </div>
                 <div>
                   <p class="passport__event">SP Scream Fest</p>
                   <h2 id="stampHolderName">Student</h2>
@@ -799,11 +802,6 @@
                   </p>
                 </div>
               </div>
-              <p class="passport__hint">
-                Staff stamp you at each booth — you cannot stamp yourself. Visit
-                booths in any order, then show your name and admin number at the
-                Fast Pass desk.
-              </p>
               <section aria-labelledby="stampMapTitle">
                 <h3 class="roadmap__title" id="stampMapTitle">Stamp card</h3>
                 <p class="station-map__lead">
@@ -1403,26 +1401,18 @@
           <div class="section-head" id="help-how">
             <h2>Help</h2>
             <p>
-              Keep this tab open — wait times update on their own. Pins and
-              house cards use the same colours.
+              Keep this tab open — wait times update on their own. The colour
+              on each house card is the state to trust.
             </p>
           </div>
 
           <h3 class="guide-heading">House states</h3>
           <p class="guide-lead">
-            Match the map circle and the card before you queue. Staff set these live.
+            Read the house card before you queue. Staff set these live.
           </p>
           <div class="guide-states">
             <article class="guide-state">
               <div class="guide-state__art">
-                <svg
-                  class="guide-pin guide-pin--walkin"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
-                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
-                </svg>
                 <article class="house-card house-card--sample status-open is-walkin">
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
@@ -1451,14 +1441,6 @@
 
             <article class="guide-state">
               <div class="guide-state__art">
-                <svg
-                  class="guide-pin guide-pin--open"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
-                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
-                </svg>
                 <article class="house-card house-card--sample status-open">
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
@@ -1486,14 +1468,6 @@
 
             <article class="guide-state">
               <div class="guide-state__art">
-                <svg
-                  class="guide-pin guide-pin--busy"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
-                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
-                </svg>
                 <article class="house-card house-card--sample status-busy">
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
@@ -1522,14 +1496,6 @@
 
             <article class="guide-state">
               <div class="guide-state__art">
-                <svg
-                  class="guide-pin guide-pin--closed"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <circle class="guide-pin__ring" cx="24" cy="24" r="20" />
-                  <circle class="guide-pin__mark" cx="24" cy="24" r="14" />
-                </svg>
                 <article class="house-card house-card--sample status-closed">
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
@@ -1551,7 +1517,7 @@
               <h3>Closed</h3>
               <p>
                 Wait is 60 minutes or more — treated as closed (reset, last
-                entry, or a pause). Pins and cards go red. Don’t wait at the
+                entry, or a pause). The card goes red. Don’t wait at the
                 door until it shows Open, Busy, or Walk-in again.
               </p>
             </article>
@@ -1560,31 +1526,23 @@
           <h3 class="guide-heading">Using the rest of the site</h3>
           <ol class="how-list">
             <li>
-              Use <strong>Map</strong> to tap pins or house cards. Houses are
-              grouped by cluster. Wait times are Singapore time, published by
-              staff.
+              Use <strong>Map</strong> to tap a house card. Houses are grouped
+              by cluster. Wait times update on their own.
             </li>
             <li>
               <strong>Sign in</strong> with your admin number and name to open
-              your stamp card. Staff stamp you at booths — you cannot stamp
-              yourself.
+              your stamp card. Get each stamp at the booth.
             </li>
             <li>
-              Seven stamps unlock Fast Pass. Show it at the Fast Pass desk; staff
-              mark it used on their side.
+              Seven stamps unlock Fast Pass. Show it at the Fast Pass desk.
             </li>
             <li>
-              <strong>Games</strong> are optional. Send
-              <strong>Feedback</strong> if a house or booth needs a note.
+              Send <strong>Feedback</strong> if a house or booth needs a note.
             </li>
             <li>
               Tap <strong>Alert when walk-in</strong> on a house for a ping when
               there’s no queue. On iPhone, add this site to your Home Screen
               first.
-            </li>
-            <li>
-              Help desk, meetup, and skip-house notes are in
-              <strong>Safety</strong> below.
             </li>
           </ol>
 
@@ -1695,7 +1653,7 @@
                 <div class="admin-toolbar">
                   <label class="toggle">
                     <input id="autoSave" type="checkbox" checked />
-                    Instant auto-save
+                    Auto-save
                   </label>
                   <button class="btn" id="publishAll" type="button">
                     Publish all
@@ -1712,6 +1670,7 @@
                     <tr>
                       <th>Scare house</th>
                       <th>Wait (min)</th>
+                      <th>Status</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -2043,7 +2002,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r28"></script>
+      <script type="module" src="js/app.js?v=r35"></script>
     </div>
   </body>
 </html>

@@ -1,13 +1,12 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r6";
-import { CLUBS } from "./clubs.js";
+import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
-import { SAFETY } from "./safety.js";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js";
+import { createStore } from "./store.js?v=r2";
 import {
   apiFetch,
   apiUrl,
@@ -142,6 +141,9 @@ let waitSync = { liveOk: false, wasLive: false, lastLiveAt: null };
 let autoSave = true;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
+const waitSaveTimers = new Map();
+const waitSaveFlight = new Set();
+const WAIT_SAVE_MS = 800;
 const houseFilter = { q: "", status: "", tag: "" };
 
 const mapState = {
@@ -687,26 +689,23 @@ function paintSafety() {
   const list = document.getElementById("safetyList");
   if (!list) return;
   const lines = [
-    SAFETY.helpDesk,
-    SAFETY.meetup,
-    SAFETY.firstAid,
-    SAFETY.skipHouse,
-    SAFETY.intensity,
-    "Stay with your group. Watch your step in fog, cables, and low light. No running in queues.",
-    "Drink water and take a break if you feel unwell.",
-    "Keep bags closed. Respect capacity and closed areas. Staff calls are final.",
+    "Safety first. Follow the people running the night.",
+    "If you don’t feel comfortable, say so. You can step out of any house.",
+    "Remember to hydrate, and take a break if you need one.",
+    "Stay with your group. Watch your step. No running in queues.",
+    "Keep bags closed and give people space in the line.",
   ];
   list.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 }
 
 function paintClubs() {
   const links = CLUBS.map((club) =>
-    `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer">${escapeHtml(club.abbr)}</a>`
-  );
+    `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(encodeURI(club.logo))}" alt="${escapeHtml(club.name)}" width="64" height="64"></a>`
+  ).join("");
   const credits = document.getElementById("clubCredits");
-  if (credits) credits.innerHTML = links.join('<span class="club-sep" aria-hidden="true">·</span>');
+  if (credits) credits.innerHTML = links;
   const footer = document.getElementById("footerClubs");
-  if (footer) footer.innerHTML = links.join("");
+  if (footer) footer.innerHTML = links;
 }
 
 function paintSponsors() {
@@ -1811,7 +1810,7 @@ async function renderAdmin() {
   els.adminTable.innerHTML = CLUSTERS.map((cluster) => {
     const members = houses.filter((row) => houseMeta(row.id)?.cluster === cluster.id);
     if (!members.length) return "";
-    const head = `<tr class="admin-cluster"><td colspan="3">${escapeHtml(cluster.kicker)} · ${escapeHtml(cluster.name)}</td></tr>`;
+    const head = `<tr class="admin-cluster"><td colspan="4">${escapeHtml(cluster.kicker)} · ${escapeHtml(cluster.name)}</td></tr>`;
     const body = members.map((row) => {
       const meta = houseMeta(row.id);
       const draft = drafts.get(row.id) || {
@@ -1831,8 +1830,8 @@ async function renderAdmin() {
               <input type="number" min="0" max="180" step="1" value="${draft.wait_minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
               <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
-            <div class="muted" data-status-label>${STATUS_LABEL[status]}</div>
           </td>
+          <td class="wait-status" data-status-label data-status="${status}">${STATUS_LABEL[status]}</td>
           <td>
             <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
           </td>
@@ -1870,7 +1869,10 @@ function readAdminRow(tr) {
   const wait = Math.max(0, Number(tr.querySelector("[data-wait-input]").value) || 0);
   const status = statusFromWait(wait);
   const label = tr.querySelector("[data-status-label]");
-  if (label) label.textContent = STATUS_LABEL[status] || status;
+  if (label) {
+    label.textContent = STATUS_LABEL[status] || status;
+    label.dataset.status = status;
+  }
   drafts.set(id, { wait_minutes: wait, status });
   return { id, wait_minutes: wait, status };
 }
@@ -1890,17 +1892,43 @@ function setWaitSaveStatus(message, isError = true) {
   els.waitSaveStatus.classList.toggle("muted", !isError);
 }
 
-async function maybePublish(id, patch) {
+function scheduleWaitSave(id, patch) {
   drafts.set(id, patch);
   if (!autoSave) return;
-  await persistHouse(id, patch);
+  clearTimeout(waitSaveTimers.get(id));
+  waitSaveTimers.set(
+    id,
+    setTimeout(() => {
+      waitSaveTimers.delete(id);
+      flushWaitSave(id);
+    }, WAIT_SAVE_MS)
+  );
+}
+
+async function flushWaitSave(id) {
+  if (waitSaveFlight.has(id)) return;
+  const patch = drafts.get(id);
+  if (!patch) return;
+  waitSaveFlight.add(id);
+  try {
+    await persistHouse(id, patch);
+  } finally {
+    waitSaveFlight.delete(id);
+    const latest = drafts.get(id);
+    if (latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
+      scheduleWaitSave(id, latest);
+    }
+  }
 }
 
 async function persistHouse(id, patch) {
   if (!store) return { ok: false, error: "Wait times are still loading." };
+  clearTimeout(waitSaveTimers.get(id));
+  waitSaveTimers.delete(id);
   const result = await store.publish(id, patch, { persist: true });
   if (result?.ok) {
-    drafts.delete(id);
+    const current = drafts.get(id);
+    if (!current || Number(current.wait_minutes) === Number(patch.wait_minutes)) drafts.delete(id);
     setWaitSaveStatus("Saved to the live database.", false);
     return result;
   }
@@ -2380,7 +2408,7 @@ function bindUi() {
       const input = tr.querySelector("[data-wait-input]");
       input.value = Math.max(0, Number(input.value) + Number(adjust.dataset.adjust));
       const patch = readAdminRow(tr);
-      maybePublish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+      scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
     }
     if (event.target.closest("[data-publish-one]")) {
       const patch = readAdminRow(tr);
@@ -2398,7 +2426,7 @@ function bindUi() {
     const tr = event.target.closest("[data-admin-row]");
     if (!tr) return;
     const patch = readAdminRow(tr);
-    maybePublish(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+    scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
   });
 
   els.publishAll?.addEventListener("click", async () => {

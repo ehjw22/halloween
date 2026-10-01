@@ -76,7 +76,20 @@ export function createStore(onChange) {
   function applyRows(next, { broadcastLocal = false } = {}) {
     if (!next?.length) return false;
     const byId = new Map(next.map((row) => [row.id, row]));
-    const merged = cloneHouses().map((row) => ({ ...row, ...byId.get(row.id) }));
+    const current = new Map(rows.map((row) => [row.id, row]));
+    const merged = cloneHouses().map((row) => {
+      const incoming = byId.get(row.id);
+      const local = current.get(row.id);
+      if (
+        local?.updated_at &&
+        incoming?.updated_at &&
+        String(incoming.updated_at) < String(local.updated_at) &&
+        Number(incoming.wait_minutes) !== Number(local.wait_minutes)
+      ) {
+        return { ...row, ...local };
+      }
+      return { ...row, ...(incoming || local) };
+    });
     if (fingerprint(merged) === fingerprint(rows)) return false;
     rows = merged;
     writeLocal(rows);
