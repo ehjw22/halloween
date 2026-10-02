@@ -4457,9 +4457,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   max-width: 7.2rem;
   object-fit: contain;
 }
-.event-gate__clubs a:hover img {
-  transform: translateY(-2px);
-}
 .club-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
