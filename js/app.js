@@ -1,12 +1,12 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r7";
 import { CLUBS } from "./clubs.js?v=r6";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r18";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r19";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r7";
+import { createStore } from "./store.js?v=r8";
 import {
   apiFetch,
   apiUrl,
@@ -131,7 +131,7 @@ function normalizeHouseRow(row) {
 }
 
 let store;
-let houses = HOUSES.filter((h) => h.kind !== "screening").map((h) => normalizeHouseRow({
+let houses = HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezone").map((h) => normalizeHouseRow({
   id: h.id,
   name: h.name,
   wait_minutes: h.wait,
@@ -526,8 +526,12 @@ function clusterMembers(clusterId) {
   return HOUSES.filter((house) => house.cluster === clusterId);
 }
 
+function isWalkthrough(meta) {
+  return meta?.kind === "screening" || meta?.kind === "scarezone";
+}
+
 function listingMatches(meta) {
-  if (meta.kind === "screening") {
+  if (isWalkthrough(meta)) {
     if (houseFilter.status || houseFilter.tag) return false;
     const q = houseFilter.q.trim().toLowerCase();
     if (!q) return true;
@@ -564,6 +568,7 @@ function renderDashboard() {
     const places = [...new Set(members.map((house) => pinById(house.pin)?.label || house.short))].join(" · ");
     const cards = members.map((meta) => {
       if (meta.kind === "screening") return screeningCardHtml(meta);
+      if (meta.kind === "scarezone") return scareZoneCardHtml(meta);
       const row = houses.find((h) => h.id === meta.id);
       return row ? houseCardHtml(row, watching) : "";
     }).join("");
@@ -576,6 +581,25 @@ function renderDashboard() {
     </section>`;
   }).join("");
   els.houseGrid.innerHTML = `${goNowBlock}${clusterBlock}`;
+}
+
+function scareZoneCardHtml(meta) {
+  return `<article class="house-card house-card--zone">
+    <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
+      <span class="house-card__rail" aria-hidden="true"></span>
+      <span class="house-card__top">
+        <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
+        <span class="status-pill">Scare zone</span>
+      </span>
+      <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
+      <span class="house-card__metric">
+        <span class="house-card__wait is-phrase">Walk through</span>
+      </span>
+      <span class="house-card__meta">
+        ${meta.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
+      </span>
+    </button>
+  </article>`;
 }
 
 function screeningCardHtml(meta) {
@@ -740,13 +764,14 @@ function renderPins() {
   if (!layer) return;
   const housePins = PINS.map((pin) => {
     const atPin = HOUSES.filter((house) => house.pin === pin.id);
-    const scare = atPin.filter((house) => house.kind !== "screening");
-    const rows = scare.map((house) => houses.find((row) => row.id === house.id)).filter(Boolean);
+    const timed = atPin.filter((house) => !isWalkthrough(house));
+    const rows = timed.map((house) => houses.find((row) => row.id === house.id)).filter(Boolean);
     const matched = atPin.some(listingMatches);
     const dim = filterIsActive() && !matched;
     const ranked = rows.filter(hasPublishedWait).sort((a, b) => waitRank(a) - waitRank(b));
     const lead = ranked[0];
-    const status = lead ? statusFromWait(lead.wait_minutes) : "open";
+    const onlyZone = !timed.length && atPin.some((house) => house.kind === "scarezone");
+    const status = lead ? statusFromWait(lead.wait_minutes) : onlyZone ? "zone" : "open";
     const names = atPin.map((house) => house.name).join(", ");
     return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}" data-pin="${escapeHtml(pin.id)}">
       <div class="map-pin__gfx">
@@ -856,38 +881,40 @@ function openHouse(id) {
   const meta = houseMeta(id);
   const row = houses.find((h) => h.id === id);
   if (!meta || !els.modal) return;
-  if (meta.kind !== "screening" && !row) return;
+  if (!isWalkthrough(meta) && !row) return;
   openHouseId = meta.kind === "screening" ? "" : id;
   openClusterKey = "";
   if (els.clusterModal) els.clusterModal.hidden = true;
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
-  const status = row ? statusFromWait(row.wait_minutes) : "open";
-  els.modal.querySelector("[data-modal-wait]").textContent = row ? waitLabel(row.wait_minutes, status) : "Screening";
-  els.modal.querySelector("[data-modal-status]").textContent = row ? statusPillLabel(row) : "Screening";
-  els.modal.querySelector("[data-modal-status]").className = `status-pill${row ? ` status-${status}` : ""}`;
-  const cluster = clusterById(meta.cluster);
-  els.modal.querySelector("[data-modal-story]").textContent = [cluster?.story, meta.blurb].filter(Boolean).join(" ");
+  const zone = meta.kind === "scarezone";
+  const screening = meta.kind === "screening";
+  const status = row && !zone ? statusFromWait(row.wait_minutes) : "open";
+  els.modal.querySelector("[data-modal-wait]").textContent = zone ? "No wait" : screening ? "Screening" : waitLabel(row.wait_minutes, status);
+  els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare zone" : screening ? "Screening" : statusPillLabel(row);
+  els.modal.querySelector("[data-modal-status]").className = `status-pill${row && !zone ? ` status-${status}` : ""}`;
+  els.modal.querySelector("[data-modal-story]").textContent = meta.blurb || "";
   els.modal.querySelector("[data-modal-code]").textContent = meta.rooms || meta.short;
   const tagsEl = els.modal.querySelector("[data-modal-tags]");
   if (tagsEl) tagsEl.innerHTML = tagChips(meta) || "";
   const upd = els.modal.querySelector("[data-modal-updated]");
-  if (upd) upd.textContent = row ? freshnessLabel(row.updated_at) : "";
+  if (upd) upd.textContent = row && !isWalkthrough(meta) ? freshnessLabel(row.updated_at) : "";
   const night = readNight();
   const watchBtn = document.getElementById("modalWatch");
   if (watchBtn) {
-    watchBtn.hidden = meta.kind === "screening";
+    watchBtn.hidden = isWalkthrough(meta);
     if (row) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
   }
   els.modal.hidden = false;
   els.modal.querySelector(".modal__panel").focus();
-  if (row) setHash("house", id);
+  if (meta.kind !== "screening") setHash("house", id);
 }
 
 function clusterHouseHtml(meta, watching) {
   const row = houses.find((h) => h.id === meta.id);
-  const wait = row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "Screening";
+  const zone = meta.kind === "scarezone";
+  const wait = meta.kind === "screening" ? "Screening" : zone ? "Scare zone" : row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "";
   const on = watching.has(meta.id);
-  const alert = meta.kind === "screening"
+  const alert = isWalkthrough(meta)
     ? ""
     : `<button class="btn btn--ghost cluster-house__alert" type="button" data-watch-house="${escapeHtml(meta.id)}" aria-pressed="${on}">${on ? "Alert on" : "Alert when walk-in"}</button>`;
   return `<li class="cluster-house">

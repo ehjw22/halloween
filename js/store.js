@@ -1,4 +1,4 @@
-import { HOUSES } from "./houses.js?v=r18";
+import { HOUSES } from "./houses.js?v=r19";
 import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r8";
 
 const CHANNEL = "halloween-wait-times";
@@ -7,7 +7,7 @@ const SYNC_KEY = "sp-halloween-waits-sync-v1";
 const POLL_MS = 4000;
 
 function cloneHouses() {
-  return HOUSES.filter((h) => h.kind !== "screening").map((h) => ({
+  return HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezone").map((h) => ({
     id: h.id,
     name: h.name,
     wait_minutes: h.wait,

@@ -2441,7 +2441,7 @@ html.event-welcome .view:not([data-view="welcome"]) {
   border-top: 1px solid var(--border);
 }
 .cluster-house h4 { margin: 0; font-size: 1rem; }
-.cluster-house p { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; }
+.cluster-house p { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; white-space: pre-wrap; }
 .cluster-house__where { color: var(--ink-3); font-size: var(--fs-xs); }
 .cluster-house__alert { justify-self: start; }
 .modal__panel--cluster { width: min(640px, calc(100% - 24px)); }
@@ -2813,6 +2813,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
   box-shadow: 0 0 0 1.5px rgba(8, 5, 12, 0.85), 0 2px 6px rgba(0, 0, 0, 0.55);
   transition: transform var(--ease);
 }
+.house-card--zone .house-card__rail { background: var(--ink-3); }
+.house-card--zone .status-pill { color: var(--ink-2); }
+.house-card--zone .house-card__wait { color: var(--ink); }
+.map-pin.status-zone .map-pin__mark { --pin-color: var(--ink-2); }
 .map-pin.status-gonow .map-pin__mark { --pin-color: var(--gonow); }
 .map-pin.status-open .map-pin__mark { --pin-color: var(--open); }
 .map-pin.status-busy .map-pin__mark { --pin-color: var(--busy); }
@@ -4128,6 +4132,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display: none !important;
   pointer-events: none;
 }
+#modalWatch[hidden] { display: none; }
 .modal__backdrop {
   position: absolute;
   inset: 0;
@@ -4200,6 +4205,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: var(--ink-2);
   font-size: var(--fs-sm);
   line-height: 1.65;
+  white-space: pre-wrap;
 }
 
 .game-subnav {
