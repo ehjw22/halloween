@@ -583,40 +583,31 @@ function renderDashboard() {
   els.houseGrid.innerHTML = `${goNowBlock}${clusterBlock}`;
 }
 
-function scareZoneCardHtml(meta) {
-  return `<article class="house-card house-card--zone">
+function placeCardHtml(meta, pill, label) {
+  return `<article class="house-card${meta.kind === "scarezone" ? " house-card--zone" : ""}">
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
       <span class="house-card__rail" aria-hidden="true"></span>
       <span class="house-card__top">
         <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
-        <span class="status-pill">Scare zone</span>
+        <span class="status-pill">${escapeHtml(pill)}</span>
       </span>
       <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
       <span class="house-card__metric">
-        <span class="house-card__wait is-phrase">Walk through</span>
+        <span class="house-card__wait is-venue">${escapeHtml(meta.rooms || "")}</span>
       </span>
       <span class="house-card__meta">
-        ${meta.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
+        <span class="fresh">${escapeHtml(label)}</span>
       </span>
     </button>
   </article>`;
 }
 
+function scareZoneCardHtml(meta) {
+  return placeCardHtml(meta, "Scare Zone", "Scare Zone");
+}
+
 function screeningCardHtml(meta) {
-  return `<article class="house-card">
-    <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
-      <span class="house-card__rail" aria-hidden="true"></span>
-      <span class="house-card__top">
-        <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
-        <span class="status-pill">Screening</span>
-      </span>
-      <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
-      <span class="house-card__metric">
-        <span class="house-card__wait">${escapeHtml(meta.rooms || "")}</span>
-        <span class="house-card__unit">Movie</span>
-      </span>
-    </button>
-  </article>`;
+  return placeCardHtml(meta, "Screening", "Movie");
 }
 
 function showWaitToast(title, body, walkIn = false) {
@@ -889,8 +880,8 @@ function openHouse(id) {
   const zone = meta.kind === "scarezone";
   const screening = meta.kind === "screening";
   const status = row && !zone ? statusFromWait(row.wait_minutes) : "open";
-  els.modal.querySelector("[data-modal-wait]").textContent = zone ? "No wait" : screening ? "Screening" : waitLabel(row.wait_minutes, status);
-  els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare zone" : screening ? "Screening" : statusPillLabel(row);
+  els.modal.querySelector("[data-modal-wait]").textContent = zone ? "Scare Zone" : screening ? "Movie" : waitLabel(row.wait_minutes, status);
+  els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare Zone" : screening ? "Screening" : statusPillLabel(row);
   els.modal.querySelector("[data-modal-status]").className = `status-pill${row && !zone ? ` status-${status}` : ""}`;
   els.modal.querySelector("[data-modal-story]").textContent = meta.blurb || "";
   els.modal.querySelector("[data-modal-code]").textContent = meta.rooms || meta.short;
@@ -912,7 +903,7 @@ function openHouse(id) {
 function clusterHouseHtml(meta, watching) {
   const row = houses.find((h) => h.id === meta.id);
   const zone = meta.kind === "scarezone";
-  const wait = meta.kind === "screening" ? "Screening" : zone ? "Scare zone" : row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "";
+  const wait = meta.kind === "screening" ? "Movie" : zone ? "Scare Zone" : row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "";
   const on = watching.has(meta.id);
   const alert = isWalkthrough(meta)
     ? ""
