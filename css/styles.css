@@ -19,8 +19,10 @@
   --accent-wash: rgba(255, 138, 46, 0.12);
   --accent-line: rgba(255, 138, 46, 0.38);
 
-  --open: #6aab7a;
-  --busy: #c9923a;
+  --gonow: #6aab7a;
+  --open: #6e8f9a;
+  --busy: #e2b34a;
+  --long: #d4532c;
   --closed: #b3544a;
   --full: #8f74ad;
   --success: #6aab7a;
@@ -2516,9 +2518,11 @@ html.event-welcome .view:not([data-view="welcome"]) {
   width: 3px;
   background: var(--ink-3);
 }
-.status-open .house-card__rail,
-.house-card.is-walkin .house-card__rail { background: var(--open); }
+.status-gonow .house-card__rail,
+.house-card.is-walkin .house-card__rail { background: var(--gonow); }
+.status-open .house-card__rail { background: var(--open); }
 .status-busy .house-card__rail { background: var(--busy); }
+.status-long .house-card__rail { background: var(--long); }
 .status-closed .house-card__rail { background: var(--closed); }
 .status-at_capacity .house-card__rail { background: var(--full); }
 .house-card.is-walkin {
@@ -2578,7 +2582,15 @@ html.event-welcome .view:not([data-view="welcome"]) {
   font-size: 1.125rem;
   color: var(--closed);
 }
+.house-card__wait.is-phrase {
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  font-variant-numeric: normal;
+}
+.house-card.status-gonow .house-card__wait { color: var(--gonow); }
+.house-card.status-open .house-card__wait { color: var(--open); }
 .house-card.status-busy .house-card__wait { color: var(--busy); }
+.house-card.status-long .house-card__wait { color: var(--long); }
 .house-card.status-at_capacity .house-card__wait { color: var(--full); }
 .house-card__unit {
   font-size: var(--fs-xs);
@@ -2652,6 +2664,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
   border-radius: 50%;
   background: currentColor;
 }
+.status-gonow .status-pill, .status-pill.status-gonow {
+  color: var(--gonow);
+  background: transparent;
+}
 .status-open .status-pill, .status-pill.status-open {
   color: var(--open);
   background: transparent;
@@ -2663,6 +2679,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
 }
 .status-busy .status-pill, .status-pill.status-busy {
   color: var(--busy);
+  background: transparent;
+}
+.status-long .status-pill, .status-pill.status-long {
+  color: var(--long);
   background: transparent;
 }
 .status-closed .status-pill, .status-pill.status-closed {
@@ -2793,8 +2813,10 @@ html.event-welcome .view:not([data-view="welcome"]) {
   box-shadow: 0 0 0 1.5px rgba(8, 5, 12, 0.85), 0 2px 6px rgba(0, 0, 0, 0.55);
   transition: transform var(--ease);
 }
+.map-pin.status-gonow .map-pin__mark { --pin-color: var(--gonow); }
 .map-pin.status-open .map-pin__mark { --pin-color: var(--open); }
 .map-pin.status-busy .map-pin__mark { --pin-color: var(--busy); }
+.map-pin.status-long .map-pin__mark { --pin-color: var(--long); }
 .map-pin.status-closed .map-pin__mark { --pin-color: var(--closed); }
 .map-pin.status-at_capacity .map-pin__mark { --pin-color: var(--full); }
 .map-pin--booths .map-pin__mark {
@@ -4072,8 +4094,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.wait-status[data-status="gonow"] { color: var(--gonow); }
 .wait-status[data-status="open"] { color: var(--open); }
 .wait-status[data-status="busy"] { color: var(--busy); }
+.wait-status[data-status="long"] { color: var(--long); }
 .wait-status[data-status="closed"] { color: var(--closed); }
 .db-banner {
   margin: 0 0 var(--s5);

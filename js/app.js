@@ -1,12 +1,12 @@
 import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r7";
 import { CLUBS } from "./clubs.js?v=r6";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r17";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r18";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r5";
+import { createStore } from "./store.js?v=r7";
 import {
   apiFetch,
   apiUrl,
@@ -108,8 +108,10 @@ function statusFromWait(minutes) {
   if (minutes === null || minutes === undefined || minutes === "") return "open";
   const wait = Math.max(0, Number(minutes) || 0);
   if (wait >= 60) return "closed";
-  if (wait >= 30) return "busy";
-  return "open";
+  if (wait >= 40) return "long";
+  if (wait >= 21) return "busy";
+  if (wait >= 6) return "open";
+  return "gonow";
 }
 
 function hasPublishedWait(row) {
@@ -165,22 +167,16 @@ function houseMeta(id) {
 function waitLabel(minutes, status) {
   if (minutes === null || minutes === undefined || minutes === "") return "Not published";
   if (status === "closed" || statusFromWait(minutes) === "closed") return "Closed";
-  if (!minutes) return "Walk in";
-  return `${minutes} min`;
-}
-
-function isWalkInHouse(row) {
-  if (!hasPublishedWait(row)) return false;
-  return statusFromWait(row.wait_minutes) !== "closed" && !(Number(row.wait_minutes) > 0);
+  if ((Number(minutes) || 0) === 0) return "No queue";
+  return `${Number(minutes) || 0} min`;
 }
 
 function isGoNowHouse(row) {
   if (!hasPublishedWait(row)) return false;
-  return statusFromWait(row.wait_minutes) !== "closed" && Number(row.wait_minutes) < 15;
+  return statusFromWait(row.wait_minutes) === "gonow";
 }
 
 function statusPillLabel(row) {
-  if (isWalkInHouse(row)) return "Walk-in";
   return STATUS_LABEL[statusFromWait(row.wait_minutes)] || row.status;
 }
 
@@ -189,13 +185,13 @@ function waitMetric(row) {
   const minutes = Number(row.wait_minutes) || 0;
   const status = statusFromWait(minutes);
   if (status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
-  if (!minutes) return { value: "Walk in", unit: "No queue", kind: "walkin" };
+  if (minutes === 0) return { value: "No queue", unit: "", kind: "clear" };
   return { value: String(minutes), unit: "min wait", kind: "queue" };
 }
 
 function waitRank(row) {
   const status = statusFromWait(row.wait_minutes);
-  const band = status === "closed" ? 2 : status === "busy" ? 1 : 0;
+  const band = { gonow: 0, open: 1, busy: 2, long: 3, closed: 4 }[status] ?? 1;
   return band * 1000 + (Number(row.wait_minutes) || 0);
 }
 
@@ -213,15 +209,8 @@ function houseMatchesFilter(row) {
   const q = houseFilter.q.trim().toLowerCase();
   if (q && !houseSearchHay(row).includes(q)) return false;
   const status = statusFromWait(row.wait_minutes);
-  const wait = Number(row.wait_minutes) || 0;
-  if (houseFilter.status === "walkin") {
-    if (status === "closed" || wait !== 0) return false;
-  } else if (houseFilter.status === "open") {
-    if (status !== "open" || wait === 0) return false;
-  } else if (houseFilter.status === "busy") {
-    if (status !== "busy") return false;
-  } else if (houseFilter.status === "closed") {
-    if (status !== "closed") return false;
+  if (houseFilter.status) {
+    if (!hasPublishedWait(row) || status !== houseFilter.status) return false;
   }
   if (houseFilter.tag) {
     const tags = houseMeta(row.id)?.tags || [];
@@ -268,8 +257,8 @@ function houseCardOpenInner(row, meta) {
     </span>
     <strong class="house-card__name">${escapeHtml(row.name)}</strong>
     <span class="house-card__metric">
-      <span class="house-card__wait">${escapeHtml(metric.value)}</span>
-      <span class="house-card__unit">${escapeHtml(metric.unit)}</span>
+      <span class="house-card__wait${metric.kind === "clear" ? " is-phrase" : ""}">${escapeHtml(metric.value)}</span>
+      ${metric.unit ? `<span class="house-card__unit">${escapeHtml(metric.unit)}</span>` : ""}
     </span>
     <span class="house-card__meta">
       ${meta?.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
@@ -518,9 +507,8 @@ function toggleWatchHouse(id) {
 function houseCardHtml(row, watching) {
   const meta = houseMeta(row.id);
   const on = watching.has(row.id);
-  const walkIn = isWalkInHouse(row);
   const status = statusFromWait(row.wait_minutes);
-  return `<article class="house-card status-${status}${walkIn ? " is-walkin" : ""}">
+  return `<article class="house-card status-${status}">
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
       ${houseCardOpenInner(row, meta)}
     </button>
@@ -569,7 +557,7 @@ function renderDashboard() {
         <p class="house-grid__gonow-kicker">Go now</p>
         ${goNow.length
           ? goNow.map((row) => houseCardHtml(row, watching)).join("")
-          : `<p class="gonow-empty">No house is under 15 minutes yet. Staff publish the waits.</p>`}
+          : `<p class="gonow-empty">No house is at 5 minutes or less yet. Staff publish the waits.</p>`}
       </div>`
     : "";
   const clusterBlock = groups.map(({ cluster, members }) => {
@@ -1861,6 +1849,7 @@ async function loadOps() {
       <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
       <div class="ops-card"><span>Fast Pass unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
       <div class="ops-card"><span>Houses busy</span><strong>${data.housesBusy || 0}</strong></div>
+      <div class="ops-card"><span>Houses long</span><strong>${data.housesLong || 0}</strong></div>
       <div class="ops-card"><span>Houses closed</span><strong>${data.housesClosed || 0}</strong></div>
       <div class="ops-card"><span>Feedback (6h)</span><strong>${data.recentFeedback || 0}</strong></div>
       ${boothBits}`;
@@ -2027,19 +2016,27 @@ function scheduleWaitSave(id, patch) {
   );
 }
 
-async function flushWaitSave(id) {
+async function flushWaitSave(id, attempt = 0) {
   if (waitSaveFlight.has(id)) return;
   const patch = drafts.get(id);
   if (!patch) return;
   waitSaveFlight.add(id);
+  let result;
   try {
-    await persistHouse(id, patch);
+    result = await persistHouse(id, patch);
   } finally {
     waitSaveFlight.delete(id);
-    const latest = drafts.get(id);
-    if (latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
-      scheduleWaitSave(id, latest);
-    }
+  }
+  const latest = drafts.get(id);
+  if (latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
+    scheduleWaitSave(id, latest);
+    return;
+  }
+  const retryable = result && result.ok === false && !/demo-only|sign in again/i.test(result.error || "");
+  if (retryable && latest && attempt < 2) {
+    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+    const still = drafts.get(id);
+    if (still && Number(still.wait_minutes) === Number(patch.wait_minutes)) flushWaitSave(id, attempt + 1);
   }
 }
 
@@ -2054,10 +2051,13 @@ async function persistHouse(id, patch) {
     setWaitSaveStatus("Saved to the live database.", false);
     return result;
   }
-  drafts.delete(id);
+  const latest = drafts.get(id);
+  if (latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
+    scheduleWaitSave(id, latest);
+    return result;
+  }
   setWaitSaveStatus(result?.error || "Could not save wait times to the database.");
   if (result?.error) pushStaffLog("Wait times", result.error);
-  renderAdmin();
   return result;
 }
 

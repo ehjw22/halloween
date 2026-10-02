@@ -1,6 +1,8 @@
 export const STATUSES = [
+  { id: "gonow", label: "Go now" },
   { id: "open", label: "Open" },
   { id: "busy", label: "Busy" },
+  { id: "long", label: "Long" },
   { id: "closed", label: "Closed" },
 ];
 

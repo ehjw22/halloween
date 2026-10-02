@@ -1,4 +1,4 @@
-import { HOUSES } from "./houses.js?v=r17";
+import { HOUSES } from "./houses.js?v=r18";
 import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r8";
 
 const CHANNEL = "halloween-wait-times";
@@ -52,8 +52,10 @@ function writeLastLiveAt(iso) {
 function statusFor(wait) {
   const n = Number(wait) || 0;
   if (n >= 60) return "closed";
-  if (n >= 30) return "busy";
-  return "open";
+  if (n >= 40) return "long";
+  if (n >= 21) return "busy";
+  if (n >= 6) return "open";
+  return "gonow";
 }
 
 function rowFromRemote(fallback, incoming) {
@@ -64,7 +66,7 @@ function rowFromRemote(fallback, incoming) {
     id: fallback.id,
     name: incoming.name || fallback.name,
     wait_minutes: wait,
-    status: published ? incoming.status || statusFor(wait) : "open",
+    status: published ? statusFor(wait) : "open",
     updated_at: incoming.updated_at || null,
   };
 }

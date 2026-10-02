@@ -6,9 +6,35 @@ create table if not exists public.scare_houses (
   name text not null,
   wait_minutes integer not null default 0 check (wait_minutes >= 0),
   status text not null default 'open'
-    check (status in ('open', 'busy', 'closed')),
+    check (status in ('gonow', 'open', 'busy', 'long', 'closed')),
   updated_at timestamptz not null default now()
 );
+
+-- Existing databases keep the old check until this runs. create table if not exists does not alter it.
+do $$
+declare
+  r record;
+begin
+  for r in
+    select con.conname
+    from pg_constraint con
+    join pg_class rel on rel.oid = con.conrelid
+    join pg_namespace nsp on nsp.oid = rel.relnamespace
+    where nsp.nspname = 'public'
+      and rel.relname = 'scare_houses'
+      and con.contype = 'c'
+      and pg_get_constraintdef(con.oid) ilike '%status%'
+  loop
+    execute format('alter table public.scare_houses drop constraint %I', r.conname);
+  end loop;
+end $$;
+
+alter table public.scare_houses
+  drop constraint if exists scare_houses_status_check;
+
+alter table public.scare_houses
+  add constraint scare_houses_status_check
+  check (status in ('gonow', 'open', 'busy', 'long', 'closed'));
 
 alter table public.scare_houses enable row level security;
 
@@ -263,10 +289,18 @@ begin
   if p_id is null or length(trim(p_id)) = 0 then
     return jsonb_build_object('ok', false, 'error', 'bad_id');
   end if;
-  if p_status not in ('open', 'busy', 'closed') then
-    return jsonb_build_object('ok', false, 'error', 'bad_status');
-  end if;
   wait_val := greatest(0, least(240, coalesce(p_wait, 0)));
+  if wait_val >= 60 then
+    p_status := 'closed';
+  elsif wait_val >= 40 then
+    p_status := 'long';
+  elsif wait_val >= 21 then
+    p_status := 'busy';
+  elsif wait_val >= 6 then
+    p_status := 'open';
+  else
+    p_status := 'gonow';
+  end if;
 
   update public.scare_houses
     set wait_minutes = wait_val,

@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r47" />
+    <link rel="stylesheet" href="css/styles.css?v=r50" />
     <script src="js/boot.js?v=r7"></script>
   </head>
   <body>
@@ -467,7 +467,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.3</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.4</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -584,9 +584,9 @@
               <button
                 type="button"
                 class="filter-chip"
-                data-filter-status="walkin"
+                data-filter-status="gonow"
               >
-                Walk-in
+                Go now
               </button>
               <button
                 type="button"
@@ -601,6 +601,13 @@
                 data-filter-status="busy"
               >
                 Busy
+              </button>
+              <button
+                type="button"
+                class="filter-chip"
+                data-filter-status="long"
+              >
+                Long
               </button>
               <button
                 type="button"
@@ -1299,17 +1306,17 @@
           <div class="guide-states">
             <article class="guide-state">
               <div class="guide-state__art">
-                <article class="house-card house-card--sample status-open is-walkin">
+                <article class="house-card house-card--sample status-gonow">
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
                       <span class="house-card__short">Spectrum</span>
-                      <span class="status-pill status-walkin">Walk-in</span>
+                      <span class="status-pill status-gonow">Go now</span>
                     </span>
                     <strong class="house-card__name">The Last Laugh</strong>
                     <span class="house-card__metric">
-                      <span class="house-card__wait">Walk in</span>
-                      <span class="house-card__unit">No queue</span>
+                      <span class="house-card__wait">3</span>
+                      <span class="house-card__unit">min wait</span>
                     </span>
                     <span class="house-card__meta">
                       <span class="fresh">Updated 2 min ago</span>
@@ -1317,9 +1324,9 @@
                   </div>
                 </article>
               </div>
-              <h3>Walk-in</h3>
+              <h3>Go now</h3>
               <p>
-                There is no queue, and the house is open. You can go in now.
+                A wait of 0 shows as No queue. From 1 to 5 minutes the card shows the time. Both sit in the Go now row.
                 On another house, tap <strong>Alert when walk-in</strong> if you
                 want a notification when that house reaches this state.
               </p>
@@ -1347,8 +1354,8 @@
               </div>
               <h3>Open</h3>
               <p>
-                The house is running and taking guests. The number is the wait
-                that staff last published, so join the queue as usual.
+                The wait is between 6 and 20 minutes. The house is running and
+                taking guests. Join the queue as usual.
               </p>
             </article>
 
@@ -1374,9 +1381,36 @@
               </div>
               <h3>Busy</h3>
               <p>
-                The wait is 30 minutes or more. The house is still taking guests,
-                but the line is long. Check the minutes before you commit, or
-                choose a house with a shorter wait.
+                The wait is between 21 and 39 minutes. The house is still taking
+                guests, but the line is long. Check the minutes before you commit.
+              </p>
+            </article>
+
+            <article class="guide-state">
+              <div class="guide-state__art">
+                <article class="house-card house-card--sample status-long">
+                  <div class="house-card__open">
+                    <span class="house-card__rail" aria-hidden="true"></span>
+                    <span class="house-card__top">
+                      <span class="house-card__short">T17</span>
+                      <span class="status-pill">Long</span>
+                    </span>
+                    <strong class="house-card__name">The Cursed Cavern</strong>
+                    <span class="house-card__metric">
+                      <span class="house-card__wait">48</span>
+                      <span class="house-card__unit">min wait</span>
+                    </span>
+                    <span class="house-card__meta">
+                      <span class="fresh">Updated 2 min ago</span>
+                    </span>
+                  </div>
+                </article>
+              </div>
+              <h3>Long</h3>
+              <p>
+                The wait is between 40 and 59 minutes. The house is still open,
+                but the line will take most of an hour. Go only if this is the
+                house you want.
               </p>
             </article>
 
@@ -1403,8 +1437,8 @@
               <h3>Closed</h3>
               <p>
                 When the wait reaches 60 minutes, the house closes automatically.
-                The card turns red. Do not wait at the door until it shows Open,
-                Busy, or Walk-in again.
+                The card turns red. Do not wait at the door until it shows Go now,
+                Open, Busy, or Long again.
               </p>
             </article>
           </div>
@@ -1539,8 +1573,9 @@
               <div class="section-head">
                 <h2>Wait-Time Control</h2>
                 <p>
-                  Wait minutes set the status: under 30 is open, 30 and above is
-                  busy, 60 closes the house. Auto-save publishes to every open map.
+                  Wait minutes set the status: 0 shows as No queue, 1 to 5 shows the minutes, and both are Go now. 6 to 20 is open,
+                  21 to 39 is busy, 40 to 59 is long, and 60 closes the house.
+                  Auto-save publishes to every open map.
                 </p>
                 <div class="admin-toolbar">
                   <label class="toggle">
@@ -1877,7 +1912,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r52"></script>
+      <script type="module" src="js/app.js?v=r56"></script>
     </div>
   </body>
 </html>
