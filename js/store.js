@@ -1,5 +1,5 @@
 import { HOUSES } from "./houses.js?v=r17";
-import { getAdminSession, apiUrl, apiFetch } from "./session.js";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r8";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";
@@ -295,7 +295,7 @@ export function createStore(onChange) {
       if (!res.ok) {
         pending.delete(id);
         await refreshFromDb();
-        const error = data.error || (res.status === 404 ? "Wait-time API was not found." : res.statusText);
+        const error = userFacingError(data.error, "Could not save the wait time. Try again.");
         console.warn("Wait time save failed.", error);
         return { ok: false, error };
       }
@@ -314,7 +314,7 @@ export function createStore(onChange) {
       pending.delete(id);
       await refreshFromDb();
       console.warn("Wait time save failed.", error.message);
-      return { ok: false, error: error.message || "Could not reach the wait-time API." };
+      return { ok: false, error: userFacingError(error, "Could not save the wait time. Try again.") };
     }
   }
 

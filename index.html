@@ -467,7 +467,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.2</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.3</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -639,7 +639,7 @@
                   spellcheck="false"
                   required
                 />
-                <span class="field-hint">P plus 7 digits, or just the 7 digits</span>
+                <span class="field-hint">Enter P followed by 7 digits, or just the 7 digits.</span>
               </label>
               <label>
                 Full name
@@ -1319,9 +1319,9 @@
               </div>
               <h3>Walk-in</h3>
               <p>
-                There’s no queue and the house is open. Go now. Tap
-                <strong>Alert when walk-in</strong> on other houses if you want
-                a ping when they hit this.
+                There is no queue, and the house is open. You can go in now.
+                On another house, tap <strong>Alert when walk-in</strong> if you
+                want a notification when that house reaches this state.
               </p>
             </article>
 
@@ -1348,7 +1348,7 @@
               <h3>Open</h3>
               <p>
                 The house is running and taking guests. The number is the wait
-                staff last published. Queue as normal.
+                that staff last published, so join the queue as usual.
               </p>
             </article>
 
@@ -1374,9 +1374,9 @@
               </div>
               <h3>Busy</h3>
               <p>
-                Wait is 30 minutes or more. Still taking guests, but the line is
-                long. Check the minutes before you commit, or pick a shorter
-                house.
+                The wait is 30 minutes or more. The house is still taking guests,
+                but the line is long. Check the minutes before you commit, or
+                choose a house with a shorter wait.
               </p>
             </article>
 
@@ -1402,9 +1402,9 @@
               </div>
               <h3>Closed</h3>
               <p>
-                Wait is 60 minutes or more — treated as closed (reset, last
-                entry, or a pause). The card goes red. Don’t wait at the
-                door until it shows Open, Busy, or Walk-in again.
+                A wait of 60 minutes or more is treated as closed. This can mean
+                a reset, a last entry, or a pause. The card turns red. Do not
+                wait at the door until it shows Open, Busy, or Walk-in again.
               </p>
             </article>
           </div>
@@ -1412,37 +1412,37 @@
           <h3 class="guide-heading">Using the rest of the site</h3>
           <ol class="how-list">
             <li>
-              Use <strong>Map</strong> to tap a house card. Houses are grouped
-              by cluster. Wait times update on their own.
+              Open <strong>Map</strong> and tap a house card. Houses are grouped
+              by cluster, and wait times update on their own.
             </li>
             <li>
               <strong>Sign in</strong> with your admin number and name to open
-              your stamp card. Get each stamp at the booth.
+              your stamp card. Collect each stamp at its booth.
             </li>
             <li>
-              Seven stamps unlock Fast Pass. Show it at the Fast Pass desk.
+              Seven stamps unlock the Fast Pass. Show it at the Fast Pass desk.
             </li>
             <li>
-              Send <strong>Feedback</strong> if a house or booth needs a note.
+              Send <strong>Feedback</strong> if a house or a booth needs a note.
             </li>
           </ol>
 
           <h3 class="guide-heading">Walk-in alerts</h3>
           <ol class="how-list">
             <li>
-              Sign in, then on a scare house tap
-              <strong>Alert when walk-in</strong>. You’ll be pinged at 10
-              minutes, at 5 minutes, and when it is open.
+              Sign in, then tap <strong>Alert when walk-in</strong> on a scare
+              house. You will be notified at 10 minutes, at 5 minutes, and when
+              the house is open.
             </li>
-            <li>Allow notifications when the phone asks.</li>
+            <li>Allow notifications when your phone asks.</li>
             <li>
-              On iPhone, tap Share, then <strong>Add to Home Screen</strong>,
-              open that icon, and tap <strong>Alert when walk-in</strong> again.
+              On an iPhone, tap Share, then <strong>Add to Home Screen</strong>.
+              Open that icon and tap <strong>Alert when walk-in</strong> again.
               A Safari tab cannot show phone alerts.
             </li>
             <li>
-              Tap <strong>Stop walk-in alert</strong> on that house to turn it
-              off.
+              Tap <strong>Stop walk-in alert</strong> on that house to turn the
+              alert off.
             </li>
           </ol>
 
@@ -1877,7 +1877,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r6"></script>
-      <script type="module" src="js/app.js?v=r50"></script>
+      <script type="module" src="js/app.js?v=r52"></script>
     </div>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { apiUrl, apiFetch } from "./session.js";
+import { apiUrl, apiFetch } from "./session.js?v=r8";
 
 const WANT_KEY = "scream-push-wanted";
 

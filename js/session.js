@@ -15,15 +15,26 @@ export function apiUrl(name, params = {}) {
   return `/api?${q.toString()}`;
 }
 
+export function userFacingError(error, fallback = "Something went wrong. Try again.") {
+  const raw = String((error && error.message) || error || "")
+    .split(" — ")[0]
+    .replace(/\bHTTP\s*\d{3}\b/gi, "")
+    .replace(/\bSupabase\s+\d{3}\b/gi, "")
+    .replace(/\bRPC\s+\d{3}\b/gi, "")
+    .replace(/\s*[·|]\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!raw || /^(request failed|not found|internal server error|bad request|unauthorized|forbidden|error)$/i.test(raw)) {
+    return fallback;
+  }
+  return raw;
+}
+
 function apiFail(data, res, fallback) {
   const status = res && res.status;
-  const message = (data && data.error) || fallback || "Request failed.";
-  const extra = [data && data.detail, data && data.code, status && status >= 400 ? `HTTP ${status}` : ""]
-    .filter((part, index, all) => part && all.indexOf(part) === index)
-    .join(" · ");
-  const err = new Error(extra ? `${message} — ${extra}` : message);
-  err.code = (data && data.code) || String(status || "");
-  err.detail = (data && data.detail) || "";
+  const err = new Error(userFacingError((data && data.error) || fallback, fallback || "Something went wrong. Try again."));
+  err.code = (data && data.code) || "";
+  err.status = status || 0;
   return err;
 }
 
@@ -205,9 +216,9 @@ export function apiFetch(url, options = {}) {
 async function parseError(res) {
   try {
     const data = await res.json();
-    return data.error || res.statusText;
+    return userFacingError(data.error, "Something went wrong. Try again.");
   } catch {
-    return res.statusText;
+    return "Something went wrong. Try again.";
   }
 }
 
@@ -378,9 +389,9 @@ export async function signIn({ adminNumber, fullName, password }) {
     if (res.ok) {
       throw new Error("Sign-in did not return a session. Try again.");
     }
-    const apiError = String(data.error || "").trim();
+    const apiError = userFacingError(data.error, "");
     if (res.status === 401 || res.status === 400 || res.status === 403 || res.status === 429 || res.status === 503) {
-      throw new Error(apiError || "Sign-in failed.");
+      throw new Error(apiError || "Sign-in failed. Check your admin number and name, then try again.");
     }
     if (isBrowserLocal()) {
       return localSignIn({ id, fullName: name, password });
@@ -486,7 +497,7 @@ export async function awardStamp(studentNumber, boothId) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 404 && /unknown api/i.test(data.error || "")) {
-      throw new Error("Award API was not found. Redeploy with the api/ folder, then try again.");
+      throw new Error("Could not award that stamp. Try again.");
     }
     throw apiFail(data, res, "Could not award stamp.");
   }

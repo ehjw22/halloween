@@ -6,7 +6,7 @@ import { SPONSORS } from "./sponsors.js?v=r18";
 import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r4";
+import { createStore } from "./store.js?v=r5";
 import {
   apiFetch,
   apiUrl,
@@ -28,7 +28,8 @@ import {
   signIn,
   submitFeedback,
   normalizeAdminNumber,
-} from "./session.js";
+  userFacingError,
+} from "./session.js?v=r8";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -37,7 +38,7 @@ import {
   resumePushIfWanted,
   setWantsPush,
   syncPushWatch,
-} from "./push.js?v=r2";
+} from "./push.js?v=r3";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -676,11 +677,11 @@ function paintSafety() {
   const list = document.getElementById("safetyList");
   if (!list) return;
   const lines = [
-    "Safety first. Follow the people running the night.",
-    "If you don’t feel comfortable, say so. You can step out of any house.",
-    "Remember to hydrate, and take a break if you need one.",
-    "Stay with your group. Watch your step. No running in queues.",
-    "Keep bags closed and give people space in the line.",
+    "Follow the people running the night.",
+    "If you do not feel comfortable, say so. You can step out of any house.",
+    "Drink water, and take a break if you need one.",
+    "Stay with your group. Watch your step, and do not run in the queues.",
+    "Keep your bag closed, and give people space in the line.",
   ];
   list.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 }
@@ -709,12 +710,11 @@ function paintSponsors() {
 }
 
 function staffDeskError(error) {
-  const message = String(error?.message || "");
+  const message = userFacingError(error, "Something went wrong. Try again.");
   if (error?.code === "no_student" || /no student found/i.test(message)) {
-    return "No student found for that admin number. Please check again.";
+    return "No student found for that admin number. Check the number and try again.";
   }
-  const plain = message.split(" — ")[0].trim();
-  return plain || "Something went wrong. Please try again.";
+  return message;
 }
 
 async function startBoard() {
@@ -1716,7 +1716,7 @@ async function loadAdminFeedback() {
   } catch (error) {
     if (els.adminFeedbackError) {
       els.adminFeedbackError.hidden = false;
-      els.adminFeedbackError.textContent = error.message;
+      els.adminFeedbackError.textContent = userFacingError(error, "Could not load feedback. Try again.");
     }
   }
 }
@@ -1846,7 +1846,7 @@ async function loadAdminAnnouncements() {
       }).join("")
       : `<li class="empty-state"><p class="empty-state__title">No announcements yet</p><p class="empty-state__hint">Post a note above for the Map page.</p></li>`;
   } catch (error) {
-    els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(error.message)}</li>`;
+    els.adminAnnounceList.innerHTML = `<li class="form-error">${escapeHtml(userFacingError(error, "Could not load announcements. Try again."))}</li>`;
   }
 }
 
@@ -1871,7 +1871,7 @@ async function loadOps() {
         : "<li class='empty-state'><p class='empty-state__title'>No audit rows yet</p><p class='empty-state__hint'>Staff actions will appear here.</p></li>";
     }
   } catch (error) {
-    grid.innerHTML = `<div class="empty-state"><p class="empty-state__title">Command post unavailable</p><p class="empty-state__hint">${escapeHtml(error.message)}</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><p class="empty-state__title">Command post unavailable</p><p class="empty-state__hint">${escapeHtml(userFacingError(error, "Could not load the command post. Try again."))}</p></div>`;
   }
 }
 
@@ -1904,7 +1904,7 @@ function pushStaffLog(action, error) {
   rows.unshift({
     at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     action,
-    message: error && error.message ? String(error.message) : String(error || "Unknown error"),
+    message: userFacingError(error, "Something went wrong. Try again."),
   });
   sessionStorage.setItem("scream-staff-log", JSON.stringify(rows.slice(0, 40)));
   paintStaffLog();
@@ -2360,7 +2360,7 @@ function bindUi() {
     } catch (error) {
       if (err) {
         err.hidden = false;
-        err.textContent = error.message;
+        err.textContent = userFacingError(error, "Sign-in failed. Check your admin number and name, then try again.");
       }
     } finally {
       if (submit) submit.disabled = false;
@@ -2391,7 +2391,7 @@ function bindUi() {
     } catch (error) {
       if (err) {
         err.hidden = false;
-        err.textContent = error.message;
+        err.textContent = userFacingError(error, "Staff password is incorrect.");
       }
     } finally {
       if (submit) submit.disabled = false;
@@ -2659,7 +2659,7 @@ function bindUi() {
     } catch (error) {
       if (els.feedbackError) {
         els.feedbackError.hidden = false;
-        els.feedbackError.textContent = error.message;
+        els.feedbackError.textContent = userFacingError(error, "Could not send feedback. Try again.");
       }
     }
   });
@@ -2682,7 +2682,7 @@ function bindUi() {
     } catch (error) {
       if (els.announceError) {
         els.announceError.hidden = false;
-        els.announceError.textContent = error.message;
+        els.announceError.textContent = userFacingError(error, "Could not save that announcement. Try again.");
       }
     }
   });
@@ -2697,7 +2697,7 @@ function bindUi() {
     } catch (error) {
       if (els.announceError) {
         els.announceError.hidden = false;
-        els.announceError.textContent = error.message;
+        els.announceError.textContent = userFacingError(error, "Could not save that announcement. Try again.");
       }
     }
   });
@@ -2804,7 +2804,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r7")
+  import("./games.js?v=r8")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
