@@ -36,6 +36,25 @@ alter table public.scare_houses
   add constraint scare_houses_status_check
   check (status in ('gonow', 'open', 'busy', 'long', 'closed'));
 
+-- Stored status follows the minutes already on the row. Wait times are left as they are.
+update public.scare_houses
+set status = case
+  when wait_minutes >= 60 then 'closed'
+  when wait_minutes >= 40 then 'long'
+  when wait_minutes >= 21 then 'busy'
+  when wait_minutes >= 6 then 'open'
+  else 'gonow'
+end
+where status is distinct from (
+  case
+    when wait_minutes >= 60 then 'closed'
+    when wait_minutes >= 40 then 'long'
+    when wait_minutes >= 21 then 'busy'
+    when wait_minutes >= 6 then 'open'
+    else 'gonow'
+  end
+);
+
 alter table public.scare_houses enable row level security;
 
 drop policy if exists "public read scare houses" on public.scare_houses;
@@ -50,14 +69,14 @@ insert into public.scare_houses (id, name, wait_minutes, status) values
   ('three-doors', 'The Three Doors', 8, 'open'),
   ('marionette', 'The Marionette''s Lullaby', 12, 'open'),
   ('caligari', 'Cold Case: The Caligari Circus', 18, 'open'),
-  ('clowns', 'The Clowns That Never Died', 22, 'open'),
+  ('clowns', 'The Clowns That Never Died', 22, 'busy'),
   ('illusionist', 'The Illusionist: After The Curtain Falls', 15, 'open'),
   ('last-laugh', 'The Last Laugh: Clown Alley', 6, 'open'),
-  ('cursed-cavern', 'The Cursed Cavern', 25, 'open'),
+  ('cursed-cavern', 'The Cursed Cavern', 25, 'busy'),
   ('no-one-leaves', 'No One Leaves', 10, 'open'),
   ('prisoner', 'Prisoner of Spirits', 32, 'busy'),
   ('whispering-woods', 'Whispering Woods', 14, 'open'),
-  ('slenderman', 'Slenderman''s Lair', 28, 'open'),
+  ('slenderman', 'Slenderman''s Lair', 28, 'busy'),
   ('he-who-watches', 'He Who Watches', 9, 'open'),
   ('abandoned-asylum', 'Abandoned Asylum', 35, 'busy'),
   ('forever-patients', 'Forever Patients: Dover''s Madness', 16, 'open'),

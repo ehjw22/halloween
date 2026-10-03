@@ -38,10 +38,14 @@ function apiFail(data, res, fallback) {
   return err;
 }
 
+function isLoopback() {
+  const host = String(window.location.hostname || "").toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "0.0.0.0" || host.endsWith(".localhost");
+}
+
 function isBrowserLocal() {
   const host = String(window.location.hostname || "").toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "0.0.0.0") return true;
-  if (host.endsWith(".localhost")) return true;
+  if (isLoopback()) return true;
   if (/^10\.\d+\.\d+\.\d+$/.test(host)) return true;
   if (/^192\.168\.\d+\.\d+$/.test(host)) return true;
   if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(host)) return true;
@@ -316,7 +320,7 @@ function applyRemoteSession(data) {
 }
 
 function localSignIn({ id, fullName, password }) {
-  if (!isBrowserLocal()) {
+  if (!isLoopback()) {
     throw new Error("Sign-in is unavailable. Try again in a moment.");
   }
   const pass = String(password || "");
@@ -390,18 +394,12 @@ export async function signIn({ adminNumber, fullName, password }) {
       throw new Error("Sign-in did not return a session. Try again.");
     }
     const apiError = userFacingError(data.error, "");
-    if (res.status === 401 || res.status === 400 || res.status === 403 || res.status === 429 || res.status === 503) {
-      throw new Error(apiError || "Sign-in failed. Check your admin number and name, then try again.");
-    }
-    if (isBrowserLocal()) {
-      return localSignIn({ id, fullName: name, password });
-    }
-    throw new Error(apiError || "Sign-in is unavailable. Try again in a moment.");
+    throw new Error(apiError || "Sign-in failed. Check your admin number and name, then try again.");
   } catch (error) {
     if (error && error.message && !/failed to fetch|networkerror|load failed/i.test(error.message)) {
       throw error;
     }
-    if (isBrowserLocal()) {
+    if (isLoopback()) {
       return localSignIn({ id, fullName: name, password });
     }
     throw new Error("Sign-in is unavailable. Try again in a moment.");

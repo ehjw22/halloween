@@ -29,7 +29,7 @@ import {
   submitFeedback,
   normalizeAdminNumber,
   userFacingError,
-} from "./session.js?v=r8";
+} from "./session.js?v=r9";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -147,6 +147,7 @@ const drafts = new Map();
 const waitSaveTimers = new Map();
 const waitSaveFlight = new Set();
 const WAIT_SAVE_MS = 800;
+const WAIT_MAX = 60;
 const houseFilter = { q: "", status: "", tag: "" };
 
 const mapState = {
@@ -1956,7 +1957,7 @@ async function renderAdmin() {
           <td>
             <div class="wait-editor">
               <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
-              <input type="number" min="0" max="180" step="1" value="${draft.wait_minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <input type="number" min="0" max="${WAIT_MAX}" step="1" value="${draft.wait_minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
               <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
           </td>
@@ -1995,7 +1996,7 @@ async function renderAdmin() {
 
 function readAdminRow(tr) {
   const id = tr.dataset.adminRow;
-  const wait = Math.max(0, Number(tr.querySelector("[data-wait-input]").value) || 0);
+  const wait = Math.max(0, Math.min(WAIT_MAX, Math.round(Number(tr.querySelector("[data-wait-input]").value) || 0)));
   const status = statusFromWait(wait);
   const label = tr.querySelector("[data-status-label]");
   if (label) {
@@ -2548,7 +2549,7 @@ function bindUi() {
     const adjust = event.target.closest("[data-adjust]");
     if (adjust) {
       const input = tr.querySelector("[data-wait-input]");
-      input.value = Math.max(0, Number(input.value) + Number(adjust.dataset.adjust));
+      input.value = Math.max(0, Math.min(WAIT_MAX, Number(input.value) + Number(adjust.dataset.adjust)));
       const patch = readAdminRow(tr);
       scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
     }
@@ -2740,7 +2741,14 @@ function paintWaitBanner(sync) {
   if (!note) return;
   if (sync) waitSync = sync;
   else if (store?.getSync) waitSync = store.getSync();
-  if (waitSync.liveOk || !waitSync.wasLive) {
+  const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  if (waitSync.liveOk && !offline) {
+    note.hidden = true;
+    note.classList.remove("is-stale");
+    note.textContent = "";
+    return;
+  }
+  if (!offline && !waitSync.wasLive) {
     note.hidden = true;
     note.classList.remove("is-stale");
     note.textContent = "";
@@ -2750,8 +2758,12 @@ function paintWaitBanner(sync) {
   note.classList.add("is-stale");
   const ago = waitSync.lastLiveAt
     ? freshnessLabel(waitSync.lastLiveAt).replace(/^Updated /, "updated ")
-    : "connection lost";
-  note.textContent = `Last known waits · ${ago}`;
+    : "";
+  note.textContent = offline
+    ? ago
+      ? `No connection. The map and house stories stay on this page. Last known waits, ${ago}.`
+      : "No connection. The map, houses, and help stay on this page. Waits catch up when the signal returns."
+    : `Last known waits${ago ? ` · ${ago}` : ""}`;
 }
 
 function paintConnectionUi(mode, error) {
@@ -2853,6 +2865,11 @@ async function init() {
     loadPublicAnnouncements();
     if (document.querySelector(".view.is-active")?.dataset.view === "map") renderTimeline();
   }, 20000);
+  window.addEventListener("offline", () => paintWaitBanner());
+  window.addEventListener("online", () => {
+    paintWaitBanner();
+    if (store?.refresh) store.refresh();
+  });
 
   await (window.loadHalloweenConfig ? window.loadHalloweenConfig() : Promise.resolve());
 

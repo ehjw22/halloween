@@ -1,4 +1,4 @@
-import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=r8";
+import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=r9";
 import { setupCatchArcade } from "./catch-arcade.js?v=r7";
 import { markImg } from "./marks.js?v=r6";
 

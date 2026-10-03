@@ -1,4 +1,4 @@
-import { apiUrl, apiFetch } from "./session.js?v=r8";
+import { apiUrl, apiFetch } from "./session.js?v=r9";
 
 const WANT_KEY = "scream-push-wanted";
 
@@ -50,7 +50,7 @@ async function vapidKey() {
 export async function registerPushWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/sw.js?v=r7", { scope: "/" });
+    return await navigator.serviceWorker.register("/sw.js?v=r8", { scope: "/" });
   } catch {
     return null;
   }
