@@ -66,10 +66,29 @@ async function currentSubscription() {
   return reg.pushManager.getSubscription();
 }
 
+const HINT_DISMISS_KEY = "scream-push-hint-dismiss";
+
+function hintDismissed() {
+  try {
+    return sessionStorage.getItem(HINT_DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function dismissPushHint() {
+  try {
+    sessionStorage.setItem(HINT_DISMISS_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+  paintPushHint();
+}
+
 export function paintPushHint() {
   const hint = document.getElementById("pushInstallHint");
   if (!hint) return;
-  const show = wantsPush() && isIos() && !isStandalone();
+  const show = wantsPush() && isIos() && !isStandalone() && !hintDismissed();
   hint.hidden = !show;
 }
 

@@ -37,7 +37,8 @@ import {
   resumePushIfWanted,
   setWantsPush,
   syncPushWatch,
-} from "./push.js?v=r4";
+  dismissPushHint,
+} from "./push.js?v=r6";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -917,7 +918,7 @@ function layoutPinHits() {
   document.querySelectorAll(".map-pin__gfx").forEach((gfx) => {
     if (gfx !== booths) gfx.style.transform = "";
   });
-  const showLabels = mapState.scale >= 0.9;
+  const showLabels = mapState.scale >= 0.4;
   document.querySelectorAll(".map-pin__label").forEach((label) => {
     label.classList.toggle("is-hidden", !showLabels);
     label.style.transform = "";
@@ -1292,6 +1293,7 @@ function layoutStampLock() {
       els.studentAuth.style.removeProperty("bottom");
       els.studentAuth.style.removeProperty("left");
       els.studentAuth.style.removeProperty("width");
+      els.studentAuth.style.removeProperty("height");
     }
     if (chains) chains.replaceChildren();
     return;
@@ -1300,46 +1302,31 @@ function layoutStampLock() {
   app.style.removeProperty("top");
   app.style.removeProperty("transform");
   if (!chains || !card || !els.studentAuth) return;
-  const header = document.querySelector(".site-header");
-  const footer = document.querySelector(".site-footer");
-  const nav = document.querySelector("nav");
-  const natural = app.offsetHeight;
-  const stageBox = stage.getBoundingClientRect();
-  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
-  const footerTop = footer ? footer.getBoundingClientRect().top : stageBox.bottom;
-  const padTop = Math.max(0, stageBox.top - headerBottom);
-  const padBottom = Math.max(0, footerTop - stageBox.bottom);
-  const navFixed = nav && getComputedStyle(nav).position === "fixed";
-  const bottomReserve = navFixed ? nav.getBoundingClientRect().height : 0;
-  const room = Math.max(160, window.innerHeight - headerBottom - bottomReserve - padTop - padBottom);
-  const scale = natural > 8 ? Math.min(1, room / natural) : 1;
-  if (scale < 0.995) {
-    app.style.transformOrigin = "top center";
-    app.style.transform = `scale(${scale})`;
-    stage.style.height = `${natural * scale}px`;
-  }
-  const fitted = stage.getBoundingClientRect();
-  const headerBottomNow = header ? header.getBoundingClientRect().bottom : 0;
-  const footerTopNow = footer ? footer.getBoundingClientRect().top : fitted.bottom;
   const lock = els.studentAuth;
-  lock.style.top = `${headerBottomNow - fitted.top}px`;
-  lock.style.bottom = `${fitted.bottom - footerTopNow}px`;
+  const height = Math.max(app.offsetHeight, 160);
+  lock.style.top = `${app.offsetTop}px`;
+  lock.style.height = `${height}px`;
+  lock.style.bottom = "auto";
   lock.style.left = "0";
   lock.style.right = "0";
   lock.style.width = "100%";
-  const s = lock.getBoundingClientRect();
   const cardH = card.offsetHeight;
-  card.style.top = `${Math.max(12, (s.height - cardH) / 2)}px`;
-  const c = card.getBoundingClientRect();
+  card.style.top = `${Math.max(16, (height - cardH) / 2)}px`;
+  const width = lock.clientWidth;
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("width", String(s.width));
-  svg.setAttribute("height", String(s.height));
+  svg.setAttribute("width", String(width));
+  svg.setAttribute("height", String(height));
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  const cTop = Number.parseFloat(card.style.top) || 0;
+  const cLeft = Math.max(0, (width - card.offsetWidth) / 2);
+  const cRight = cLeft + card.offsetWidth;
+  const cBottom = cTop + card.offsetHeight;
   const runs = [
-    [0, 0, c.left - s.left, c.top - s.top],
-    [s.width, 0, c.right - s.left, c.top - s.top],
-    [0, s.height, c.left - s.left, c.bottom - s.top],
-    [s.width, s.height, c.right - s.left, c.bottom - s.top],
+    [0, 0, cLeft, cTop],
+    [width, 0, cRight, cTop],
+    [0, height, cLeft, cBottom],
+    [width, height, cRight, cBottom],
   ];
   const flats = [];
   const crosses = [];
@@ -2396,6 +2383,9 @@ function bindUi() {
       renderDashboard();
       renderPins();
     }
+  });
+  document.querySelector("[data-dismiss-push-hint]")?.addEventListener("click", () => {
+    dismissPushHint();
   });
   document.getElementById("navMore")?.addEventListener("click", (event) => {
     event.preventDefault();

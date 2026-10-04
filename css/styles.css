@@ -4386,7 +4386,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .guide-states {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s3);
   margin: 0 0 var(--s7);
 }
@@ -4788,11 +4788,31 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: #ffd7a8;
 }
 .push-install-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
   margin: 0;
   padding: 10px 18px;
   background: rgba(180, 74, 255, 0.16);
   border-bottom: 1px solid var(--line);
   color: var(--ink);
+}
+.push-install-hint[hidden] { display: none; }
+.push-install-hint__text { flex: 1 1 auto; padding-top: 2px; }
+.push-install-hint__close {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  margin: -6px -6px 0 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-2);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
 }
 /* Whole row is the hit target, so the opt-in is easy to tap on phones. */
 .check-row {
@@ -5639,15 +5659,21 @@ li.empty-state { list-style: none; }
 }
 
 .dev-badge {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 340;
   margin: 0;
-  padding: 4px 8px;
-  border-radius: var(--r-1);
+  padding: 6px 12px;
+  border-radius: 999px;
   background: var(--accent);
   color: var(--accent-ink);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.02em;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
 }
 .dev-badge[hidden] { display: none; }
 .follow-lead {
@@ -5695,5 +5721,6 @@ li.empty-state { list-style: none; }
     min-height: 0;
     -webkit-overflow-scrolling: touch;
   }
+  .push-install-hint__close { display: grid; }
 }
 

@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r56" />
+    <link rel="stylesheet" href="css/styles.css?v=r58" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -487,9 +487,12 @@
       <div class="wait-toasts" id="waitToasts" aria-live="polite"></div>
       <div class="announce-toasts" id="announceToasts" aria-live="polite"></div>
       <p class="push-install-hint" id="pushInstallHint" hidden>
-        iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that
-        icon, then tap <strong>Alert when walk-in</strong> on a house. Safari
-        tabs cannot show phone alerts.
+        <span class="push-install-hint__text">
+          iPhone: tap Share, then <strong>Add to Home Screen</strong>, open that
+          icon, then tap <strong>Alert when walk-in</strong> on a house. Safari
+          tabs cannot show phone alerts.
+        </span>
+        <button class="push-install-hint__close" type="button" data-dismiss-push-hint aria-label="Close">×</button>
       </p>
       <p class="site-live-note" id="siteLiveNote" hidden></p>
       <main id="main">
@@ -1918,7 +1921,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r64"></script>
+      <script type="module" src="js/app.js?v=r66"></script>
     </div>
   </body>
 </html>
