@@ -1280,6 +1280,7 @@ html.event-open .header-meta {
   position: absolute;
   inset: 0;
   z-index: 6;
+  overflow: hidden;
   pointer-events: none;
 }
 .view.is-locked {
@@ -1299,9 +1300,8 @@ html.event-open .header-meta {
   animation: none !important;
   transition: none !important;
 }
-.view[data-view="stamps"],
-.stamp-lock {
-  overflow-x: clip;
+.view[data-view="stamps"] {
+  overflow: visible;
   max-width: 100%;
 }
 .stamp-lock__chains {
@@ -1309,12 +1309,13 @@ html.event-open .header-meta {
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: clip;
+  overflow: visible;
   pointer-events: none;
 }
 .stamp-lock__chains svg {
   display: block;
-  max-width: 100%;
+  overflow: visible;
+  max-width: none;
 }
 .stamp-lock__chains ellipse {
   fill: none;
@@ -2443,6 +2444,25 @@ html.event-welcome .view[data-view="welcome"].is-active {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
   gap: var(--s3);
+}
+.map-booths {
+  display: grid;
+  gap: var(--s4);
+  margin-top: var(--s7);
+}
+.map-booths .section-head { margin: 0; }
+.map-booths .section-head:not(:first-child) { margin-top: var(--s3); }
+.house-card__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+.house-card__logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 .cluster-houses {
   list-style: none;

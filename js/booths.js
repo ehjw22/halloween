@@ -85,13 +85,13 @@ export const BOOTHS = [
   },
 ];
 
-/** Kept for later. Not shown until the stalls have real names. */
+/** Placeholder stalls on the map. Swap in real names and menus later. */
 export const FOOD_BOOTHS = [
   {
     id: "food-1",
     icon: "candy",
     name: "Food booth",
-    short: "Food",
+    short: "Food 1",
     place: "Eleven Square",
     summary: "Add the stall name and what it serves.",
     about: "Replace this with the stall's name and menu.",
@@ -101,7 +101,7 @@ export const FOOD_BOOTHS = [
     id: "food-2",
     icon: "candy",
     name: "Food booth",
-    short: "Food",
+    short: "Food 2",
     place: "Eleven Square",
     summary: "Add the stall name and what it serves.",
     about: "Replace this with the stall's name and menu.",
@@ -111,7 +111,7 @@ export const FOOD_BOOTHS = [
     id: "food-3",
     icon: "candy",
     name: "Food booth",
-    short: "Food",
+    short: "Food 3",
     place: "Eleven Square",
     summary: "Add the stall name and what it serves.",
     about: "Replace this with the stall's name and menu.",

@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r59" />
+    <link rel="stylesheet" href="css/styles.css?v=r61" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -468,7 +468,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.8</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.9</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -626,6 +626,16 @@
             </div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
+          <section class="map-booths" aria-label="Booths">
+            <div class="section-head">
+              <h2>Booths</h2>
+            </div>
+            <div class="cluster-group__grid" id="boothDirectory"></div>
+            <div class="section-head">
+              <h2>Food booths</h2>
+            </div>
+            <div class="cluster-group__grid" id="foodDirectory"></div>
+          </section>
         </section>
 
         <section class="view" data-view="login" hidden>
@@ -1923,7 +1933,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r67"></script>
+      <script type="module" src="js/app.js?v=r69"></script>
     </div>
   </body>
 </html>

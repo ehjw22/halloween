@@ -1,7 +1,7 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r19";
-import { BOOTHS, boothById } from "./booths.js?v=r27";
+import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r28";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
@@ -568,8 +568,39 @@ function listingMatches(meta) {
   return Boolean(row && houseMatchesFilter(row));
 }
 
+function boothDirectoryCard(booth) {
+  const food = Boolean(booth.food);
+  const logo = food
+    ? `<img class="house-card__logo" src="img/marks/ghost.png?v=r6" alt="" width="32" height="32">`
+    : "";
+  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}">
+    <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
+      <span class="house-card__rail" aria-hidden="true"></span>
+      <span class="house-card__top">
+        <span class="house-card__identity">${logo}<span class="house-card__short">${escapeHtml(booth.short || "")}</span></span>
+        <span class="status-pill">${food ? "Food" : "Booth"}</span>
+      </span>
+      <strong class="house-card__name">${escapeHtml(booth.name)}</strong>
+      <span class="house-card__metric">
+        <span class="house-card__wait is-venue">${escapeHtml(booth.place || "")}</span>
+      </span>
+      <span class="house-card__meta">
+        <span class="fresh">${escapeHtml(booth.summary || (food ? "Food stall" : "Booth"))}</span>
+      </span>
+    </button>
+  </article>`;
+}
+
+function paintBoothDirectory() {
+  const booths = document.getElementById("boothDirectory");
+  const food = document.getElementById("foodDirectory");
+  if (booths) booths.innerHTML = BOOTHS.map(boothDirectoryCard).join("");
+  if (food) food.innerHTML = FOOD_BOOTHS.map(boothDirectoryCard).join("");
+}
+
 function renderDashboard() {
   paintHouseFilters();
+  paintBoothDirectory();
   if (!els.houseGrid) return;
   const watching = new Set(readNight().watch);
   const goNow = sortedHouses().filter((row) => houseMatchesFilter(row) && isGoNowHouse(row));
@@ -1246,6 +1277,18 @@ function layoutStampPage() {
   layoutStampLock();
 }
 
+function pageOffset(el) {
+  let x = 0;
+  let y = 0;
+  let node = el;
+  while (node && node !== document.body && node !== document.documentElement) {
+    x += node.offsetLeft;
+    y += node.offsetTop;
+    node = node.offsetParent;
+  }
+  return { x, y };
+}
+
 function layoutStampLock() {
   const stage = document.querySelector('[data-view="stamps"]');
   const app = els.stampApp;
@@ -1272,13 +1315,19 @@ function layoutStampLock() {
   app.style.removeProperty("transform");
   if (!chains || !card || !els.studentAuth) return;
   const lock = els.studentAuth;
-  const height = Math.max(app.offsetHeight, 160);
-  lock.style.top = `${app.offsetTop}px`;
+  const header = document.querySelector(".site-header");
+  const footer = document.querySelector(".site-footer");
+  const stageAt = pageOffset(stage);
+  const headerBottom = header ? pageOffset(header).y + header.offsetHeight : stageAt.y;
+  const footerTop = footer ? pageOffset(footer).y : stageAt.y + stage.offsetHeight;
+  const top = headerBottom - stageAt.y;
+  const height = Math.max(footerTop - headerBottom, 160);
+  lock.style.top = `${top}px`;
+  lock.style.left = `${-stageAt.x}px`;
   lock.style.height = `${height}px`;
   lock.style.bottom = "auto";
-  lock.style.left = "0";
-  lock.style.right = "0";
-  lock.style.width = "100%";
+  lock.style.right = "auto";
+  lock.style.width = `${document.documentElement.clientWidth}px`;
   const cardH = card.offsetHeight;
   card.style.top = `${Math.max(16, (height - cardH) / 2)}px`;
   const width = lock.clientWidth;
@@ -1305,7 +1354,7 @@ function layoutStampLock() {
     const len = Math.hypot(dx, dy);
     if (len < 8) return;
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    const reach = 6;
+    const reach = 9;
     const count = Math.max(2, Math.round((len - reach * 2) / 12) + 1);
     for (let index = 0; index < count; index += 1) {
       const dist = count === 1 ? len / 2 : reach + ((len - reach * 2) * index) / (count - 1);
