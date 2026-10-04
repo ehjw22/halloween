@@ -235,15 +235,8 @@ function paintHouseFilters() {
   document.querySelectorAll("[data-filter-tag]").forEach((btn) => {
     btn.classList.toggle("is-on", btn.dataset.filterTag === houseFilter.tag);
   });
-  const host = document.getElementById("activeFilters");
-  if (!host) return;
-  const chips = [];
-  const statusNames = { gonow: "Go now", open: "Open", busy: "Busy", long: "Long", closed: "Closed" };
-  if (houseFilter.status) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="status">${escapeHtml(statusNames[houseFilter.status] || houseFilter.status)} <span aria-hidden="true">×</span><span class="visually-hidden">Remove status filter</span></button>`);
-  if (houseFilter.tag) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="tag">${escapeHtml(houseFilter.tag)} <span aria-hidden="true">×</span><span class="visually-hidden">Remove tag filter</span></button>`);
-  if (houseFilter.q.trim()) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="q">“${escapeHtml(houseFilter.q.trim())}” <span aria-hidden="true">×</span><span class="visually-hidden">Remove search</span></button>`);
-  host.innerHTML = chips.join("");
-  host.hidden = chips.length === 0;
+  const clear = document.querySelector("[data-clear-filters]");
+  if (clear) clear.hidden = !filterIsActive();
 }
 
 function clearHouseFilters(which) {
@@ -914,38 +907,14 @@ function rectsOverlap(a, b) {
 }
 
 function layoutPinHits() {
-  const booths = document.querySelector(".map-pin--booths .map-pin__gfx");
   document.querySelectorAll(".map-pin__gfx").forEach((gfx) => {
-    if (gfx !== booths) gfx.style.transform = "";
+    gfx.style.transform = "";
   });
   const showLabels = mapState.scale >= 0.4;
   document.querySelectorAll(".map-pin__label").forEach((label) => {
     label.classList.toggle("is-hidden", !showLabels);
     label.style.transform = "";
   });
-  if (!booths) return;
-  const protect = ["t11b", "t12a", "t16", "t17", "spectrum", "t14", "t15"];
-  const scale = `scale(calc(1 / max(var(--map-scale, 1), 0.08)))`;
-  const mapScale = Math.max(mapState.scale || 1, 0.08);
-  let x = 0;
-  let y = 0;
-  booths.style.transform = scale;
-  for (let pass = 0; pass < 8; pass += 1) {
-    booths.style.transform = `translate(${x}px, ${y}px) ${scale}`;
-    const placed = booths.getBoundingClientRect();
-    if (placed.width < 2) break;
-    let extraX = 0;
-    let extraY = 0;
-    protect.forEach((id) => {
-      const box = document.querySelector(`.map-pin[data-pin="${id}"] .map-pin__hit`)?.getBoundingClientRect();
-      if (!box || box.width < 2 || !rectsOverlap(placed, box)) return;
-      extraX = Math.max(extraX, box.right + 8 - placed.left);
-      extraY = Math.max(extraY, box.bottom + 8 - placed.top);
-    });
-    if (extraX <= 0 && extraY <= 0) break;
-    if (extraY >= extraX) y += extraY / mapScale;
-    else x += extraX / mapScale;
-  }
   if (!showLabels) return;
   const labels = [...document.querySelectorAll(".map-pin__label:not(.is-hidden)")];
   labels.forEach((label, index) => {

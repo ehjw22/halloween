@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r58" />
+    <link rel="stylesheet" href="css/styles.css?v=r59" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -468,7 +468,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.7</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.8</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -620,8 +620,10 @@
               >
                 Closed
               </button>
+              <button type="button" class="filter-chip filter-chip--clear" data-clear-filters hidden>
+                Clear filters
+              </button>
             </div>
-            <div class="active-filters" id="activeFilters" hidden></div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
         </section>
@@ -1921,7 +1923,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r66"></script>
+      <script type="module" src="js/app.js?v=r67"></script>
     </div>
   </body>
 </html>

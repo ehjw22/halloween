@@ -2504,6 +2504,7 @@ html.event-welcome .view[data-view="welcome"].is-active {
   padding: 0 var(--s3);
   border-radius: var(--r-1);
 }
+.filter-chip--clear[hidden] { display: none; }
 .house-filters__empty {
   grid-column: 1 / -1;
   margin: 0;
@@ -4386,9 +4387,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .guide-states {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--s3);
   margin: 0 0 var(--s7);
+}
+@media (max-width: 800px) {
+  .guide-states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .guide-state {
   display: grid;
