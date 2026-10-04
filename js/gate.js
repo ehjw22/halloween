@@ -12,8 +12,10 @@ let lastSecondShown = null;
 let lastLiveSecond = null;
 let lastPhase = null;
 let stingStarted = false;
+let devLatched = false;
 
 function hasDevView() {
+  if (devLatched) return true;
   try {
     if (new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE) return true;
     if (sessionStorage.getItem(DEV_KEY) === "1") return true;
@@ -243,13 +245,23 @@ function stripDevQuery() {
 }
 
 function rememberDevView() {
-  if (new URLSearchParams(location.search).get(DEV_PARAM) !== DEV_VALUE) return;
+  let fromQuery = false;
+  try {
+    fromQuery = new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE;
+    if (!fromQuery && sessionStorage.getItem(DEV_KEY) === "1") devLatched = true;
+  } catch {
+    fromQuery = new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE;
+  }
+  if (!fromQuery) return;
+  devLatched = true;
+  let stored = false;
   try {
     sessionStorage.setItem(DEV_KEY, "1");
+    stored = sessionStorage.getItem(DEV_KEY) === "1";
   } catch {
-    /* private mode */
+    stored = false;
   }
-  stripDevQuery();
+  if (stored) stripDevQuery();
 }
 
 export function openEventGate() {

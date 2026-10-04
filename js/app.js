@@ -1,4 +1,4 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r7";
+import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r8";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r19";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
@@ -38,7 +38,7 @@ import {
   resumePushIfWanted,
   setWantsPush,
   syncPushWatch,
-} from "./push.js?v=r3";
+} from "./push.js?v=r4";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -352,8 +352,10 @@ function wantsOpeningNight() {
 }
 
 function setHash(view, extra) {
-  const next = extra ? `#${view}/${extra}` : `#${view}`;
-  if (location.hash !== next) history.replaceState(null, "", next);
+  const hash = extra ? `#${view}/${extra}` : `#${view}`;
+  const next = `${location.pathname}${location.search}${hash}`;
+  const current = `${location.pathname}${location.search}${location.hash}`;
+  if (current !== next) history.replaceState(null, "", next);
 }
 
 function canSeeStaffTab() {
@@ -361,7 +363,7 @@ function canSeeStaffTab() {
 }
 
 function setView(name, extra) {
-  if (!isEventOpen()) {
+  if (!isEventOpen() && !document.documentElement.classList.contains("event-open")) {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     return;
   }
@@ -2851,14 +2853,17 @@ async function init() {
   paintPushHint();
   resumePushIfWanted(readNight().watch);
   const start = hashToView();
-  if (wantsOpeningNight()) {
+  const explicitTab = Boolean(location.hash) && start.view && start.view !== "welcome";
+  if (wantsOpeningNight() && !explicitTab) {
     setView("welcome");
   } else if (location.hash && start.view) {
     setView.skipHash = true;
     setView(start.view, start.extra);
   }
   window.addEventListener("scream-gates-opened", () => {
-    if (wantsOpeningNight()) setView("welcome");
+    const next = hashToView();
+    const asked = Boolean(location.hash) && next.view && next.view !== "welcome";
+    if (wantsOpeningNight() && !asked) setView("welcome");
   });
   window.setInterval(() => {
     if (document.hidden) return;

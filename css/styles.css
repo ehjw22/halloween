@@ -2331,11 +2331,8 @@ main {
   max-width: var(--page-max);
   margin: 0 auto;
 }
-html.event-welcome .view[data-view="welcome"] {
+html.event-welcome .view[data-view="welcome"].is-active {
   display: block !important;
-}
-html.event-welcome .view:not([data-view="welcome"]) {
-  display: none !important;
 }
 .view[hidden], .view:not(.is-active) { display: none; }
 .view.is-active { display: block; }

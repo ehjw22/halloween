@@ -9,7 +9,7 @@ function safeClientUrl(url) {
   }
 }
 
-const STATIC_CACHE = "scream-static-v1";
+const STATIC_CACHE = "scream-static-v2";
 
 function isCacheable(url) {
   if (url.origin !== self.location.origin) return false;
@@ -17,28 +17,42 @@ function isCacheable(url) {
   return true;
 }
 
+function cacheKey(req) {
+  const url = new URL(req.url);
+  return new Request(`${url.pathname}${url.search}`, { method: "GET" });
+}
+
 async function putCache(req, res) {
-  if (!res || !res.ok) return;
+  if (!res || !res.ok || res.type === "opaqueredirect") return;
   const cache = await caches.open(STATIC_CACHE);
-  await cache.put(req, res.clone());
+  await cache.put(cacheKey(req), res.clone());
+}
+
+function withoutStore(res) {
+  const headers = new Headers(res.headers);
+  headers.delete("cache-control");
+  headers.delete("expires");
+  headers.delete("pragma");
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
 }
 
 async function networkOrCache(req) {
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(req);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), cached ? 4000 : 20000);
+  const cached = await cache.match(cacheKey(req));
   try {
-    const res = await fetch(req, { signal: controller.signal });
-    clearTimeout(timer);
+    const res = await fetch(req);
     try {
       await putCache(req, res);
     } catch {
       /* a full cache must not hide a page that already loaded */
     }
-    return res;
-  } catch (error) {
-    clearTimeout(timer);
+    if (!res || !res.ok) return cached || res;
+    return withoutStore(res);
+  } catch {
     if (cached) return cached;
     return fetch(req);
   }
