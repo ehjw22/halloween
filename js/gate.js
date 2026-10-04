@@ -1,4 +1,5 @@
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
+const OPEN_KEY = "scream-gates-opened";
 const DEV_KEY = "scream-dev-view";
 const DEV_PARAM = "dev";
 const DEV_VALUE = "scream";
@@ -25,8 +26,29 @@ function hasDevView() {
   return false;
 }
 
+export function isDevPreview() {
+  return hasDevView();
+}
+
+function gatesRemembered() {
+  try {
+    return localStorage.getItem(OPEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberGatesOpened() {
+  try {
+    localStorage.setItem(OPEN_KEY, "1");
+  } catch {
+    /* private mode keeps the open night for this visit only */
+  }
+}
+
 export function isEventOpen() {
   if (Date.now() >= GATES_AT) return true;
+  if (gatesRemembered()) return true;
   return hasDevView();
 }
 
@@ -211,6 +233,7 @@ function finishUnlock() {
 function beginSting() {
   if (stingStarted) return;
   stingStarted = true;
+  rememberGatesOpened();
   stopClock();
   paintClock();
   if (prefersReducedMotion()) {
@@ -304,10 +327,16 @@ export function lockEventGate() {
 
 export function initEventGate() {
   rememberDevView();
+  if (Date.now() >= GATES_AT) rememberGatesOpened();
   if (isEventOpen()) {
     openEventGate();
     return;
   }
 
   lockEventGate();
+  window.addEventListener("pageshow", () => {
+    if (Date.now() < GATES_AT && !gatesRemembered()) return;
+    if (Date.now() >= GATES_AT) rememberGatesOpened();
+    if (!document.documentElement.classList.contains("event-open")) openEventGate();
+  });
 }

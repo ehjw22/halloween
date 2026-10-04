@@ -10,12 +10,12 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Scream Fest" />
     <meta name="theme-color" content="#ff7a18" />
     <meta
       name="description"
-      content="Singapore Polytechnic Scream Fest — wait times, stamp card, tonight’s programme, and safety."
+      content="Singapore Polytechnic Scream Fest — wait times, stamp card, and safety."
     />
     <meta property="og:title" content="SP Scream Fest" />
     <meta
@@ -29,8 +29,8 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r55" />
-    <script src="js/boot.js?v=r7"></script>
+    <link rel="stylesheet" href="css/styles.css?v=r56" />
+    <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -264,6 +264,7 @@
     </div>
     <div id="eventApp" data-event-app>
       <header class="site-header">
+        <p class="dev-badge" id="devBadge" hidden>Dev preview</p>
         <button class="brand" type="button" data-nav="map">
           <span class="brand__mark">SP</span>
           <div>
@@ -467,7 +468,7 @@
         </nav>
         <div class="header-meta">
           <div class="session-chip" id="sessionChip" hidden></div>
-          <!-- <div class="version-chip" title="App version">v1.8.6</div> -->
+          <!-- <div class="version-chip" title="App version">v1.8.7</div> -->
         </div>
       </header>
       <div class="live-chip" id="liveMode" aria-live="polite" hidden>
@@ -617,6 +618,7 @@
                 Closed
               </button>
             </div>
+            <div class="active-filters" id="activeFilters" hidden></div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
         </section>
@@ -626,7 +628,7 @@
             <div class="section-head">
               <h2>Sign in</h2>
             </div>
-            <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on">
+            <form class="auth-card" id="studentLoginForm" method="post" action="#" autocomplete="on" novalidate>
               <p class="auth-card__kicker">SP Scream Fest</p>
               <h2>Open your night</h2>
               <p class="muted">
@@ -644,9 +646,10 @@
                   maxlength="16"
                   placeholder="P1234567"
                   spellcheck="false"
-                  required
+                  aria-describedby="studentLoginIdError"
                 />
                 <span class="field-hint">Enter P followed by 7 digits, or just the 7 digits.</span>
+                <span class="field-error" id="studentLoginIdError" role="alert" hidden></span>
               </label>
               <label>
                 Full name
@@ -657,8 +660,9 @@
                   autocomplete="name"
                   maxlength="80"
                   placeholder="Full name on your card"
-                  required
+                  aria-describedby="studentLoginNameError"
                 />
+                <span class="field-error" id="studentLoginNameError" role="alert" hidden></span>
               </label>
               <label class="check-row">
                 <input id="studentNotifyOptIn" type="checkbox" />
@@ -1257,17 +1261,19 @@
           <div class="section-head">
             <h2>Night feedback</h2>
           </div>
-          <form class="auth-card feedback-form" id="feedbackForm">
+          <form class="auth-card feedback-form" id="feedbackForm" novalidate>
             <label>
               About
-              <select id="feedbackKind" required>
+              <select id="feedbackKind" aria-describedby="feedbackKindError">
                 <option value="scare_house">Scare Houses</option>
                 <option value="booth">Booths</option>
               </select>
+              <span class="field-error" id="feedbackKindError" role="alert" hidden></span>
             </label>
             <label>
               Which one
-              <select id="feedbackTarget" required></select>
+              <select id="feedbackTarget" aria-describedby="feedbackTargetError"></select>
+              <span class="field-error" id="feedbackTargetError" role="alert" hidden></span>
             </label>
             <label>
               Rating
@@ -1432,7 +1438,7 @@
               </div>
               <h3>Closed</h3>
               <p>
-                This house is not taking guests. Do not wait at the door. Check back when the card is no longer closed.
+                This house is currently closed. Do not wait at the door. Check back when the house is no longer closed.
               </p>
             </article>
           </div>
@@ -1482,10 +1488,7 @@
           <div id="adminGate" class="auth-card">
             <p class="auth-card__kicker">Staff</p>
             <h2>Unlock staff tools</h2>
-            <p class="muted">
-              You are signed in. Enter the night staff password to open wait
-              times, stamps, and the rest of the desk.
-            </p>
+            <p class="muted" id="staffGateLead" hidden></p>
             <form id="staffUnlockForm" method="post" action="#">
               <label>
                 Staff password
@@ -1504,6 +1507,7 @@
           </div>
 
           <div id="adminApp" hidden>
+            <p class="muted" id="staffSignedIn" hidden>You are signed in.</p>
             <p class="db-banner" id="dbBanner" hidden></p>
             <details class="staff-log">
               <summary>Error log</summary>
@@ -1780,6 +1784,14 @@
           </div>
         </section>
 
+        <section class="view" data-view="follow" hidden>
+          <div class="section-head">
+            <h2>The clubs</h2>
+          </div>
+          <p class="follow-lead">Brought to you by the Singapore Polytechnic clubs running the night.</p>
+          <p class="site-footer__clubs" id="followClubs"></p>
+        </section>
+
         <section class="view board-view" data-view="board" hidden>
           <div class="section-head">
             <h2>Scream Fest board</h2>
@@ -1810,11 +1822,17 @@
           aria-modal="true"
           aria-labelledby="clusterModalTitle"
         >
-          <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-          <p class="modal__code" data-cluster-kicker></p>
-          <h3 id="clusterModalTitle" data-cluster-title></h3>
-          <p class="modal__story" data-cluster-story></p>
-          <ul class="cluster-houses" data-cluster-houses></ul>
+          <div class="modal__bar">
+            <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+            <div>
+              <p class="modal__code" data-cluster-kicker></p>
+              <h3 id="clusterModalTitle" data-cluster-title></h3>
+            </div>
+          </div>
+          <div class="modal__body">
+            <p class="modal__story" data-cluster-story></p>
+            <ul class="cluster-houses" data-cluster-houses></ul>
+          </div>
         </div>
       </div>
 
@@ -1827,27 +1845,26 @@
           aria-modal="true"
           aria-labelledby="houseModalTitle"
         >
-          <button
-            class="modal__close"
-            type="button"
-            data-close-modal
-            aria-label="Close"
-          >
-            ×
-          </button>
-          <p class="modal__code" data-modal-code></p>
-          <h3 id="houseModalTitle" data-modal-title></h3>
-          <div class="modal__meta">
-            <span class="status-pill" data-modal-status></span>
-            <strong data-modal-wait></strong>
+          <div class="modal__bar">
+            <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+            <div>
+              <p class="modal__code" data-modal-code></p>
+              <h3 id="houseModalTitle" data-modal-title></h3>
+            </div>
           </div>
-          <p class="modal__story" data-modal-story></p>
-          <p class="house-tags" data-modal-tags></p>
-          <p class="muted" data-modal-updated></p>
-          <div class="modal-actions">
-            <button class="btn" type="button" id="modalWatch">
-              Alert when walk-in
-            </button>
+          <div class="modal__body">
+            <div class="modal__meta">
+              <span class="status-pill" data-modal-status></span>
+              <strong data-modal-wait></strong>
+            </div>
+            <p class="modal__story" data-modal-story></p>
+            <p class="house-tags" data-modal-tags></p>
+            <p class="muted" data-modal-updated></p>
+            <div class="modal-actions">
+              <button class="btn" type="button" id="modalWatch">
+                Alert when walk-in
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1861,20 +1878,16 @@
           aria-modal="true"
           aria-labelledby="boothsModalTitle"
         >
-          <button
-            class="modal__close"
-            type="button"
-            data-close-modal
-            aria-label="Close"
-          >
-            ×
-          </button>
-          <p class="modal__code">Eleven Square</p>
-          <h3 id="boothsModalTitle">Booths</h3>
-          <div class="booths-list" id="boothsPinList"></div>
-          <h4 class="booths-list__heading">Food booths</h4>
-          <p class="muted">Stalls on the night. These do not take a stamp.</p>
-          <div class="booths-list" id="foodBoothsList"></div>
+          <div class="modal__bar">
+            <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+            <div>
+              <p class="modal__code">Eleven Square</p>
+              <h3 id="boothsModalTitle">Booths</h3>
+            </div>
+          </div>
+          <div class="modal__body">
+            <div class="booths-list" id="boothsPinList"></div>
+          </div>
         </div>
       </div>
 
@@ -1887,26 +1900,25 @@
           aria-modal="true"
           aria-labelledby="boothModalTitle"
         >
-          <button
-            class="modal__close"
-            type="button"
-            data-close-modal
-            aria-label="Close"
-          >
-            ×
-          </button>
-          <p class="modal__code" data-booth-code></p>
-          <h3 id="boothModalTitle" data-booth-title></h3>
-          <p class="muted" data-booth-place></p>
-          <p class="modal__story" data-booth-summary></p>
-          <p data-booth-about></p>
-          <p class="muted" data-booth-stamp></p>
+          <div class="modal__bar">
+            <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+            <div>
+              <p class="modal__code" data-booth-code></p>
+              <h3 id="boothModalTitle" data-booth-title></h3>
+            </div>
+          </div>
+          <div class="modal__body">
+            <p class="muted" data-booth-place></p>
+            <p class="modal__story" data-booth-summary></p>
+            <p data-booth-about></p>
+            <p class="muted" data-booth-stamp></p>
+          </div>
         </div>
       </div>
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r60"></script>
+      <script type="module" src="js/app.js?v=r64"></script>
     </div>
   </body>
 </html>

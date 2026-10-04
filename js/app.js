@@ -1,9 +1,8 @@
-import { initEventGate, isEventOpen, WELCOME_PENDING_KEY } from "./gate.js?v=r8";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r19";
-import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r27";
+import { BOOTHS, boothById } from "./booths.js?v=r27";
 import { SPONSORS } from "./sponsors.js?v=r18";
-import { EVENT_DATE_LABEL, SCHEDULE, scheduleStatus } from "./schedule.js?v=r6";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
 import { createStore } from "./store.js?v=r8";
@@ -235,6 +234,27 @@ function paintHouseFilters() {
   document.querySelectorAll("[data-filter-tag]").forEach((btn) => {
     btn.classList.toggle("is-on", btn.dataset.filterTag === houseFilter.tag);
   });
+  const host = document.getElementById("activeFilters");
+  if (!host) return;
+  const chips = [];
+  const statusNames = { gonow: "Go now", open: "Open", busy: "Busy", long: "Long", closed: "Closed" };
+  if (houseFilter.status) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="status">${escapeHtml(statusNames[houseFilter.status] || houseFilter.status)} <span aria-hidden="true">×</span><span class="visually-hidden">Remove status filter</span></button>`);
+  if (houseFilter.tag) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="tag">${escapeHtml(houseFilter.tag)} <span aria-hidden="true">×</span><span class="visually-hidden">Remove tag filter</span></button>`);
+  if (houseFilter.q.trim()) chips.push(`<button type="button" class="filter-chip active-filters__chip" data-clear-filter="q">“${escapeHtml(houseFilter.q.trim())}” <span aria-hidden="true">×</span><span class="visually-hidden">Remove search</span></button>`);
+  host.innerHTML = chips.join("");
+  host.hidden = chips.length === 0;
+}
+
+function clearHouseFilters(which) {
+  if (!which || which === "status") houseFilter.status = "";
+  if (!which || which === "tag") houseFilter.tag = "";
+  if (!which || which === "q") {
+    houseFilter.q = "";
+    const search = document.getElementById("houseSearch");
+    if (search) search.value = "";
+  }
+  renderDashboard();
+  renderPins();
 }
 
 function freshnessLabel(iso) {
@@ -351,11 +371,16 @@ function wantsOpeningNight() {
   return true;
 }
 
-function setHash(view, extra) {
-  const hash = extra ? `#${view}/${extra}` : `#${view}`;
+function writeHash(hash, mode) {
   const next = `${location.pathname}${location.search}${hash}`;
   const current = `${location.pathname}${location.search}${location.hash}`;
-  if (current !== next) history.replaceState(null, "", next);
+  if (current === next) return;
+  if (mode === "replace") history.replaceState(null, "", next);
+  else history.pushState(null, "", next);
+}
+
+function setHash(view, extra) {
+  writeHash(extra ? `#${view}/${extra}` : `#${view}`, "push");
 }
 
 function canSeeStaffTab() {
@@ -377,22 +402,21 @@ function setView(name, extra) {
     name = "map";
     hashName = "map";
     navName = "map";
-  } else if (name === "guide") {
+  } else if (name === "guide" || (name === "help" && extra === "guide")) {
     name = "help";
-    hashName = "guide";
+    extra = "guide";
+    hashName = "help";
     navName = "help";
     scrollId = "help-how";
-  } else if (name === "safety") {
+  } else if (name === "safety" || (name === "help" && extra === "safety")) {
     name = "help";
-    hashName = "safety";
+    extra = "safety";
+    hashName = "help";
     navName = "help";
     scrollId = "help-safety";
   } else if (name === "follow") {
-    const current = document.querySelector(".view.is-active")?.dataset.view;
-    name = current && current !== "welcome" && current !== "follow" ? current : "map";
     hashName = "follow";
     navName = "";
-    scrollId = "follow-clubs";
   }
   if (name === "games" && !GAMES_ENABLED) {
     name = "map";
@@ -402,16 +426,20 @@ function setView(name, extra) {
   if (name === "admin" && !canSeeStaffTab()) name = student ? "stamps" : "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
-  if (!["tonight", "guide", "safety", "follow", "house"].includes(rawName)) {
+  if (!["tonight", "guide", "safety", "follow", "house", "booths", "booth", "pin", "help"].includes(rawName)) {
     navName = name;
   }
-  if (name === "house") {
+  const fromHistory = Boolean(setView.skipHash);
+  if (name === "house" || name === "booths" || name === "booth" || name === "pin" || name === "cluster") {
     name = "map";
     navName = "map";
-    hashName = extra ? "house" : "map";
-    if (extra) openHouse(extra);
+    if (rawName === "house" && extra) openHouse(extra, { fromHash: fromHistory });
+    else if (rawName === "booths") openBooths({ fromHash: fromHistory });
+    else if (rawName === "booth" && extra) openBooth(extra, { fromHash: fromHistory });
+    else if (rawName === "pin" && extra) openPin(extra, { fromHash: fromHistory });
+    else if (rawName === "cluster" && extra) openCluster(extra, { fromHash: fromHistory });
   } else {
-    closeModals();
+    closeModals({ restore: false });
   }
   if (name === "welcome") {
     document.documentElement.classList.add("event-welcome");
@@ -431,18 +459,19 @@ function setView(name, extra) {
     else btn.removeAttribute("aria-current");
   });
   setGamesVisible(name === "games");
-  if (rawName === "games" && !GAMES_ENABLED) {
-    setHash("map");
+  if (rawName === "guide" || rawName === "safety") {
+    writeHash(`#help/${rawName}`, "replace");
   } else if (!setView.skipHash) {
-    if (rawName === "guide" || rawName === "safety" || rawName === "follow") {
-      setHash(rawName);
-    } else if (name === "map" && extra) {
-      setHash("house", extra);
-    } else if (name === "map") {
-      setHash("map");
-    } else {
-      setHash(name);
-    }
+    let hash = `#${name}`;
+    if (name === "help" && (extra === "guide" || extra === "safety")) {
+      hash = `#help/${extra}`;
+    } else if (rawName === "house" && extra) hash = `#house/${extra}`;
+    else if (rawName === "booths") hash = "#booths";
+    else if (rawName === "booth" && extra) hash = `#booth/${extra}`;
+    else if (rawName === "pin" && extra) hash = `#pin/${extra}`;
+    else if (rawName === "cluster" && extra) hash = `#cluster/${extra}`;
+    else if (rawName === "games" && !GAMES_ENABLED) hash = "#map";
+    writeHash(hash, rawName === "guide" || rawName === "safety" || rawName === "tonight" ? "replace" : "push");
   }
   setView.skipHash = false;
   setMoreMenu(false);
@@ -555,7 +584,7 @@ function renderDashboard() {
     members: clusterMembers(cluster.id).filter(listingMatches),
   })).filter((group) => group.members.length);
   if (!goNow.length && !groups.length) {
-    els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Clear a filter or try a different search.</p></div>`;
+    els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Nothing is left with these filters.</p><button class="btn" type="button" data-clear-filters>Clear filters</button></div>`;
     return;
   }
   const showGoNow = goNow.length || !filterIsActive();
@@ -700,6 +729,8 @@ function paintClubs() {
   if (credits) credits.innerHTML = links;
   const footer = document.getElementById("footerClubs");
   if (footer) footer.innerHTML = links;
+  const follow = document.getElementById("followClubs");
+  if (follow) follow.innerHTML = links;
 }
 
 function paintSponsors() {
@@ -801,19 +832,131 @@ function paintBoothsPinList() {
     list.innerHTML = BOOTHS.map(boothListButton).join("");
     list.dataset.filled = "1";
   }
-  const food = document.getElementById("foodBoothsList");
-  if (food && !food.dataset.filled) {
-    food.innerHTML = FOOD_BOOTHS.map(boothListButton).join("");
-    food.dataset.filled = "1";
+}
+
+let modalHash = "";
+let modalOpener = null;
+
+function sheetFocusables(panel) {
+  return [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter((node) => !node.closest("[hidden]") && node.offsetParent !== null);
+}
+
+function trapSheetKey(event) {
+  const modal = event.currentTarget.closest(".modal");
+  const panel = modal?.querySelector(".modal__panel");
+  if (!panel || event.key !== "Tab") return;
+  const items = sheetFocusables(panel);
+  if (!items.length) {
+    event.preventDefault();
+    panel.focus();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
   }
 }
 
-function openBooths() {
-  paintBoothsPinList();
-  const modal = els.boothsModal;
+function bindSheetSwipe(modal) {
+  const bar = modal.querySelector(".modal__bar");
+  if (!bar || bar.dataset.swipe) return;
+  bar.dataset.swipe = "1";
+  let startY = 0;
+  bar.addEventListener("pointerdown", (event) => {
+    if (event.target.closest("button, a, input, select, textarea")) return;
+    startY = event.clientY;
+  });
+  bar.addEventListener("pointerup", (event) => {
+    if (startY && event.clientY - startY > 56) closeModals({ restore: true });
+    startY = 0;
+  });
+}
+
+function showSheet(modal, hash, fromHash) {
   if (!modal) return;
+  document.querySelectorAll(".modal").forEach((other) => {
+    if (other !== modal) other.hidden = true;
+  });
+  if (!modalOpener) modalOpener = document.activeElement;
   modal.hidden = false;
-  modal.querySelector(".modal__panel")?.focus();
+  bindSheetSwipe(modal);
+  const panel = modal.querySelector(".modal__panel");
+  panel?.removeEventListener("keydown", trapSheetKey);
+  panel?.addEventListener("keydown", trapSheetKey);
+  const close = modal.querySelector(".modal__close");
+  (close || panel)?.focus();
+  if (fromHash) {
+    modalHash = location.hash;
+    return;
+  }
+  if (!hash || location.hash === hash) {
+    modalHash = location.hash;
+    return;
+  }
+  modalHash = hash;
+  writeHash(hash, "push");
+}
+
+function openBooths(opts = {}) {
+  paintBoothsPinList();
+  showSheet(els.boothsModal, "#booths", opts.fromHash);
+}
+
+function rectsOverlap(a, b) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function layoutPinHits() {
+  const booths = document.querySelector(".map-pin--booths .map-pin__gfx");
+  document.querySelectorAll(".map-pin__gfx").forEach((gfx) => {
+    if (gfx !== booths) gfx.style.transform = "";
+  });
+  const showLabels = mapState.scale >= 0.9;
+  document.querySelectorAll(".map-pin__label").forEach((label) => {
+    label.classList.toggle("is-hidden", !showLabels);
+    label.style.transform = "";
+  });
+  if (!booths) return;
+  const protect = ["t11b", "t12a", "t16", "t17", "spectrum", "t14", "t15"];
+  const scale = `scale(calc(1 / max(var(--map-scale, 1), 0.08)))`;
+  const mapScale = Math.max(mapState.scale || 1, 0.08);
+  let x = 0;
+  let y = 0;
+  booths.style.transform = scale;
+  for (let pass = 0; pass < 8; pass += 1) {
+    booths.style.transform = `translate(${x}px, ${y}px) ${scale}`;
+    const placed = booths.getBoundingClientRect();
+    if (placed.width < 2) break;
+    let extraX = 0;
+    let extraY = 0;
+    protect.forEach((id) => {
+      const box = document.querySelector(`.map-pin[data-pin="${id}"] .map-pin__hit`)?.getBoundingClientRect();
+      if (!box || box.width < 2 || !rectsOverlap(placed, box)) return;
+      extraX = Math.max(extraX, box.right + 8 - placed.left);
+      extraY = Math.max(extraY, box.bottom + 8 - placed.top);
+    });
+    if (extraX <= 0 && extraY <= 0) break;
+    if (extraY >= extraX) y += extraY / mapScale;
+    else x += extraX / mapScale;
+  }
+  if (!showLabels) return;
+  const labels = [...document.querySelectorAll(".map-pin__label:not(.is-hidden)")];
+  labels.forEach((label, index) => {
+    let shift = 0;
+    for (let guard = 0; guard < 6; guard += 1) {
+      label.style.transform = `translateX(-50%) translateY(${shift}px)`;
+      const box = label.getBoundingClientRect();
+      const clash = labels.slice(0, index).some((prev) => rectsOverlap(box, prev.getBoundingClientRect()));
+      if (!clash) break;
+      shift += 18;
+    }
+  });
 }
 
 function applyMapTransform() {
@@ -821,6 +964,7 @@ function applyMapTransform() {
   els.mapWorld.style.transform = `translate(${mapState.x}px, ${mapState.y}px) scale(${mapState.scale})`;
   els.mapWorld.style.setProperty("--map-scale", String(mapState.scale || 1));
   if (els.zoomLabel) els.zoomLabel.textContent = `${Math.round(mapState.scale * 100)}%`;
+  layoutPinHits();
 }
 
 function sizeMapWorld() {
@@ -871,7 +1015,7 @@ function resetMap() {
   fitMap();
 }
 
-function openHouse(id) {
+function openHouse(id, opts = {}) {
   const meta = houseMeta(id);
   const row = houses.find((h) => h.id === id);
   if (!meta || !els.modal) return;
@@ -898,9 +1042,7 @@ function openHouse(id) {
     watchBtn.hidden = isWalkthrough(meta);
     if (row) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
   }
-  els.modal.hidden = false;
-  els.modal.querySelector(".modal__panel").focus();
-  if (meta.kind !== "screening") setHash("house", id);
+  showSheet(els.modal, meta.kind === "screening" ? "" : `#house/${id}`, opts.fromHash);
 }
 
 function clusterHouseHtml(meta, watching) {
@@ -921,7 +1063,7 @@ function clusterHouseHtml(meta, watching) {
   </li>`;
 }
 
-function paintClusterModal(key) {
+function paintClusterModal(key, opts = {}) {
   const modal = els.clusterModal;
   if (!modal) return;
   const [mode, id] = key.split(":");
@@ -952,25 +1094,25 @@ function paintClusterModal(key) {
   modal.querySelector("[data-cluster-title]").textContent = title;
   modal.querySelector("[data-cluster-story]").textContent = story;
   modal.querySelector("[data-cluster-houses]").innerHTML = members.map((meta) => clusterHouseHtml(meta, watching)).join("");
-  modal.hidden = false;
-  modal.querySelector(".modal__panel")?.focus();
+  const pinId = openClusterKey.startsWith("pin:") ? openClusterKey.slice(4) : "";
+  showSheet(modal, pinId ? `#pin/${pinId}` : `#cluster/${openClusterKey.slice(8)}`, Boolean(opts.fromHash));
 }
 
-function openCluster(id) {
+function openCluster(id, opts = {}) {
   openHouseId = "";
   openClusterKey = `cluster:${id}`;
   if (els.modal) els.modal.hidden = true;
-  paintClusterModal(openClusterKey);
+  paintClusterModal(openClusterKey, opts);
 }
 
-function openPin(id) {
+function openPin(id, opts = {}) {
   openHouseId = "";
   openClusterKey = `pin:${id}`;
   if (els.modal) els.modal.hidden = true;
-  paintClusterModal(openClusterKey);
+  paintClusterModal(openClusterKey, opts);
 }
 
-function openBooth(id) {
+function openBooth(id, opts = {}) {
   const booth = boothById(id);
   const modal = els.boothModal;
   if (!booth || !modal) return;
@@ -988,20 +1130,26 @@ function openBooth(id) {
       ? `Collected · staff ${stamped.by}`
       : "Not on your card yet. Staff award this after you finish the booth.";
   }
-  modal.hidden = false;
-  modal.querySelector(".modal__panel").focus();
+  showSheet(modal, `#booth/${id}`, opts.fromHash);
 }
 
 function slotKey(id) {
   return String(id);
 }
 
-function closeModals() {
+function closeModals(opts = {}) {
+  const hash = modalHash;
+  document.querySelectorAll(".modal").forEach((modal) => {
+    modal.querySelector(".modal__panel")?.removeEventListener("keydown", trapSheetKey);
+    modal.hidden = true;
+  });
   openClusterKey = "";
-  if (els.modal) els.modal.hidden = true;
-  if (els.boothModal) els.boothModal.hidden = true;
-  if (els.boothsModal) els.boothsModal.hidden = true;
-  if (els.clusterModal) els.clusterModal.hidden = true;
+  openHouseId = "";
+  modalHash = "";
+  const opener = modalOpener;
+  modalOpener = null;
+  if (opener && typeof opener.focus === "function") opener.focus();
+  if (opts.restore && hash && location.hash === hash) history.back();
 }
 
 function isAdminUnlocked() {
@@ -1009,6 +1157,8 @@ function isAdminUnlocked() {
 }
 
 function updateNav() {
+  const badge = document.getElementById("devBadge");
+  if (badge) badge.hidden = !isDevPreview();
   const student = Boolean(getStudentSession());
   const admin = Boolean(getAdminSession());
   const staffTab = canSeeStaffTab();
@@ -1174,8 +1324,9 @@ function layoutStampLock() {
   const lock = els.studentAuth;
   lock.style.top = `${headerBottomNow - fitted.top}px`;
   lock.style.bottom = `${fitted.bottom - footerTopNow}px`;
-  lock.style.left = `${-fitted.left}px`;
-  lock.style.width = `${window.innerWidth}px`;
+  lock.style.left = "0";
+  lock.style.right = "0";
+  lock.style.width = "100%";
   const s = lock.getBoundingClientRect();
   const cardH = card.offsetHeight;
   card.style.top = `${Math.max(12, (s.height - cardH) / 2)}px`;
@@ -1747,23 +1898,8 @@ function paintAdminFeedbackTargetSelect() {
 }
 
 function renderTimeline() {
-  const label = document.getElementById("scheduleDateLabel");
-  if (label) {
-    label.textContent = `${EVENT_DATE_LABEL} · Singapore time. Performances and house hours.`;
-  }
-  if (!els.nightTimeline) return;
-  els.nightTimeline.innerHTML = SCHEDULE.map((item) => {
-    const state = scheduleStatus(item);
-    return `<li class="night-stop is-${state}"${state === "live" ? " aria-current=\"true\"" : ""}>
-      <time datetime="${item.start}">${item.start}–${item.end}</time>
-      <div class="night-stop__body">
-        <p class="night-stop__kind">${item.kind === "performance" ? "Performance" : "Event"}${state === "live" ? " · Now" : ""}</p>
-        <strong>${escapeHtml(item.title)}</strong>
-        <p class="night-stop__note">${escapeHtml(item.note)}</p>
-      </div>
-      <p class="night-stop__place">${escapeHtml(item.place)}</p>
-    </li>`;
-  }).join("");
+  document.getElementById("night-programme")?.setAttribute("hidden", "");
+  if (els.nightTimeline) els.nightTimeline.replaceChildren();
 }
 
 function formatPostedAt(iso) {
@@ -1931,10 +2067,20 @@ async function renderAdmin() {
   if (!admin) {
     els.adminGate.hidden = false;
     els.adminApp.hidden = true;
+    const lead = document.getElementById("staffGateLead");
+    const studentSession = getStudentSession();
+    if (lead) {
+      lead.hidden = !studentSession;
+      lead.textContent = studentSession
+        ? "Enter the night staff password to open wait times, stamps, and the rest of the desk."
+        : "";
+    }
     updateNav();
     queueMicrotask(() => document.getElementById("staffUnlockPassword")?.focus());
     return;
   }
+  const signedIn = document.getElementById("staffSignedIn");
+  if (signedIn) signedIn.hidden = false;
   els.adminGate.hidden = true;
   els.adminApp.hidden = false;
   updateNav();
@@ -2230,6 +2376,11 @@ function bindUi() {
     renderPins();
   });
   document.getElementById("houseFilters")?.addEventListener("click", (event) => {
+    const clearOne = event.target.closest("[data-clear-filter]");
+    if (clearOne) {
+      clearHouseFilters(clearOne.dataset.clearFilter);
+      return;
+    }
     const statusBtn = event.target.closest("[data-filter-status]");
     const tagBtn = event.target.closest("[data-filter-tag]");
     if (statusBtn) {
@@ -2343,7 +2494,11 @@ function bindUi() {
       }
     }
 
-    if (event.target.closest("[data-close-modal]")) closeModals();
+    if (event.target.closest("[data-clear-filters]")) {
+      clearHouseFilters();
+      return;
+    }
+    if (event.target.closest("[data-close-modal]")) closeModals({ restore: true });
   });
 
   ["studentLoginId", "awardStudentNumber"].forEach((id) => {
@@ -2352,17 +2507,43 @@ function bindUi() {
     });
   });
 
-  async function handleAuthSubmit(event) {
+  function setFieldError(input, errorId, message) {
+  const error = document.getElementById(errorId);
+  if (!input || !error) return false;
+  if (message) {
+    error.hidden = false;
+    error.textContent = message;
+    input.setAttribute("aria-invalid", "true");
+    input.setAttribute("aria-describedby", errorId);
+    return true;
+  }
+  error.hidden = true;
+  error.textContent = "";
+  input.removeAttribute("aria-invalid");
+  return false;
+}
+
+async function handleAuthSubmit(event) {
     event.preventDefault();
     const err = document.getElementById("studentLoginError");
     const submit = event.currentTarget.querySelector('button[type="submit"]');
+    const idInput = document.getElementById("studentLoginId");
+    const nameInput = document.getElementById("studentLoginName");
     if (err) err.hidden = true;
+    const idValue = normalizeAdminNumber(idInput?.value || "");
+    if (idInput) idInput.value = idValue;
+    const idBad = setFieldError(idInput, "studentLoginIdError", /^P[0-9]{7}$/.test(idValue) ? "" : "Enter an admin number like P1234567.");
+    const nameBad = setFieldError(nameInput, "studentLoginNameError", nameInput?.value.trim() ? "" : "Enter your full name.");
+    if (idBad || nameBad) {
+      (idBad ? idInput : nameInput)?.focus();
+      return;
+    }
     if (submit) submit.disabled = true;
     try {
       flushGameProgress();
       const data = await signIn({
-        adminNumber: document.getElementById("studentLoginId").value,
-        fullName: document.getElementById("studentLoginName").value,
+        adminNumber: idValue,
+        fullName: nameInput.value,
       });
       applyGameAccount();
       updateNav();
@@ -2666,6 +2847,12 @@ function bindUi() {
     event.preventDefault();
     if (els.feedbackError) els.feedbackError.hidden = true;
     if (els.feedbackOk) els.feedbackOk.hidden = true;
+    const kindBad = setFieldError(els.feedbackKind, "feedbackKindError", els.feedbackKind?.value ? "" : "Choose what this note is about.");
+    const targetBad = setFieldError(els.feedbackTarget, "feedbackTargetError", els.feedbackTarget?.value ? "" : "Choose which house or booth.");
+    if (kindBad || targetBad) {
+      (kindBad ? els.feedbackKind : els.feedbackTarget)?.focus();
+      return;
+    }
     try {
       await submitFeedback(
         els.feedbackKind.value,
@@ -2732,7 +2919,10 @@ function bindUi() {
   }, 4000);
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeModals();
+    if (event.key === "Escape") {
+      const open = document.querySelector(".modal:not([hidden])");
+      if (open) closeModals({ restore: true });
+    }
   });
   window.addEventListener("online", () => paintWaitBanner());
   window.addEventListener("offline", () => paintWaitBanner());

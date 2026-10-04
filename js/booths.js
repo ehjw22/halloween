@@ -85,7 +85,7 @@ export const BOOTHS = [
   },
 ];
 
-/** Food stalls. They show in the booths list and do not take a stamp. */
+/** Kept for later. Not shown until the stalls have real names. */
 export const FOOD_BOOTHS = [
   {
     id: "food-1",
