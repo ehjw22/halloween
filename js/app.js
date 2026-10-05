@@ -569,12 +569,23 @@ function listingMatches(meta) {
   return Boolean(row && houseMatchesFilter(row));
 }
 
+function boothIsStamped(id) {
+  if (!getStudentSession()) return false;
+  const stamps = cardState.stamps || {};
+  return Boolean(stamps[String(id)] || stamps[Number(id)]);
+}
+
+function boothSealHtml(booth) {
+  return `<span class="booth-seal" aria-hidden="true">${markImg(booth.icon, "mark mark--seal")}</span>`;
+}
+
 function boothDirectoryCard(booth) {
   const food = Boolean(booth.food);
+  const stamped = !food && boothIsStamped(booth.id);
   const logo = food
     ? `<img class="house-card__logo" src="img/marks/ghost.png?v=r6" alt="" width="32" height="32">`
     : "";
-  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}">
+  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}">
     <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
       <span class="house-card__rail" aria-hidden="true"></span>
       <span class="house-card__top">
@@ -585,6 +596,8 @@ function boothDirectoryCard(booth) {
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(booth.summary || (food ? "Food stall" : "Booth"))}</span>
       </span>
+      ${stamped ? boothSealHtml(booth) : ""}
+      ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>
   </article>`;
 }
@@ -830,11 +843,16 @@ function renderPins() {
       </div>
     </div>`;
   });
-  const boothPin = `<div class="map-pin map-pin--booths" data-pin="booths">
+  const stampedBooths = BOOTHS.filter((booth) => boothIsStamped(booth.id));
+  const boothStampNote = stampedBooths.length
+    ? `, ${stampedBooths.length} of ${BOOTHS.length} stamped`
+    : "";
+  const boothPin = `<div class="map-pin map-pin--booths${stampedBooths.length ? " is-stamped" : ""}${stampedBooths.length === BOOTHS.length ? " is-stamped-all" : ""}" data-pin="booths">
     <div class="map-pin__gfx">
-      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven squared">
+      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven squared${boothStampNote}">
         <span class="map-pin__label">Booths</span>
         <span class="map-pin__mark"></span>
+        ${stampedBooths.length ? `<span class="map-pin__seal" aria-hidden="true"></span>` : ""}
       </button>
     </div>
   </div>`;
@@ -842,18 +860,25 @@ function renderPins() {
 }
 
 function boothListButton(booth) {
-  return `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(booth.id)}">
+  const stamped = boothIsStamped(booth.id);
+  return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
       <span>${markImg(booth.icon, "mark mark--booth")} ${escapeHtml(booth.short)}</span>
       <strong>${escapeHtml(booth.name)}</strong>
+      ${stamped ? boothSealHtml(booth) : ""}
+      ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>`;
 }
 
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
-  if (list && !list.dataset.filled) {
-    list.innerHTML = BOOTHS.map(boothListButton).join("");
-    list.dataset.filled = "1";
-  }
+  if (list) list.innerHTML = BOOTHS.map(boothListButton).join("");
+}
+
+function syncBoothStampsOnMap() {
+  paintBoothDirectory();
+  paintBoothsPinList();
+  renderPins();
+  layoutPinHits();
 }
 
 let modalHash = "";
@@ -1145,11 +1170,14 @@ function openBooth(id, opts = {}) {
   modal.querySelector("[data-booth-about]").textContent = booth.about;
   const stampLine = modal.querySelector("[data-booth-stamp]");
   if (booth.food) {
+    stampLine.hidden = false;
     stampLine.textContent = "Food stall. No stamp.";
+  } else if (stamped) {
+    stampLine.textContent = "";
+    stampLine.hidden = true;
   } else {
-    stampLine.textContent = stamped
-      ? `Collected · staff ${stamped.by}`
-      : "Not on your card yet. Staff award this after you finish the booth.";
+    stampLine.hidden = false;
+    stampLine.textContent = "Not on your card yet. Staff award this after you finish the booth.";
   }
   showSheet(modal, `#booth/${id}`, opts.fromHash);
 }
@@ -1828,6 +1856,7 @@ function paintStampUi() {
     }
   }
   if (locked) requestAnimationFrame(layoutStampPage);
+  syncBoothStampsOnMap();
 }
 
 async function renderStamps({ refresh = false } = {}) {

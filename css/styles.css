@@ -1223,6 +1223,7 @@ html.event-open .header-meta {
   margin-top: var(--s4);
 }
 .booths-list__btn {
+  position: relative;
   display: grid;
   gap: 2px;
   text-align: left;
@@ -1244,6 +1245,39 @@ html.event-open .header-meta {
 .booths-list__btn small {
   color: var(--ink-3);
   font-weight: 400;
+}
+.booths-list__btn.is-stamped {
+  padding-right: 56px;
+}
+.booth-seal {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  transform: translateY(-50%) rotate(-14deg);
+  pointer-events: none;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 196, 72, 0.95);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 196, 72, 0.7),
+    0 0 0 3px rgba(8, 4, 8, 0.45);
+  background: rgba(20, 8, 14, 0.82);
+}
+.booth-seal .mark--seal {
+  width: 26px;
+  height: 26px;
+  filter: sepia(1) saturate(5) brightness(1.45);
+}
+.house-card.is-stamped .house-card__open {
+  position: relative;
+  padding-right: 64px;
+}
+.house-card.is-stamped .booth-seal {
+  right: 12px;
 }
 .booths-list__heading {
   margin: var(--s5) 0 0;
@@ -2892,6 +2926,21 @@ a,
   --pin-color: var(--accent);
   width: 22px;
   height: 22px;
+}
+.map-pin__seal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(212, 168, 62, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(212, 168, 62, 0.65);
+  pointer-events: none;
+}
+.map-pin--booths.is-stamped-all .map-pin__seal {
+  background: rgba(212, 168, 62, 0.42);
 }
 .map-pin--watch .map-pin__mark {
   border-color: var(--open);
