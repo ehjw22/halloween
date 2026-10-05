@@ -2368,10 +2368,11 @@ html.event-welcome .view[data-view="welcome"].is-active {
 }
 .section-head h2 sup,
 .modal__bar h3 sup {
-  font-size: 0.55em;
+  font-size: 0.62em;
   line-height: 0;
   position: relative;
-  top: -0.42em;
+  vertical-align: baseline;
+  top: -0.22em;
   font-weight: 600;
 }
 .section-head p {
@@ -2612,9 +2613,14 @@ a,
 }
 .house-card__metric {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s2);
   margin-top: auto;
+}
+.house-card__metric .status-pill,
+.house-card__metric .house-card__wait,
+.house-card__metric .house-card__unit {
+  line-height: 1;
 }
 .house-card__wait {
   font-size: 1.625rem;
@@ -4280,7 +4286,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .modal__meta {
   display: flex;
   gap: var(--s3);
-  align-items: baseline;
+  align-items: center;
   margin: var(--s4) 0;
   padding-bottom: var(--s4);
   border-bottom: 1px solid var(--border);
@@ -4288,6 +4294,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .modal__meta .status-pill,
 .modal__meta strong {
   line-height: 1;
+}
+.modal__meta .status-pill {
+  align-items: center;
 }
 .modal__meta strong {
   font-size: var(--fs-lg);

@@ -268,10 +268,10 @@ function houseCardOpenInner(row, meta) {
     <span class="house-card__rail" aria-hidden="true"></span>
     <span class="house-card__top">
       <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
-      <span class="status-pill">${escapeHtml(statusPillLabel(row))}</span>
     </span>
     <strong class="house-card__name">${escapeHtml(row.name)}</strong>
     <span class="house-card__metric">
+      <span class="status-pill">${escapeHtml(statusPillLabel(row))}</span>
       <span class="house-card__wait${metric.kind === "clear" ? " is-phrase" : ""}">${escapeHtml(metric.value)}</span>
       ${metric.unit ? `<span class="house-card__unit">${escapeHtml(metric.unit)}</span>` : ""}
     </span>
