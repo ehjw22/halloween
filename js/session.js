@@ -17,7 +17,8 @@ export function apiUrl(name, params = {}) {
 
 export function userFacingError(error, fallback = "Something went wrong. Try again.") {
   const raw = String((error && error.message) || error || "")
-    .split(" — ")[0]
+    .split(/\s+[—–-]\s+/)[0]
+    .replace(/[—–]/g, ", ")
     .replace(/\bHTTP\s*\d{3}\b/gi, "")
     .replace(/\bSupabase\s+\d{3}\b/gi, "")
     .replace(/\bRPC\s+\d{3}\b/gi, "")

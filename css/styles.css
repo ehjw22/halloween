@@ -4187,27 +4187,41 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .modal__panel {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   width: min(520px, calc(100% - 24px));
   max-height: min(78dvh, calc(100dvh - 120px));
-  overflow: auto;
+  overflow: hidden;
   margin: 0 auto;
-  padding: var(--s5);
+  padding: 0;
   border-radius: var(--r-4);
 }
 .modal__bar {
   display: flex;
   align-items: flex-start;
   gap: var(--s3);
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
   z-index: 2;
-  padding-bottom: var(--s3);
+  padding: var(--s5) var(--s5) var(--s3);
   background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+.modal__bar > div {
+  flex: 1 1 auto;
+  min-width: 0;
+  order: 0;
 }
 .modal__bar .modal__code,
 .modal__bar h3 { margin: 0; }
-.modal__body { min-width: 0; }
+.modal__body {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s4) var(--s5) var(--s5);
+  background: var(--surface-1);
+}
 .modal__close {
+  order: 1;
   position: relative;
   top: auto;
   right: auto;
@@ -4231,7 +4245,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: var(--ink);
 }
 .modal__code {
-  margin: 0 48px var(--s1) 0;
+  margin: 0 0 var(--s1);
   font-family: var(--font-body);
   color: var(--ink-3);
   letter-spacing: 0.06em;
@@ -4240,7 +4254,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   line-height: 1.2;
 }
 .modal__panel h3 {
-  margin: 0 48px 0 0;
+  margin: 0;
   font-size: var(--fs-xl);
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -5731,18 +5745,20 @@ li.empty-state { list-style: none; }
     max-width: none;
     max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
     margin: 0;
-    padding: var(--s3) var(--s4) calc(var(--s4) + env(safe-area-inset-bottom, 0px));
+    padding: 0;
     border-radius: 16px 16px 0 0;
     overflow: hidden;
   }
   .modal__bar {
     flex: 0 0 auto;
+    padding: var(--s3) var(--s4);
     touch-action: none;
     cursor: grab;
   }
   .modal__body {
     overflow: auto;
     min-height: 0;
+    padding: 0 var(--s4) calc(var(--s4) + env(safe-area-inset-bottom, 0px));
     -webkit-overflow-scrolling: touch;
   }
   .push-install-hint__close { display: grid; }

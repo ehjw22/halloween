@@ -384,7 +384,7 @@ function setupClicker() {
           <small class="upgrade-card__desc">${gated ? `Unlocks at ${def.unlock} lifetime candy` : def.blurb}</small>
           <span class="upgrade-card__effect">${gated ? "Offline" : upgradeNow(def, state)}</span>
           <span class="upgrade-card__foot">
-            <span class="upgrade-card__cost">${gated ? "—" : `${cost} candy`}</span>
+            <span class="upgrade-card__cost">${gated ? "-" : `${cost} candy`}</span>
             <span class="upgrade-card__buy">${gated ? "Locked" : can ? "Install" : "Need more"}</span>
           </span>
         </span>
@@ -422,7 +422,7 @@ function setupClicker() {
     if (tierEl) tierEl.textContent = `Tier ${clickerTier(state.lifetime)}`;
     if (flavor) {
       flavor.textContent = frenzyOn
-        ? "Frenzy live — taps are doubled."
+        ? "Frenzy live. Taps are doubled."
         : state.prestige
           ? `Curses multiply everything by ${curseMult(state.prestige).toFixed(2)}×.`
           : "Keep tapping to build combo. Install systems for idle candy.";

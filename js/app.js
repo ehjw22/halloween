@@ -1,6 +1,6 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r19";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r20";
 import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r28";
 import { SPONSORS } from "./sponsors.js?v=r18";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
@@ -28,7 +28,7 @@ import {
   submitFeedback,
   normalizeAdminNumber,
   userFacingError,
-} from "./session.js?v=r9";
+} from "./session.js?v=r10";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -38,7 +38,7 @@ import {
   setWantsPush,
   syncPushWatch,
   dismissPushHint,
-} from "./push.js?v=r6";
+} from "./push.js?v=r7";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -182,7 +182,7 @@ function statusPillLabel(row) {
 }
 
 function waitMetric(row) {
-  if (!hasPublishedWait(row)) return { value: "—", unit: "Not published", kind: "queue" };
+  if (!hasPublishedWait(row)) return { value: "-", unit: "Not published", kind: "queue" };
   const minutes = Number(row.wait_minutes) || 0;
   const status = statusFromWait(minutes);
   if (status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
@@ -706,7 +706,7 @@ function crossedMilestone(prev, next, status) {
 
 function milestoneCopy(level, name, wait) {
   const minutes = Math.round(Number(wait) || 0);
-  if (level === "open") return { title: "Open now", body: `${name}. No queue — head over.` };
+  if (level === "open") return { title: "Open now", body: `${name}. No queue. Head over.` };
   if (level === "five") return { title: "5 minutes", body: `${name} is down to ${minutes} minutes.` };
   if (level === "ten") return { title: "10 minutes", body: `${name} is down to ${minutes} minutes.` };
   return null;
@@ -933,10 +933,6 @@ function openBooths(opts = {}) {
   showSheet(els.boothsModal, "#booths", opts.fromHash);
 }
 
-function rectsOverlap(a, b) {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-}
-
 function layoutPinHits() {
   document.querySelectorAll(".map-pin__gfx").forEach((gfx) => {
     gfx.style.transform = "";
@@ -945,18 +941,6 @@ function layoutPinHits() {
   document.querySelectorAll(".map-pin__label").forEach((label) => {
     label.classList.toggle("is-hidden", !showLabels);
     label.style.transform = "";
-  });
-  if (!showLabels) return;
-  const labels = [...document.querySelectorAll(".map-pin__label:not(.is-hidden)")];
-  labels.forEach((label, index) => {
-    let shift = 0;
-    for (let guard = 0; guard < 6; guard += 1) {
-      label.style.transform = `translateX(-50%) translateY(${shift}px)`;
-      const box = label.getBoundingClientRect();
-      const clash = labels.slice(0, index).some((prev) => rectsOverlap(box, prev.getBoundingClientRect()));
-      if (!clash) break;
-      shift += 18;
-    }
   });
 }
 
@@ -990,13 +974,41 @@ function fitMap() {
   const w = MAP_NATURAL.w;
   const h = MAP_NATURAL.h;
   if (vp.width < 8 || vp.height < 8) return;
-  const fit = Math.min(vp.width / w, vp.height / h);
-  if (!fit) return;
-  mapState.min = fit * 0.85;
-  mapState.max = Math.max(2.4, fit * 6);
-  mapState.scale = Math.min(mapState.max, fit);
-  mapState.x = (vp.width - w * mapState.scale) / 2;
-  mapState.y = (vp.height - h * mapState.scale) / 2;
+  const fitAll = Math.min(vp.width / w, vp.height / h);
+  if (!fitAll) return;
+  mapState.min = fitAll * 0.85;
+  mapState.max = Math.max(2.4, fitAll * 6);
+  const pins = [...document.querySelectorAll(".map-pin")];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  pins.forEach((pin) => {
+    minX = Math.min(minX, pin.offsetLeft);
+    minY = Math.min(minY, pin.offsetTop);
+    maxX = Math.max(maxX, pin.offsetLeft);
+    maxY = Math.max(maxY, pin.offsetTop);
+  });
+  let scale = fitAll;
+  if (pins.length && maxX > minX && maxY > minY) {
+    const screenPad = 64;
+    let mapPad = 48;
+    for (let pass = 0; pass < 4; pass += 1) {
+      const boxW = Math.max(maxX - minX + mapPad * 2, 1);
+      const boxH = Math.max(maxY - minY + mapPad * 2, 1);
+      scale = Math.min(vp.width / boxW, vp.height / boxH);
+      mapPad = screenPad / Math.max(scale, 0.05);
+    }
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    mapState.scale = Math.min(mapState.max, Math.max(mapState.min, scale));
+    mapState.x = vp.width / 2 - cx * mapState.scale;
+    mapState.y = vp.height / 2 - cy * mapState.scale;
+  } else {
+    mapState.scale = Math.min(mapState.max, fitAll);
+    mapState.x = (vp.width - w * mapState.scale) / 2;
+    mapState.y = (vp.height - h * mapState.scale) / 2;
+  }
   applyMapTransform();
 }
 
@@ -2125,7 +2137,7 @@ async function renderAdmin() {
   fillAwardBoothSelect();
   const houseSel = document.getElementById("announceHouse");
   if (houseSel && !houseSel.dataset.filled) {
-    houseSel.innerHTML = `<option value="">General — not tied to a house</option>${HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`).join("")}`;
+    houseSel.innerHTML = `<option value="">General, not tied to a house</option>${HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`).join("")}`;
     houseSel.dataset.filled = "1";
   }
   const scope = staffScope();
@@ -2990,7 +3002,7 @@ function paintConnectionUi(mode, error) {
     ? (accounts
       ? "LIVE. Wait times and stamps write to the database."
       : "LIVE waits. Student sign-up needs SUPABASE_SERVICE_ROLE_KEY on Vercel (or run supabase/schema.sql), then redeploy.")
-    : `DEMO MODE — not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
+    : `DEMO MODE. Not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
 }
 
 function onStoreChange(next, sync) {
@@ -3034,7 +3046,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r8")
+  import("./games.js?v=r9")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
