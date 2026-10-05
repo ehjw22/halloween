@@ -2371,7 +2371,7 @@ html.event-welcome .view[data-view="welcome"].is-active {
   font-size: 0.55em;
   line-height: 0;
   position: relative;
-  top: -0.7em;
+  top: -0.42em;
   font-weight: 600;
 }
 .section-head p {
@@ -2539,6 +2539,12 @@ html.event-welcome .view[data-view="welcome"].is-active {
   color: var(--ink-2);
 }
 
+button,
+a,
+.house-card,
+.map-pin__hit {
+  touch-action: manipulation;
+}
 .house-card {
   position: relative;
   text-align: left;
@@ -2900,7 +2906,7 @@ html.event-welcome .view[data-view="welcome"].is-active {
   letter-spacing: 0.01em;
   line-height: 1.2;
   white-space: nowrap;
-  pointer-events: none;
+  pointer-events: auto;
   transition: background var(--ease), color var(--ease);
 }
 .map-pin__hit:hover .map-pin__mark,
@@ -4274,10 +4280,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .modal__meta {
   display: flex;
   gap: var(--s3);
-  align-items: center;
+  align-items: baseline;
   margin: var(--s4) 0;
   padding-bottom: var(--s4);
   border-bottom: 1px solid var(--border);
+}
+.modal__meta .status-pill,
+.modal__meta strong {
+  line-height: 1;
 }
 .modal__meta strong {
   font-size: var(--fs-lg);

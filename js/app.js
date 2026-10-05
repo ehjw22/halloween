@@ -860,6 +860,7 @@ let modalHash = "";
 let modalReturnHash = "";
 let modalOpener = null;
 let blockPageClick = false;
+let sheetOpenedAt = 0;
 
 function sheetFocusables(panel) {
   return [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
@@ -914,7 +915,8 @@ function showSheet(modal, hash, fromHash) {
   panel?.removeEventListener("keydown", trapSheetKey);
   panel?.addEventListener("keydown", trapSheetKey);
   const close = modal.querySelector(".modal__close");
-  (close || panel)?.focus();
+  (close || panel)?.focus({ preventScroll: true });
+  sheetOpenedAt = Date.now();
   if (fromHash) {
     modalHash = location.hash;
     modalReturnHash = "#map";
@@ -1157,6 +1159,7 @@ function slotKey(id) {
 }
 
 function closeModals(opts = {}) {
+  if (opts.restore && !opts.force && sheetOpenedAt && Date.now() - sheetOpenedAt < 500) return;
   const hash = modalHash;
   const backTo = modalReturnHash;
   const wasOpen = Boolean(document.querySelector(".modal:not([hidden])"));
@@ -2473,6 +2476,11 @@ function bindUi() {
     toggleWatchHouse(openHouseId);
   });
 
+  document.addEventListener("pointerdown", () => {
+    if (sheetOpenedAt && Date.now() - sheetOpenedAt > 80) sheetOpenedAt = 0;
+    blockPageClick = false;
+  }, true);
+
   document.body.addEventListener("click", (event) => {
     if (blockPageClick && !event.target.closest("[data-close-modal]")) {
       event.preventDefault();
@@ -2966,7 +2974,7 @@ async function handleAuthSubmit(event) {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       const open = document.querySelector(".modal:not([hidden])");
-      if (open) closeModals({ restore: true });
+      if (open) closeModals({ restore: true, force: true });
     }
   });
   window.addEventListener("online", () => paintWaitBanner());
