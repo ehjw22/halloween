@@ -1247,37 +1247,57 @@ html.event-open .header-meta {
   font-weight: 400;
 }
 .booths-list__btn.is-stamped {
-  padding-right: 56px;
+  padding-right: 72px;
 }
 .booth-seal {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
   transform: translateY(-50%) rotate(-14deg);
   pointer-events: none;
+  color: #ff5c3a;
+  background: transparent;
+  border: 2.5px solid currentColor;
   border-radius: 50%;
-  border: 2px solid rgba(255, 196, 72, 0.95);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 196, 72, 0.7),
-    0 0 0 3px rgba(8, 4, 8, 0.45);
-  background: rgba(20, 8, 14, 0.82);
+    inset 0 0 0 4px transparent,
+    inset 0 0 0 5px currentColor;
 }
-.booth-seal .mark--seal {
-  width: 26px;
-  height: 26px;
-  filter: sepia(1) saturate(5) brightness(1.45);
+.booth-seal::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed currentColor;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+.booth-seal__ink {
+  position: relative;
+  z-index: 1;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .house-card.is-stamped .house-card__open {
   position: relative;
-  padding-right: 64px;
+}
+.house-card.is-stamped .house-card__name,
+.house-card.is-stamped .house-card__meta {
+  padding-right: 62px;
 }
 .house-card.is-stamped .booth-seal {
-  right: 12px;
+  top: 38px;
+  right: 10px;
+  transform: rotate(-14deg);
 }
 .booths-list__heading {
   margin: var(--s5) 0 0;

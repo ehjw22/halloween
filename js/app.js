@@ -575,8 +575,8 @@ function boothIsStamped(id) {
   return Boolean(stamps[String(id)] || stamps[Number(id)]);
 }
 
-function boothSealHtml(booth) {
-  return `<span class="booth-seal" aria-hidden="true">${markImg(booth.icon, "mark mark--seal")}</span>`;
+function boothSealHtml() {
+  return `<span class="booth-seal" aria-hidden="true"><span class="booth-seal__ink">Stamped</span></span>`;
 }
 
 function boothDirectoryCard(booth) {
@@ -596,7 +596,7 @@ function boothDirectoryCard(booth) {
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(booth.summary || (food ? "Food stall" : "Booth"))}</span>
       </span>
-      ${stamped ? boothSealHtml(booth) : ""}
+      ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>
   </article>`;
@@ -864,7 +864,7 @@ function boothListButton(booth) {
   return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
       <span>${markImg(booth.icon, "mark mark--booth")} ${escapeHtml(booth.short)}</span>
       <strong>${escapeHtml(booth.name)}</strong>
-      ${stamped ? boothSealHtml(booth) : ""}
+      ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>`;
 }
