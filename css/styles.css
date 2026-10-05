@@ -4143,6 +4143,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.wait-status[data-publish-state="saved"] { color: var(--open); }
+.wait-status[data-publish-state="dirty"] { color: var(--busy); }
 .wait-status[data-status="gonow"] { color: var(--gonow); }
 .wait-status[data-status="open"] { color: var(--open); }
 .wait-status[data-status="busy"] { color: var(--busy); }

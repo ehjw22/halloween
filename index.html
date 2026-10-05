@@ -29,7 +29,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r62" />
+    <link rel="stylesheet" href="css/styles.css?v=r63" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -264,7 +264,6 @@
     </div>
     <div id="eventApp" data-event-app>
       <header class="site-header">
-        <p class="dev-badge" id="devBadge" hidden>Dev preview</p>
         <button class="brand" type="button" data-nav="map">
           <span class="brand__mark">SP</span>
           <div>
@@ -626,13 +625,13 @@
             </div>
           </div>
           <div class="house-grid" id="houseGrid"></div>
-          <section class="map-booths" aria-label="Booths">
+          <section class="map-booths" aria-label="Booths at Eleven Square">
             <div class="section-head">
-              <h2>Booths</h2>
+              <h2>Booths at Eleven Square</h2>
             </div>
             <div class="cluster-group__grid" id="boothDirectory"></div>
             <div class="section-head">
-              <h2>Food booths</h2>
+              <h2>Food booths at Eleven Square</h2>
             </div>
             <div class="cluster-group__grid" id="foodDirectory"></div>
           </section>
@@ -1480,8 +1479,8 @@
           <ol class="how-list">
             <li>
               Sign in, then tap <strong>Alert when walk-in</strong> on a scare
-              house. You will be notified at 10 minutes, at 5 minutes, and when
-              the house is open.
+              house. You will be notified at 10 minutes, at 5 minutes, when
+              the house is open, and when staff post an announcement.
             </li>
             <li>Allow notifications when your phone asks.</li>
             <li>
@@ -1585,16 +1584,7 @@
             <div class="staff-panel" data-staff-panel="waits">
               <div class="section-head">
                 <h2>Wait-Time Control</h2>
-                <p>
-                  Wait minutes set the status: 0 shows as No queue, 1 to 5 shows the minutes, and both are Go now. 6 to 20 is open,
-                  21 to 39 is busy, 40 to 59 is long, and 60 closes the house.
-                  Auto-save publishes to every open map.
-                </p>
                 <div class="admin-toolbar">
-                  <label class="toggle">
-                    <input id="autoSave" type="checkbox" checked />
-                    Auto-save
-                  </label>
                   <button class="btn" id="publishAll" type="button">
                     Publish all
                   </button>
@@ -1933,7 +1923,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r72"></script>
+      <script type="module" src="js/app.js?v=r73"></script>
     </div>
   </body>
 </html>

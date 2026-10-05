@@ -141,7 +141,7 @@ let staffTab = "waits";
 let feedbackKindFilter = "";
 let stampPoll = 0;
 let waitSync = { liveOk: false, wasLive: false, lastLiveAt: null };
-let autoSave = true;
+let autoSave = false;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
 const drafts = new Map();
 const waitSaveTimers = new Map();
@@ -582,9 +582,6 @@ function boothDirectoryCard(booth) {
         <span class="status-pill">${food ? "Food" : "Booth"}</span>
       </span>
       <strong class="house-card__name">${escapeHtml(booth.name)}</strong>
-      <span class="house-card__metric">
-        <span class="house-card__wait is-venue">${escapeHtml(booth.place || "")}</span>
-      </span>
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(booth.summary || (food ? "Food stall" : "Booth"))}</span>
       </span>
@@ -848,7 +845,6 @@ function boothListButton(booth) {
   return `<button type="button" class="booths-list__btn" data-open-booth="${escapeHtml(booth.id)}">
       <span>${markImg(booth.icon, "mark mark--booth")} ${escapeHtml(booth.short)}</span>
       <strong>${escapeHtml(booth.name)}</strong>
-      <small>${escapeHtml(booth.place)}</small>
     </button>`;
 }
 
@@ -1138,7 +1134,11 @@ function openBooth(id, opts = {}) {
   const stamped = cardState.stamps[slotKey(id)] || cardState.stamps[Number(id)];
   modal.querySelector("[data-booth-code]").textContent = booth.short;
   modal.querySelector("[data-booth-title]").textContent = booth.name;
-  modal.querySelector("[data-booth-place]").textContent = booth.place;
+  const place = modal.querySelector("[data-booth-place]");
+  if (place) {
+    place.textContent = "";
+    place.hidden = true;
+  }
   modal.querySelector("[data-booth-summary]").textContent = booth.summary;
   modal.querySelector("[data-booth-about]").textContent = booth.about;
   const stampLine = modal.querySelector("[data-booth-stamp]");
@@ -1974,7 +1974,7 @@ function announceItemHtml(row) {
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
   noteNewAnnouncements(rows);
-  const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No notes yet.</p></li>`;
+  const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No announcements yet.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
@@ -2123,11 +2123,9 @@ async function renderAdmin() {
     const head = `<tr class="admin-cluster"><td colspan="4">${escapeHtml(cluster.kicker)} · ${escapeHtml(cluster.name)}</td></tr>`;
     const body = members.map((row) => {
       const meta = houseMeta(row.id);
-      const draft = drafts.get(row.id) || {
-        wait_minutes: row.wait_minutes,
-        status: statusFromWait(row.wait_minutes),
-      };
-      const status = statusFromWait(draft.wait_minutes);
+      const draft = drafts.get(row.id);
+      const minutes = draft ? draft.wait_minutes : row.wait_minutes;
+      const published = hasPublishedWait(row) && Number(row.wait_minutes) === Number(minutes);
       return `
         <tr data-admin-row="${row.id}">
           <td>
@@ -2136,12 +2134,12 @@ async function renderAdmin() {
           </td>
           <td>
             <div class="wait-editor">
-              <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
-              <input type="number" min="0" max="${WAIT_MAX}" step="1" value="${draft.wait_minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
-              <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
+              <button type="button" data-adjust="-1" aria-label="Decrease wait by 1 minute">−</button>
+              <input type="number" min="0" max="${WAIT_MAX}" step="1" value="${minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <button type="button" data-adjust="1" aria-label="Increase wait by 1 minute">+</button>
             </div>
           </td>
-          <td class="wait-status" data-status-label data-status="${status}">${STATUS_LABEL[status]}</td>
+          <td class="wait-status" data-publish-state="${published ? "saved" : "dirty"}">${published ? "Published" : "Not published yet"}</td>
           <td>
             <button class="btn btn--ghost" type="button" data-publish-one>Publish</button>
           </td>
@@ -2178,10 +2176,12 @@ function readAdminRow(tr) {
   const id = tr.dataset.adminRow;
   const wait = Math.max(0, Math.min(WAIT_MAX, Math.round(Number(tr.querySelector("[data-wait-input]").value) || 0)));
   const status = statusFromWait(wait);
-  const label = tr.querySelector("[data-status-label]");
+  const row = houses.find((house) => house.id === id);
+  const published = hasPublishedWait(row) && Number(row.wait_minutes) === wait;
+  const label = tr.querySelector("[data-publish-state]");
   if (label) {
-    label.textContent = STATUS_LABEL[status] || status;
-    label.dataset.status = status;
+    label.textContent = published ? "Published" : "Not published yet";
+    label.dataset.publishState = published ? "saved" : "dirty";
   }
   drafts.set(id, { wait_minutes: wait, status });
   return { id, wait_minutes: wait, status };
@@ -2767,10 +2767,6 @@ async function handleAuthSubmit(event) {
     clearAdminSession();
     updateNav();
     setView(getStudentSession() ? "admin" : "login");
-  });
-
-  els.autoSave?.addEventListener("change", () => {
-    autoSave = els.autoSave.checked;
   });
 
   els.adminTable?.addEventListener("click", (event) => {
