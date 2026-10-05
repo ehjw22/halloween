@@ -435,6 +435,7 @@ function setView(name, extra) {
   } else {
     closeModals({ restore: false });
   }
+  const alreadyHere = document.querySelector(".view.is-active")?.dataset.view === name;
   if (name === "welcome") {
     document.documentElement.classList.add("event-welcome");
   } else if (document.documentElement.classList.contains("event-welcome")) {
@@ -491,7 +492,7 @@ function setView(name, extra) {
     window.setTimeout(() => {
       document.getElementById(scrollId)?.scrollIntoView({ block: "start" });
     }, 50);
-  } else {
+  } else if (!alreadyHere) {
     window.scrollTo(0, 0);
   }
 }
@@ -860,7 +861,9 @@ function paintBoothsPinList() {
 }
 
 let modalHash = "";
+let modalReturnHash = "";
 let modalOpener = null;
+let blockPageClick = false;
 
 function sheetFocusables(panel) {
   return [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
@@ -918,12 +921,15 @@ function showSheet(modal, hash, fromHash) {
   (close || panel)?.focus();
   if (fromHash) {
     modalHash = location.hash;
+    modalReturnHash = "#map";
     return;
   }
   if (!hash || location.hash === hash) {
-    modalHash = location.hash;
+    modalHash = "";
+    modalReturnHash = "";
     return;
   }
+  modalReturnHash = location.hash || "#map";
   modalHash = hash;
   writeHash(hash, "push");
 }
@@ -1152,6 +1158,8 @@ function slotKey(id) {
 
 function closeModals(opts = {}) {
   const hash = modalHash;
+  const backTo = modalReturnHash;
+  const wasOpen = Boolean(document.querySelector(".modal:not([hidden])"));
   document.querySelectorAll(".modal").forEach((modal) => {
     modal.querySelector(".modal__panel")?.removeEventListener("keydown", trapSheetKey);
     modal.hidden = true;
@@ -1159,10 +1167,17 @@ function closeModals(opts = {}) {
   openClusterKey = "";
   openHouseId = "";
   modalHash = "";
+  modalReturnHash = "";
   const opener = modalOpener;
   modalOpener = null;
-  if (opener && typeof opener.focus === "function") opener.focus();
-  if (opts.restore && hash && location.hash === hash) history.back();
+  if (wasOpen) {
+    blockPageClick = true;
+    window.setTimeout(() => {
+      blockPageClick = false;
+    }, 400);
+  }
+  if (opener && typeof opener.focus === "function") opener.focus({ preventScroll: true });
+  if (opts.restore && hash && location.hash === hash) writeHash(backTo || "#map", "replace");
 }
 
 function isAdminUnlocked() {
@@ -2433,7 +2448,14 @@ function bindUi() {
   });
   els.navButtons.forEach((btn) => {
     if (btn.id === "navMore") return;
-    btn.addEventListener("click", () => setView(btn.dataset.nav));
+    btn.addEventListener("click", (event) => {
+      if (blockPageClick) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      setView(btn.dataset.nav);
+    });
   });
   window.addEventListener("hashchange", () => {
     const { view, extra } = hashToView();
@@ -2450,6 +2472,11 @@ function bindUi() {
   });
 
   document.body.addEventListener("click", (event) => {
+    if (blockPageClick && !event.target.closest("[data-close-modal]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const jump = event.target.closest("button[data-nav]");
     if (jump && !jump.closest(".nav")) {
       setView(jump.dataset.nav);
