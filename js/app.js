@@ -832,7 +832,7 @@ function renderPins() {
   });
   const boothPin = `<div class="map-pin map-pin--booths" data-pin="booths">
     <div class="map-pin__gfx">
-      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths at Eleven Square">
+      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven squared">
         <span class="map-pin__label">Booths</span>
         <span class="map-pin__mark"></span>
       </button>
@@ -2134,9 +2134,11 @@ async function renderAdmin() {
           </td>
           <td>
             <div class="wait-editor">
-              <button type="button" data-adjust="-1" aria-label="Decrease wait by 1 minute">−</button>
+              <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
+              <button type="button" data-adjust="-1" aria-label="Decrease wait by 1 minute">−1</button>
               <input type="number" min="0" max="${WAIT_MAX}" step="1" value="${minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
-              <button type="button" data-adjust="1" aria-label="Increase wait by 1 minute">+</button>
+              <button type="button" data-adjust="1" aria-label="Increase wait by 1 minute">+1</button>
+              <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
           </td>
           <td class="wait-status" data-publish-state="${published ? "saved" : "dirty"}">${published ? "Published" : "Not published yet"}</td>

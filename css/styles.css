@@ -2366,6 +2366,14 @@ html.event-welcome .view[data-view="welcome"].is-active {
   color: var(--ink);
   margin: 0 0 var(--s2);
 }
+.section-head h2 sup,
+.modal__bar h3 sup {
+  font-size: 0.55em;
+  line-height: 0;
+  position: relative;
+  top: -0.7em;
+  font-weight: 600;
+}
 .section-head p {
   margin: 0;
   color: var(--ink-2);
@@ -4129,12 +4137,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background: transparent;
 }
 .admin-table tbody tr:hover td { background: var(--surface-2); }
-.wait-editor { display: flex; gap: var(--s2); align-items: center; }
+.wait-editor { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
 .wait-editor input { width: 4.5rem; min-height: var(--tap); text-align: center; }
 .wait-editor button {
-  min-width: var(--tap);
+  min-width: 2.75rem;
   min-height: var(--tap);
-  padding: 0;
+  padding: 0 0.4rem;
 }
 .wait-status {
   font-size: 0.75rem;
