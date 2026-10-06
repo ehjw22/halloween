@@ -5643,6 +5643,9 @@ body.is-board { background: #050308; }
   padding-top: var(--s4);
   border-top: 1px solid rgba(60, 42, 50, 0.14);
 }
+.site-sponsors[hidden] {
+  display: none;
+}
 .site-sponsors__credit {
   margin: 0;
   color: #5c4652;

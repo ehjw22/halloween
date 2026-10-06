@@ -328,6 +328,8 @@ let boardTimer = 0;
 const WELCOME_SEEN_KEY = "scream-welcome-seen";
 /** Set true to show the Games tab again. */
 const GAMES_ENABLED = false;
+/** Set true when real sponsor names and logos are ready to show. */
+const SPONSORS_ENABLED = false;
 
 function hashToView() {
   const raw = (location.hash || "#map").replace(/^#/, "");
@@ -770,6 +772,10 @@ function paintClubs() {
 }
 
 function paintSponsors() {
+  document.querySelectorAll(".site-sponsors").forEach((block) => {
+    block.hidden = !SPONSORS_ENABLED;
+  });
+  if (!SPONSORS_ENABLED) return;
   const html = SPONSORS.map(
     (sponsor) => `<li class="site-sponsors__item">
       <img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="" width="64" height="64">
