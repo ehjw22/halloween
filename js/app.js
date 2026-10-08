@@ -1,8 +1,8 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r20";
-import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r28";
-import { SPONSORS } from "./sponsors.js?v=r18";
+import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r31";
+import { SPONSORS } from "./sponsors.js?v=r20";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
 import { createStore } from "./store.js?v=r8";
@@ -328,8 +328,8 @@ let boardTimer = 0;
 const WELCOME_SEEN_KEY = "scream-welcome-seen";
 /** Set true to show the Games tab again. */
 const GAMES_ENABLED = false;
-/** Set true when real sponsor names and logos are ready to show. */
-const SPONSORS_ENABLED = false;
+/** Food stalls stay off this list until they are named as sponsors. */
+const SPONSORS_ENABLED = true;
 
 function hashToView() {
   const raw = (location.hash || "#map").replace(/^#/, "");
@@ -585,9 +585,10 @@ function boothDirectoryCard(booth) {
   const food = Boolean(booth.food);
   const stamped = !food && boothIsStamped(booth.id);
   const logo = food
-    ? `<img class="house-card__logo" src="img/marks/ghost.png?v=r6" alt="" width="32" height="32">`
+    ? `<img class="house-card__logo" src="${escapeHtml(booth.logo || "img/marks/ghost.png?v=r6")}" alt="">`
     : "";
-  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}">
+  const theme = food && booth.theme ? ` data-theme="${escapeHtml(booth.theme)}"` : "";
+  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}"${theme}>
     <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
       <span class="house-card__rail" aria-hidden="true"></span>
       <span class="house-card__top">
@@ -776,12 +777,16 @@ function paintSponsors() {
     block.hidden = !SPONSORS_ENABLED;
   });
   if (!SPONSORS_ENABLED) return;
-  const html = SPONSORS.map(
-    (sponsor) => `<li class="site-sponsors__item">
-      <img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="" width="64" height="64">
-      <span>${escapeHtml(sponsor.name)}</span>
-    </li>`
-  ).join("");
+  const html = SPONSORS.map((sponsor) => {
+    const logo = sponsor.logo
+      ? `<img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="">`
+      : "";
+    const inner = `<span class="site-sponsors__slot">${logo}</span><span>${escapeHtml(sponsor.name)}</span>`;
+    const body = sponsor.url
+      ? `<a href="${escapeHtml(sponsor.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+      : inner;
+    return `<li class="site-sponsors__item">${body}</li>`;
+  }).join("");
   ["sponsorList", "gateSponsorList"].forEach((id) => {
     const list = document.getElementById(id);
     if (list) list.innerHTML = html;
@@ -866,9 +871,12 @@ function renderPins() {
 }
 
 function boothListButton(booth) {
-  const stamped = boothIsStamped(booth.id);
+  const stamped = !booth.food && boothIsStamped(booth.id);
+  const mark = booth.logo
+    ? `<img class="booths-list__logo" data-brand="${escapeHtml(booth.theme || "")}" src="${escapeHtml(booth.logo)}" alt="">`
+    : markImg(booth.icon, "mark mark--booth");
   return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
-      <span>${markImg(booth.icon, "mark mark--booth")} ${escapeHtml(booth.short)}</span>
+      <span>${mark} ${escapeHtml(booth.short)}</span>
       <strong>${escapeHtml(booth.name)}</strong>
       ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
@@ -877,7 +885,12 @@ function boothListButton(booth) {
 
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
-  if (list) list.innerHTML = BOOTHS.map(boothListButton).join("");
+  if (!list) return;
+  list.innerHTML = [
+    ...BOOTHS.map(boothListButton),
+    `<h4 class="booths-list__heading">Food</h4>`,
+    ...FOOD_BOOTHS.map(boothListButton),
+  ].join("");
 }
 
 function syncBoothStampsOnMap() {
@@ -1173,11 +1186,58 @@ function openBooth(id, opts = {}) {
     place.hidden = true;
   }
   modal.querySelector("[data-booth-summary]").textContent = booth.summary;
-  modal.querySelector("[data-booth-about]").textContent = booth.about;
+  const about = modal.querySelector("[data-booth-about]");
+  about.textContent = booth.items?.length ? "" : booth.about || "";
+  about.hidden = !about.textContent;
+  const items = modal.querySelector("[data-booth-items]");
+  if (items) {
+    const rows = booth.items || [];
+    items.hidden = !rows.length;
+    items.innerHTML = rows
+      .map((item) => `<li>
+        <span class="booth-items__name">${escapeHtml(item.name)}</span>
+        ${item.price ? `<span class="booth-items__price">${escapeHtml(item.price)}</span>` : ""}
+        ${item.note ? `<span class="booth-items__note">${escapeHtml(item.note)}</span>` : ""}
+      </li>`)
+      .join("");
+  }
+  const note = modal.querySelector("[data-booth-note]");
+  if (note) {
+    note.textContent = booth.note || "";
+    note.hidden = !booth.note;
+  }
+  const logo = modal.querySelector("[data-booth-logo]");
+  if (logo) {
+    if (booth.logo) {
+      logo.hidden = false;
+      logo.src = booth.logo;
+      logo.dataset.brand = booth.theme || "";
+    } else {
+      logo.hidden = true;
+      logo.removeAttribute("src");
+      logo.dataset.brand = "";
+    }
+  }
+  const linksEl = modal.querySelector("[data-booth-links]");
+  if (linksEl) {
+    const links = booth.links || [];
+    linksEl.hidden = !links.length;
+    linksEl.innerHTML = links
+      .map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`)
+      .join("");
+  }
+  const menu = modal.querySelector("[data-booth-menu]");
+  if (menu) {
+    const images = booth.menu || [];
+    menu.hidden = !images.length;
+    menu.innerHTML = images
+      .map((src) => `<img src="${escapeHtml(src)}" alt="">`)
+      .join("");
+  }
   const stampLine = modal.querySelector("[data-booth-stamp]");
   if (booth.food) {
-    stampLine.hidden = false;
-    stampLine.textContent = "Food stall. No stamp.";
+    stampLine.hidden = true;
+    stampLine.textContent = "";
   } else if (stamped) {
     stampLine.textContent = "";
     stampLine.hidden = true;

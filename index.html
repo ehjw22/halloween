@@ -7,9 +7,11 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>SP Scream Fest</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/favicon-32.png?v=r2" type="image/png" sizes="32x32" />
+    <link rel="icon" href="icons/favicon-48.png?v=r2" type="image/png" sizes="48x48" />
+    <link rel="icon" href="icons/favicon-128.png?v=r2" type="image/png" sizes="128x128" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=r2" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Scream Fest" />
     <meta name="theme-color" content="#ff7a18" />
@@ -29,7 +31,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r71" />
+    <link rel="stylesheet" href="css/styles.css?v=r77" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -65,6 +67,7 @@
       </div>
       <div class="event-gate__core">
         <p class="event-gate__kicker">Singapore Polytechnic</p>
+        <img class="event-gate__logo" src="img/marks/scream-fest.png?v=r1" alt="">
         <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
         <p class="event-gate__when">
           Opens 24 October 2026 · 6:00pm Singapore time
@@ -256,8 +259,8 @@
           SPSU, CSCC, SPSSC, CLSC, SOCC, EEEC, MAEC, MADC, SBC, ABEC,
           SMAC
         </p>
-        <div class="site-sponsors" hidden>
-          <p class="site-sponsors__credit">Proudly sponsored by</p>
+        <div class="site-sponsors">
+          <p class="site-sponsors__credit">Partners</p>
           <ul class="site-sponsors__list" id="gateSponsorList"></ul>
         </div>
       </div>
@@ -265,7 +268,7 @@
     <div id="eventApp" data-event-app>
       <header class="site-header">
         <button class="brand" type="button" data-nav="map">
-          <span class="brand__mark">SP</span>
+          <span class="brand__mark brand__mark--logo"><img src="img/marks/scream-fest.png?v=r1" alt=""></span>
           <div>
             <p class="brand__kicker">Singapore Polytechnic</p>
             <h1>Scream Fest</h1>
@@ -498,6 +501,7 @@
         <section class="view welcome-view" data-view="welcome" hidden>
           <div class="welcome-night">
             <p class="welcome-night__kicker">Singapore Polytechnic</p>
+            <img class="welcome-night__logo" src="img/marks/scream-fest.png?v=r1" alt="">
             <p class="welcome-night__mark">Scream Fest</p>
             <h2 class="welcome-night__title">The gates are open</h2>
             <ul class="event-gate__chips welcome-night__chips">
@@ -1812,8 +1816,8 @@
         <p class="site-footer__clubs" id="footerClubs">
           SPSU, CSCC, SPSSC, CLSC, SOCC, EEEC, MAEC, MADC, SBC, ABEC, SMAC
         </p>
-        <div class="site-sponsors" hidden>
-          <p class="site-sponsors__credit">Proudly sponsored by</p>
+        <div class="site-sponsors">
+          <p class="site-sponsors__credit">Partners</p>
           <ul class="site-sponsors__list" id="sponsorList"></ul>
         </div>
       </footer>
@@ -1913,8 +1917,13 @@
           </div>
           <div class="modal__body">
             <p class="muted" data-booth-place></p>
+            <img class="booth-logo" data-booth-logo alt="" hidden>
             <p class="modal__story" data-booth-summary></p>
+            <ul class="booth-items" data-booth-items hidden></ul>
+            <p class="booth-note" data-booth-note hidden></p>
             <p data-booth-about></p>
+            <div class="booth-menu" data-booth-menu hidden></div>
+            <div class="booth-links" data-booth-links hidden></div>
             <p class="muted" data-booth-stamp></p>
           </div>
         </div>
@@ -1922,7 +1931,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r79"></script>
+      <script type="module" src="js/app.js?v=r83"></script>
     </div>
   </body>
 </html>
