@@ -231,20 +231,20 @@ html.event-open main {
   align-content: center;
   justify-items: center;
   gap: 16px;
-  flex: 0 0 73vh;
-  min-height: 73vh;
+  flex: 0 0 auto;
+  min-height: 0;
   max-width: 40rem;
   width: calc(100% - 40px);
   margin: 0 auto;
-  padding: max(16px, env(safe-area-inset-top)) 20px 0;
+  padding: max(16px, env(safe-area-inset-top)) 20px 1.25rem;
 }
 .event-gate__credits {
   position: relative;
   z-index: 2;
   width: 100%;
   margin-top: 0;
-  padding: 3.5rem max(var(--s4), env(safe-area-inset-left)) 2.5rem;
-  background: linear-gradient(to bottom, transparent, #f3e7db 3.5rem);
+  padding: 1.75rem max(var(--s4), env(safe-area-inset-left)) 2.5rem;
+  background: linear-gradient(to bottom, transparent, #f3e7db 1.75rem);
   color: #3c2a32;
   text-align: center;
 }
