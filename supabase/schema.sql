@@ -430,7 +430,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
   booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
-  if booth !~ '^[1-7]$' then
+  if booth !~ '^[124-7]$' then
     return jsonb_build_object('ok', false, 'error', 'bad_booth');
   end if;
 

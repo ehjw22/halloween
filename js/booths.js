@@ -24,22 +24,10 @@ export const BOOTHS = [
       "A carnival ring toss with Halloween targets: witch hats, bottles painted for the night, and graveyard stands. You get five throws.",
   },
   {
-    id: "3",
-    icon: "ghost",
-    name: "Ghoulish Glam",
-    short: "Booth 03",
-    code: "GLAM",
-    place: "Eleven Square",
-    map: { x: 82, y: 20, side: "w", region: "64.7,40.1 64.9,0 100,0 100,40.2" },
-    summary: "Halloween face paint.",
-    about:
-      "Get into the night with Halloween face paint. Pick a design and wear it through the houses.",
-  },
-  {
     id: "4",
     icon: "crypt",
     name: "Make a Monster",
-    short: "Booth 04",
+    short: "Booth 03",
     code: "SKEL",
     place: "Eleven Square",
     map: { x: 27, y: 57, side: "e", region: "53,69.1 0,72 0,47.2 33.5,37.4 55,49.9 54.8,66.3" },
@@ -51,7 +39,7 @@ export const BOOTHS = [
     id: "5",
     icon: "moon",
     name: "Tarot Reading",
-    short: "Booth 05",
+    short: "Booth 04",
     code: "TAROT",
     place: "Eleven Square",
     map: { x: 80, y: 57, side: "w", region: "54.8,66.3 55,49.9 64.7,40.1 100,40.2 100,77.5" },
@@ -63,7 +51,7 @@ export const BOOTHS = [
     id: "6",
     icon: "spark",
     name: "Drawn Alive",
-    short: "Booth 06",
+    short: "Booth 05",
     code: "DRAW",
     place: "Eleven Square",
     map: { x: 27, y: 85, side: "n", region: "0,72 53,69.1 51.2,100 0,100" },
@@ -75,7 +63,7 @@ export const BOOTHS = [
     id: "7",
     icon: "fang",
     name: "Screamometer",
-    short: "Booth 07",
+    short: "Booth 06",
     code: "SCREAM",
     place: "Eleven Square",
     map: { x: 75, y: 86, side: "n", region: "53,69.3 54.9,66.3 100,77.5 100,100 51.2,100" },
@@ -83,7 +71,22 @@ export const BOOTHS = [
     about:
       "Scream into the meter. One voice has to push the reading above 85 decibels.",
   },
+  {
+    id: "3",
+    icon: "ghost",
+    name: "Ghoulish Glam",
+    short: "Booth 07",
+    code: "GLAM",
+    stamp: false,
+    place: "Eleven Square",
+    map: { x: 82, y: 20, side: "w", region: "64.7,40.1 64.9,0 100,0 100,40.2" },
+    summary: "Halloween face paint.",
+    about:
+      "Get into the night with Halloween face paint. Pick a design and wear it through the houses.",
+  },
 ];
+
+export const STAMP_BOOTHS = BOOTHS.filter((booth) => booth.stamp !== false);
 
 export const FOOD_BOOTHS = [
   {

@@ -1,7 +1,7 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r20";
-import { BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r31";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r32";
 import { SPONSORS } from "./sponsors.js?v=r20";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
@@ -583,7 +583,7 @@ function boothSealHtml() {
 
 function boothDirectoryCard(booth) {
   const food = Boolean(booth.food);
-  const stamped = !food && boothIsStamped(booth.id);
+  const stamped = !food && booth.stamp !== false && boothIsStamped(booth.id);
   const logo = food
     ? `<img class="house-card__logo" src="${escapeHtml(booth.logo || "img/marks/ghost.png?v=r6")}" alt="">`
     : "";
@@ -854,11 +854,11 @@ function renderPins() {
       </div>
     </div>`;
   });
-  const stampedBooths = BOOTHS.filter((booth) => boothIsStamped(booth.id));
+  const stampedBooths = STAMP_BOOTHS.filter((booth) => boothIsStamped(booth.id));
   const boothStampNote = stampedBooths.length
-    ? `, ${stampedBooths.length} of ${BOOTHS.length} stamped`
+    ? `, ${stampedBooths.length} of ${STAMP_BOOTHS.length} stamped`
     : "";
-  const boothPin = `<div class="map-pin map-pin--booths${stampedBooths.length ? " is-stamped" : ""}${stampedBooths.length === BOOTHS.length ? " is-stamped-all" : ""}" data-pin="booths">
+  const boothPin = `<div class="map-pin map-pin--booths${stampedBooths.length ? " is-stamped" : ""}${stampedBooths.length === STAMP_BOOTHS.length ? " is-stamped-all" : ""}" data-pin="booths">
     <div class="map-pin__gfx">
       <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven squared${boothStampNote}">
         <span class="map-pin__label">Booths</span>
@@ -871,7 +871,7 @@ function renderPins() {
 }
 
 function boothListButton(booth) {
-  const stamped = !booth.food && boothIsStamped(booth.id);
+  const stamped = !booth.food && booth.stamp !== false && boothIsStamped(booth.id);
   const mark = booth.logo
     ? `<img class="booths-list__logo" data-brand="${escapeHtml(booth.theme || "")}" src="${escapeHtml(booth.logo)}" alt="">`
     : markImg(booth.icon, "mark mark--booth");
@@ -1235,7 +1235,7 @@ function openBooth(id, opts = {}) {
       .join("");
   }
   const stampLine = modal.querySelector("[data-booth-stamp]");
-  if (booth.food) {
+  if (booth.food || booth.stamp === false) {
     stampLine.hidden = true;
     stampLine.textContent = "";
   } else if (stamped) {
@@ -1320,7 +1320,7 @@ function paintLiveChip() {
 }
 
 function stampCount(stamps = cardState.stamps) {
-  return BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).length;
+  return STAMP_BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).length;
 }
 
 function cssVarPx(el, name, fallback) {
@@ -1760,7 +1760,7 @@ function boothNameLines(name) {
 }
 
 function stampBoardHtml({ lit, interactive } = {}) {
-  const pins = BOOTHS.map((booth) => {
+  const pins = STAMP_BOOTHS.map((booth) => {
     const stamped = lit ? lit(booth.id) : false;
     const side = booth.map.side || "s";
     const cls = `station-map__pin is-${side}${stamped ? " is-lit" : ""}`;
@@ -1773,7 +1773,7 @@ function stampBoardHtml({ lit, interactive } = {}) {
     return `<button class="${cls}" type="button" data-stamp="${booth.id}" data-x="${booth.map.x}" data-y="${booth.map.y}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}">${inner}</button>`;
   }).join("");
   const regions = interactive
-    ? `<svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("")}</svg>`
+    ? `<svg class="station-map__regions" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${STAMP_BOOTHS.map((booth) => `<polygon points="${booth.map.region}"></polygon>`).join("")}</svg>`
     : "";
   return `
     <div class="station-map__board">
@@ -1800,7 +1800,7 @@ function paintStampUi() {
 
   const stamps = locked ? {} : cardState.stamps;
   const filled = stampCount(stamps);
-  const goal = BOOTHS.length;
+  const goal = STAMP_BOOTHS.length;
   const complete = filled === goal;
   const sessionName = locked ? "Student" : cardState.fullName || session.payload.name;
   const sessionNum = locked ? "" : cardState.studentNumber || session.payload.studentNumber;
@@ -1814,10 +1814,10 @@ function paintStampUi() {
 
   if (els.stampGrid) {
     const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
-    const litFlags = BOOTHS.map((booth) => isLit(booth.id));
+    const litFlags = STAMP_BOOTHS.map((booth) => isLit(booth.id));
     els.stampGrid.classList.toggle("is-complete", complete);
     els.stampGrid.classList.toggle("has-ink", litFlags.some(Boolean));
-    const pads = BOOTHS.map((booth, index) => {
+    const pads = STAMP_BOOTHS.map((booth, index) => {
       const stamped = litFlags[index];
       const col = index % 3;
       const row = Math.floor(index / 3);
@@ -1877,7 +1877,7 @@ function paintStampUi() {
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
   const redeemed = isPassRedeemed(cardState.redeemedAt);
   if (redeemed) spiritRaised = false;
-  const lit = BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).map((booth) => booth.id);
+  const lit = STAMP_BOOTHS.filter((booth) => stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)]).map((booth) => booth.id);
   if (els.passHolder) {
     els.passHolder.textContent = locked ? "Student" : cardState.fullName || session.payload.name || "";
   }
@@ -2131,7 +2131,7 @@ async function loadOps() {
   if (!grid) return;
   try {
     const data = await fetchOps();
-    const boothBits = BOOTHS.map((b) => `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${data.stampsPerBooth?.[b.id] || 0}</strong></div>`).join("");
+    const boothBits = STAMP_BOOTHS.map((b) => `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${data.stampsPerBooth?.[b.id] || 0}</strong></div>`).join("");
     grid.innerHTML = `
       <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
       <div class="ops-card"><span>Fast Pass unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
@@ -2154,7 +2154,7 @@ async function loadOps() {
 function fillAwardBoothSelect() {
   if (!els.awardBooth) return;
   if (els.awardBooth.options.length && els.awardBooth.dataset.filled) return;
-  els.awardBooth.innerHTML = BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
+  els.awardBooth.innerHTML = STAMP_BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
   els.awardBooth.dataset.filled = "1";
 }
 
@@ -2810,8 +2810,8 @@ async function handleAuthSubmit(event) {
         showStaffUsedPass({ ...data, passId });
         return;
       }
-      if (filled < BOOTHS.length) {
-        throw new Error(`This student has ${filled} / ${BOOTHS.length} stamps. Fast Pass is not unlocked.`);
+      if (filled < STAMP_BOOTHS.length) {
+        throw new Error(`This student has ${filled} / ${STAMP_BOOTHS.length} stamps. Fast Pass is not unlocked.`);
       }
       const form = document.getElementById("staffRedeemLookupForm");
       const ready = document.getElementById("staffRedeemReady");
@@ -2821,7 +2821,7 @@ async function handleAuthSubmit(event) {
       if (ready) ready.hidden = false;
       document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
       document.getElementById("staffRedeemId").textContent = passId;
-      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${BOOTHS.length} stamps · ready to skip the wait line`;
+      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to skip the wait line`;
       document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
     } catch (error) {
       pushStaffLog("Redeem lookup", error);
