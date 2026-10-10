@@ -1,8 +1,8 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r20";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r32";
-import { SPONSORS } from "./sponsors.js?v=r20";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r22";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r35";
+import { SPONSORS } from "./sponsors.js?v=r21";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
 import { createStore } from "./store.js?v=r8";
@@ -487,6 +487,7 @@ function setView(name, extra) {
   if (name === "help") paintSafety();
   paintClubs();
   paintSponsors();
+  paintWelcomeBoothCount();
   if (name === "board") startBoard();
   else stopBoard();
   setMoreMenu(false);
@@ -511,10 +512,11 @@ function toggleWatchHouse(id) {
   if (openClusterKey && els.clusterModal && !els.clusterModal.hidden) paintClusterModal(openClusterKey);
   if (!watching) {
     setWantsPush(true);
-    enablePushNotifications(night.watch).then((result) => {
+    enablePushNotifications(pushWatchList(night.watch)).then((result) => {
       paintPushHint();
+      const when = alertChoiceLabel();
       if (result?.ok) {
-        showWaitToast("Alerts on", "We’ll ping this phone at 10 minutes, at 5 minutes, and when the house is open.", false);
+        showWaitToast("Alerts on", when ? `We’ll ping this phone at ${when}.` : "Pick at least one wait on the sign-in page.", false);
         return;
       }
       if (result?.reason === "ios-install") {
@@ -525,10 +527,10 @@ function toggleWatchHouse(id) {
         showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
         return;
       }
-      showWaitToast("Alerts on", "You’ll see a message here at 10 minutes, at 5 minutes, and when the house is open.", false);
+      showWaitToast("Alerts on", alertChoiceLabel() ? `You’ll see a message here at ${alertChoiceLabel()}.` : "Pick at least one wait on the sign-in page.", false);
     }).catch(paintPushHint);
   } else {
-    syncPushWatch(night.watch);
+    syncPushWatch(pushWatchList(night.watch));
     showWaitToast("Alert off", "This house will no longer ping you.", false);
   }
 }
@@ -584,21 +586,22 @@ function boothSealHtml() {
 function boothDirectoryCard(booth) {
   const food = Boolean(booth.food);
   const stamped = !food && booth.stamp !== false && boothIsStamped(booth.id);
-  const logo = food
-    ? `<img class="house-card__logo" src="${escapeHtml(booth.logo || "img/marks/ghost.png?v=r6")}" alt="">`
-    : "";
   const theme = food && booth.theme ? ` data-theme="${escapeHtml(booth.theme)}"` : "";
-  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}"${theme}>
-    <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
-      <span class="house-card__rail" aria-hidden="true"></span>
-      <span class="house-card__top">
-        <span class="house-card__identity">${logo}<span class="house-card__short">${escapeHtml(booth.short || "")}</span></span>
+  const logo = food && booth.logo
+    ? `<img class="house-card__logo" src="${escapeHtml(booth.logo)}" alt="">`
+    : food
+      ? ""
+      : `<span class="house-card__short">${escapeHtml(booth.short || "")}</span>`;
+  const body = `<span class="house-card__top">
+        ${logo}
         <span class="status-pill">${food ? "Food" : "Booth"}</span>
       </span>
       <strong class="house-card__name">${escapeHtml(booth.name)}</strong>
-      <span class="house-card__meta">
-        <span class="fresh">${escapeHtml(booth.summary || (food ? "Food stall" : "Booth"))}</span>
-      </span>
+      <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>`;
+  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}"${theme}>
+    <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
+      <span class="house-card__rail" aria-hidden="true"></span>
+      ${body}
       ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>
@@ -607,9 +610,7 @@ function boothDirectoryCard(booth) {
 
 function paintBoothDirectory() {
   const booths = document.getElementById("boothDirectory");
-  const food = document.getElementById("foodDirectory");
-  if (booths) booths.innerHTML = BOOTHS.map(boothDirectoryCard).join("");
-  if (food) food.innerHTML = FOOD_BOOTHS.map(boothDirectoryCard).join("");
+  if (booths) booths.innerHTML = [...BOOTHS, ...FOOD_BOOTHS].map(boothDirectoryCard).join("");
 }
 
 function renderDashboard() {
@@ -681,6 +682,16 @@ function screeningCardHtml(meta) {
   return placeCardHtml(meta, "Screening", "Movie");
 }
 
+function screeningFilmsHtml(films) {
+  return films.map((film) => `
+    <article class="screening-film">
+      <h4>${escapeHtml(film.title)}</h4>
+      <p class="screening-film__meta">${escapeHtml(film.meta || "")}</p>
+      <p>${escapeHtml(film.synopsis || "")}</p>
+      ${film.trailer ? `<iframe class="screening-film__trailer" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(film.trailer)}" title="${escapeHtml(film.title)} trailer" allow="fullscreen" allowfullscreen loading="lazy"></iframe>` : ""}
+    </article>`).join("");
+}
+
 function showWaitToast(title, body, walkIn = false) {
   const host = document.getElementById("waitToasts");
   if (!host) return;
@@ -707,23 +718,12 @@ function showAnnounceToast(row) {
   }, 12000);
 }
 
-function crossedMilestone(prev, next, status) {
-  if (status === "closed") return null;
-  const n = Number(next);
-  const p = Number(prev);
-  if (!Number.isFinite(n) || !Number.isFinite(p) || n === p) return null;
-  if (n === 0 && p > 0) return "open";
-  if (n > 0 && n <= 5 && p > 5) return "five";
-  if (n > 5 && n <= 10 && p > 10) return "ten";
-  return null;
-}
-
 function milestoneCopy(level, name, wait) {
   const minutes = Math.round(Number(wait) || 0);
-  if (level === "open") return { title: "Open now", body: `${name}. No queue. Head over.` };
-  if (level === "five") return { title: "5 minutes", body: `${name} is down to ${minutes} minutes.` };
-  if (level === "ten") return { title: "10 minutes", body: `${name} is down to ${minutes} minutes.` };
-  return null;
+  const step = ALERT_STEPS.find((item) => item.id === level);
+  if (!step) return null;
+  if (level === "open") return { title: step.title, body: `${name}. No queue. Head over.` };
+  return { title: step.title, body: `${name} is down to ${minutes} minutes.` };
 }
 
 function notifyWatches(nextHouses) {
@@ -738,7 +738,7 @@ function notifyWatches(nextHouses) {
     const key = `${row.wait_minutes}:${row.status}`;
     if (!prev || prev === key) return;
     const [prevWait] = String(prev).split(":");
-    const level = crossedMilestone(prevWait, row.wait_minutes, row.status);
+    const level = alertForLevels(prevWait, row.wait_minutes, row.status, readAlertLevels())?.id;
     if (!level) return;
     const copy = milestoneCopy(level, row.name, row.wait_minutes);
     if (!copy || document.hidden) return;
@@ -770,6 +770,12 @@ function paintClubs() {
   if (footer) footer.innerHTML = links;
   const follow = document.getElementById("followClubs");
   if (follow) follow.innerHTML = links;
+}
+
+function paintWelcomeBoothCount() {
+  const el = document.getElementById("welcomeBoothCount");
+  if (!el) return;
+  el.textContent = `${BOOTHS.length + FOOD_BOOTHS.length} Booths`;
 }
 
 function paintSponsors() {
@@ -886,11 +892,7 @@ function boothListButton(booth) {
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
   if (!list) return;
-  list.innerHTML = [
-    ...BOOTHS.map(boothListButton),
-    `<h4 class="booths-list__heading">Food</h4>`,
-    ...FOOD_BOOTHS.map(boothListButton),
-  ].join("");
+  list.innerHTML = [...BOOTHS, ...FOOD_BOOTHS].map(boothListButton).join("");
 }
 
 function syncBoothStampsOnMap() {
@@ -1091,7 +1093,20 @@ function openHouse(id, opts = {}) {
   els.modal.querySelector("[data-modal-wait]").textContent = zone ? "Scare Zone" : screening ? "Movie" : waitLabel(row.wait_minutes, status);
   els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare Zone" : screening ? "Screening" : statusPillLabel(row);
   els.modal.querySelector("[data-modal-status]").className = `status-pill${row && !zone ? ` status-${status}` : ""}`;
-  els.modal.querySelector("[data-modal-story]").textContent = meta.blurb || "";
+  const storyEl = els.modal.querySelector("[data-modal-story]");
+  const filmsEl = els.modal.querySelector("[data-modal-films]");
+  if (meta.films?.length && filmsEl) {
+    storyEl.hidden = true;
+    filmsEl.hidden = false;
+    filmsEl.innerHTML = screeningFilmsHtml(meta.films);
+  } else if (storyEl) {
+    if (filmsEl) {
+      filmsEl.hidden = true;
+      filmsEl.innerHTML = "";
+    }
+    storyEl.hidden = false;
+    storyEl.textContent = meta.blurb || "";
+  }
   els.modal.querySelector("[data-modal-code]").textContent = meta.rooms || meta.short;
   const tagsEl = els.modal.querySelector("[data-modal-tags]");
   if (tagsEl) tagsEl.innerHTML = tagChips(meta) || "";
@@ -1118,7 +1133,7 @@ function clusterHouseHtml(meta, watching) {
     <div>
       <h4>${escapeHtml(meta.name)}</h4>
       <p class="cluster-house__where">${escapeHtml(meta.rooms || meta.short)} · ${escapeHtml(wait)}</p>
-      <p>${escapeHtml(meta.blurb || "")}</p>
+      ${meta.films?.length ? screeningFilmsHtml(meta.films) : `<p>${escapeHtml(meta.blurb || "")}</p>`}
     </div>
     ${alert}
   </li>`;
@@ -1185,10 +1200,28 @@ function openBooth(id, opts = {}) {
     place.textContent = "";
     place.hidden = true;
   }
-  modal.querySelector("[data-booth-summary]").textContent = booth.summary;
+  const summary = modal.querySelector("[data-booth-summary]");
+  const blurb = modal.querySelector("[data-booth-blurb]");
   const about = modal.querySelector("[data-booth-about]");
-  about.textContent = booth.items?.length ? "" : booth.about || "";
-  about.hidden = !about.textContent;
+  if (booth.food) {
+    if (blurb) {
+      blurb.textContent = booth.about || booth.summary || "";
+      blurb.hidden = !blurb.textContent;
+    }
+    summary.textContent = "";
+    summary.hidden = true;
+    about.textContent = "";
+    about.hidden = true;
+  } else {
+    if (blurb) {
+      blurb.textContent = "";
+      blurb.hidden = true;
+    }
+    summary.textContent = booth.summary || "";
+    summary.hidden = !summary.textContent;
+    about.textContent = booth.about || "";
+    about.hidden = !about.textContent;
+  }
   const items = modal.querySelector("[data-booth-items]");
   if (items) {
     const rows = booth.items || [];
@@ -1208,7 +1241,8 @@ function openBooth(id, opts = {}) {
   }
   const logo = modal.querySelector("[data-booth-logo]");
   if (logo) {
-    if (booth.logo) {
+    const showLogo = Boolean(booth.logo) && !(booth.menu || []).length;
+    if (showLogo) {
       logo.hidden = false;
       logo.src = booth.logo;
       logo.dataset.brand = booth.theme || "";
@@ -1223,7 +1257,7 @@ function openBooth(id, opts = {}) {
     const links = booth.links || [];
     linksEl.hidden = !links.length;
     linksEl.innerHTML = links
-      .map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`)
+      .map((link) => `<a class="btn btn--ghost" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`)
       .join("");
   }
   const menu = modal.querySelector("[data-booth-menu]");
@@ -1317,6 +1351,56 @@ function renderSessionChip() {
 function paintLiveChip() {
   if (!els.liveMode) return;
   els.liveMode.hidden = !getAdminSession();
+}
+
+const ALERT_LEVELS = ["fifty", "forty", "thirty", "twenty", "ten", "five"];
+const ALERT_KEY = "scream-alert-levels";
+const DEFAULT_ALERTS = ["forty", "thirty", "twenty"];
+const ALERT_STEPS = [
+  { id: "five", max: 5, title: "5 minutes" },
+  { id: "ten", max: 10, title: "10 minutes" },
+  { id: "twenty", max: 20, title: "20 minutes" },
+  { id: "thirty", max: 30, title: "30 minutes" },
+  { id: "forty", max: 40, title: "40 minutes" },
+  { id: "fifty", max: 50, title: "50 minutes" },
+];
+
+function readAlertLevels() {
+  const raw = localStorage.getItem(ALERT_KEY);
+  if (raw == null) return DEFAULT_ALERTS.slice();
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_ALERTS.slice();
+    return parsed.filter((id) => ALERT_LEVELS.includes(id));
+  } catch {
+    return DEFAULT_ALERTS.slice();
+  }
+}
+
+function writeAlertLevels(ids) {
+  const next = ALERT_LEVELS.filter((id) => ids.includes(id));
+  localStorage.setItem(ALERT_KEY, JSON.stringify(next));
+  return next;
+}
+
+function pushWatchList(houseIds) {
+  return [...houseIds, ...readAlertLevels().map((id) => `level:${id}`)];
+}
+
+function alertForLevels(prev, next, status, levels) {
+  if (status === "closed") return null;
+  const n = Number(next);
+  const p = Number(prev);
+  if (!Number.isFinite(n) || !Number.isFinite(p) || n >= p) return null;
+  const wanted = new Set(levels);
+  return ALERT_STEPS.find((step) => wanted.has(step.id) && n <= step.max && p > step.max) || null;
+}
+
+function alertChoiceLabel() {
+  const picked = readAlertLevels();
+  if (!picked.length) return "";
+  const names = { fifty: "50 minutes", forty: "40 minutes", thirty: "30 minutes", twenty: "20 minutes", ten: "10 minutes", five: "5 minutes" };
+  return picked.map((id) => names[id]).filter(Boolean).join(", ");
 }
 
 function stampCount(stamps = cardState.stamps) {
@@ -1750,6 +1834,8 @@ function boothNameLines(name) {
   const lines = {
     "Trick-or-Ink": ["Trick-or-", "Ink"],
     "Hat Trick": ["Hat", "Trick"],
+    "Cursed Eyeballs": ["Cursed", "Eyeballs"],
+    "Jagua Tattoo": ["Jagua", "Tattoo"],
     "Ghoulish Glam": ["Ghoulish", "Glam"],
     "Make a Monster": ["Make a", "Monster"],
     "Tarot Reading": ["Tarot", "Reading"],
@@ -1778,7 +1864,7 @@ function stampBoardHtml({ lit, interactive } = {}) {
   return `
     <div class="station-map__board">
       <div class="station-map__fog" aria-hidden="true"></div>
-      <img class="station-map__art" src="img/fast-pass-ticket.png?v=r6" alt="">
+      <img class="station-map__art" src="img/wheel-ticket.png?v=r1" alt="">
       ${regions}
       ${pins}
     </div>`;
@@ -1839,7 +1925,7 @@ function paintStampUi() {
     }).join("");
     els.stampGrid.innerHTML = `
       <div class="stamp-grid__ticket" aria-hidden="true">
-        <img src="img/fast-pass-ticket.png?v=r6" alt="">
+        <img src="img/wheel-ticket.png?v=r1" alt="">
       </div>
       ${pads}`;
     const ticket = els.stampGrid.querySelector(".stamp-grid__ticket");
@@ -1874,6 +1960,18 @@ function paintStampUi() {
     layoutStampArt();
   }
 
+  const runeRing = document.getElementById("lanternRunes");
+  if (runeRing) {
+    runeRing.innerHTML = STAMP_BOOTHS.map((booth, index) => `
+      <div class="lantern__rune-slot" style="--rune: ${index}">
+        <button class="lantern__rune" type="button" data-stamp="${escapeHtml(booth.id)}" aria-label="${escapeHtml(booth.name)}">
+          <span class="lantern__rune-glow"></span>
+          <span class="lantern__rune-stone"></span>
+          <span class="lantern__rune-glyph" aria-hidden="true">${markImg(booth.icon)}</span>
+        </button>
+      </div>`).join("");
+  }
+
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
   const redeemed = isPassRedeemed(cardState.redeemedAt);
   if (redeemed) spiritRaised = false;
@@ -1901,7 +1999,7 @@ function paintStampUi() {
     els.passKicker.textContent = redeemed
       ? "Spirit keepsake"
       : complete
-        ? "Show this at Fast Pass"
+        ? "Show this at the wheel"
         : "Caged spirit";
   }
   if (els.lanternHint) {
@@ -1909,7 +2007,7 @@ function paintStampUi() {
     els.lanternHint.hidden = hideHint;
     if (!hideHint) {
       els.lanternHint.textContent = filled
-        ? `Uncover ${goal - filled} more piece${goal - filled === 1 ? "" : "s"} of your Fast Pass`
+        ? `Uncover ${goal - filled} more piece${goal - filled === 1 ? "" : "s"} of your wheel ticket`
         : "The spirit is caged. Stamp booths to uncover your ticket";
     }
   }
@@ -2134,7 +2232,7 @@ async function loadOps() {
     const boothBits = STAMP_BOOTHS.map((b) => `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${data.stampsPerBooth?.[b.id] || 0}</strong></div>`).join("");
     grid.innerHTML = `
       <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
-      <div class="ops-card"><span>Fast Pass unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
+      <div class="ops-card"><span>Wheel tickets unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
       <div class="ops-card"><span>Houses busy</span><strong>${data.housesBusy || 0}</strong></div>
       <div class="ops-card"><span>Houses long</span><strong>${data.housesLong || 0}</strong></div>
       <div class="ops-card"><span>Houses closed</span><strong>${data.housesClosed || 0}</strong></div>
@@ -2703,10 +2801,11 @@ async function handleAuthSubmit(event) {
       if (data.student) {
         cardState.studentNumber = "";
         renderStamps({ refresh: true }).catch(() => paintStampUi());
-        const notify = document.getElementById("studentNotifyOptIn");
-        if (notify?.checked) {
+        const picked = [...document.querySelectorAll('input[name="alertLevel"]:checked')].map((input) => input.value);
+        writeAlertLevels(picked);
+        if (picked.length) {
           setWantsPush(true);
-          enablePushNotifications(readNight().watch).then(paintPushHint).catch(paintPushHint);
+          enablePushNotifications(pushWatchList(readNight().watch)).then(paintPushHint).catch(paintPushHint);
         } else {
           paintPushHint();
         }
@@ -2773,9 +2872,9 @@ async function handleAuthSubmit(event) {
   }
 
   function formatRedeemedLine(at, by) {
-    if (!at) return "This pass is marked used.";
+    if (!at) return "This ticket is marked used.";
     const when = new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return `Redeemed at ${when}${by ? ` by ${by}` : ""}.`;
+    return `Ticket used at ${when}${by ? ` by ${by}` : ""}.`;
   }
 
   function showStaffUsedPass(data) {
@@ -2811,7 +2910,7 @@ async function handleAuthSubmit(event) {
         return;
       }
       if (filled < STAMP_BOOTHS.length) {
-        throw new Error(`This student has ${filled} / ${STAMP_BOOTHS.length} stamps. Fast Pass is not unlocked.`);
+        throw new Error(`This student has ${filled} / ${STAMP_BOOTHS.length} stamps. The wheel ticket is not unlocked.`);
       }
       const form = document.getElementById("staffRedeemLookupForm");
       const ready = document.getElementById("staffRedeemReady");
@@ -2821,7 +2920,7 @@ async function handleAuthSubmit(event) {
       if (ready) ready.hidden = false;
       document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
       document.getElementById("staffRedeemId").textContent = passId;
-      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to skip the wait line`;
+      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to spin the wheel`;
       document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
     } catch (error) {
       pushStaffLog("Redeem lookup", error);
@@ -2847,7 +2946,7 @@ async function handleAuthSubmit(event) {
       }
     } catch (error) {
       resetStaffRedeemView();
-      pushStaffLog("Redeem Fast Pass", error);
+      pushStaffLog("Redeem wheel ticket", error);
       if (err) {
         err.hidden = false;
         err.textContent = staffDeskError(error);
@@ -3189,7 +3288,7 @@ async function init() {
   loadPublicAnnouncements();
   registerPushWorker();
   paintPushHint();
-  resumePushIfWanted(readNight().watch);
+  resumePushIfWanted(pushWatchList(readNight().watch));
   const start = hashToView();
   const explicitTab = Boolean(location.hash) && start.view && start.view !== "welcome";
   if (wantsOpeningNight() && !explicitTab) {

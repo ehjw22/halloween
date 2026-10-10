@@ -13,7 +13,7 @@ export const SCHEDULE = [
   { start: "20:30", end: "20:50", title: "Cosplay walk", place: "Plaza", kind: "performance", note: "Costume parade loop." },
   { start: "21:00", end: "21:25", title: "Guest / finale prep", place: "Arena", kind: "performance", note: "Hold for stage reset." },
   { start: "21:30", end: "22:00", title: "Finale performance", place: "Sports Arena", kind: "performance", note: "Closing number." },
-  { start: "22:00", end: "22:30", title: "Last entry / wrap", place: "All houses", kind: "ops", note: "No new queues after 22:00. Fast Pass desk closes with houses." },
+  { start: "22:00", end: "22:30", title: "Last entry / wrap", place: "All houses", kind: "ops", note: "No new queues after 22:00. The wheel closes with the houses." },
 ];
 
 function minutesNow(date = new Date()) {

@@ -2556,6 +2556,34 @@ html.event-welcome .view[data-view="welcome"].is-active {
   height: 56px;
   max-width: 9rem;
 }
+.map-booths .cluster-group__grid {
+  align-items: stretch;
+}
+.map-booths .house-card {
+  height: 100%;
+  min-height: 148px;
+}
+.map-booths .house-card__open {
+  height: 100%;
+  align-content: start;
+}
+.map-booths .house-card__name,
+.map-booths .house-card__meta {
+  margin: 0;
+}
+.map-booths .house-card--food .house-card__top {
+  align-items: flex-start;
+}
+.map-booths .house-card--food .house-card__logo {
+  height: 52px;
+  max-width: 8.5rem;
+  margin-right: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+.map-booths .house-card--food .house-card__top:not(:has(.house-card__logo)) {
+  justify-content: flex-end;
+}
 .house-card__logo--mark {
   width: 22px;
   height: 22px;
@@ -2705,12 +2733,6 @@ a,
   border-color: #4d7a38;
 }
 .house-card--food[data-theme="matcha"] .house-card__rail { background: #6a9a48; }
-.house-card--food[data-theme="bree"],
-.house-card--food[data-theme="bree"]:hover {
-  background: linear-gradient(165deg, #3a2c22 0%, var(--surface-1) 72%);
-  border-color: #a68458;
-}
-.house-card--food[data-theme="bree"] .house-card__rail { background: #c4a574; }
 .house-card__open {
   text-align: left;
   font: inherit;
@@ -3304,8 +3326,8 @@ a,
   justify-items: center;
   gap: 0;
   width: min(390px, 96vw);
-  margin: 8px auto 8px;
-  padding: 36px 0 96px;
+  margin: 8px auto 0;
+  padding: 28px 0 168px;
   overflow: visible;
   border: 0;
   background: transparent;
@@ -3438,7 +3460,12 @@ a,
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
 }
 .lantern__hint {
-  margin: 112px 0 8px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  margin: 0;
+  max-width: none;
   font-size: 0.8rem;
   color: var(--muted);
 }
@@ -3669,7 +3696,20 @@ a,
 .fast-pass[data-runes="4"] .lantern__sigil { opacity: 0.88; }
 .fast-pass[data-runes="5"] .lantern__sigil,
 .fast-pass[data-runes="6"] .lantern__sigil,
-.fast-pass[data-runes="7"] .lantern__sigil { opacity: 1; }
+.fast-pass[data-runes="7"] .lantern__sigil,
+.fast-pass[data-runes="8"] .lantern__sigil { opacity: 1; }
+.alert-choices {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+.alert-choices legend {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
 .fast-pass.is-complete .lantern__sigil {
   color: hsl(var(--ghost-h) 78% 68%);
   filter: drop-shadow(0 0 16px hsl(var(--ghost-h) 90% 55% / 0.55));
@@ -4005,7 +4045,8 @@ a,
   position: relative;
   z-index: 0;
   overflow: hidden;
-  margin: var(--s5) 0 var(--s3);
+  width: min(640px, 100%);
+  margin: 20px auto var(--s3);
   padding: var(--s4);
   border-radius: var(--r-3);
   border: 1px dashed var(--border-strong);
@@ -4474,6 +4515,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: var(--ink-2);
   font-size: var(--fs-sm);
 }
+.booth-logo[hidden],
+.booth-menu[hidden] {
+  display: none;
+}
 .booth-logo {
   display: block;
   width: auto;
@@ -4483,21 +4528,50 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   object-fit: contain;
   object-position: left center;
 }
+.booth-links[hidden],
+.modal__story[hidden],
+.screening-films[hidden] {
+  display: none;
+}
+.screening-films {
+  display: grid;
+  gap: var(--s5);
+  margin: 0 0 var(--s4);
+}
+.screening-film h4 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.screening-film__meta {
+  margin: 4px 0 var(--s3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.screening-film p {
+  margin: 0 0 var(--s3);
+}
+.screening-film__trailer {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 12px;
+  background: #000;
+}
 .booth-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: var(--s3) 0 0;
+  gap: 8px;
+  margin: 0 0 var(--s4);
 }
-.booth-links a {
-  color: var(--ink);
-  font-weight: 600;
-  text-underline-offset: 3px;
+.booth-links .btn {
+  min-height: 40px;
+  padding: 0 14px;
 }
 .booth-menu {
   display: grid;
   gap: var(--s3);
-  margin: var(--s4) 0 0;
+  margin: 0 0 var(--s4);
 }
 .booth-menu img {
   display: block;
@@ -5663,7 +5737,7 @@ body.is-board { background: #050308; }
   .lantern {
     --rune-orbit: 128px;
     width: min(100%, 360px);
-    padding: 92px 0 116px;
+    padding: 52px 0 148px;
   }
   .lantern__handle {
     width: 36px;
@@ -5709,7 +5783,7 @@ body.is-board { background: #050308; }
     margin: 0;
   }
   .lantern__rune-glyph { font-size: 1rem; }
-  .lantern__hint { margin-top: calc(var(--rune-orbit) - 40px); }
+  .pass-plate { width: min(100%, 640px); }
   .lantern__halo {
     width: 168px;
     height: 168px;

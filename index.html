@@ -31,7 +31,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r78" />
+    <link rel="stylesheet" href="css/styles.css?v=r97" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -506,7 +506,7 @@
             <h2 class="welcome-night__title">The gates are open</h2>
             <ul class="event-gate__chips welcome-night__chips">
               <li>12 Scare Houses</li>
-              <li>7 Booths</li>
+              <li id="welcomeBoothCount">13 Booths</li>
               <li>1 Free Admission</li>
             </ul>
             <div class="welcome-night__actions">
@@ -634,10 +634,6 @@
               <h2>Booths · Eleven<sup>2</sup></h2>
             </div>
             <div class="cluster-group__grid" id="boothDirectory"></div>
-            <div class="section-head">
-              <h2>Food booths · Eleven<sup>2</sup></h2>
-            </div>
-            <div class="cluster-group__grid" id="foodDirectory"></div>
           </section>
         </section>
 
@@ -682,13 +678,16 @@
                 />
                 <span class="field-error" id="studentLoginNameError" role="alert" hidden></span>
               </label>
-              <label class="check-row">
-                <input id="studentNotifyOptIn" type="checkbox" />
-                <span
-                  >Notify this phone at 10 minutes, at 5 minutes, and when a
-                  house I watch is open. iPhone: Add to Home Screen first.</span
-                >
-              </label>
+              <fieldset class="alert-choices">
+                <legend>When should this phone ping you?</legend>
+                <p class="field-hint">Pick the waits you care about. Alerts start after you tap Notify on a house. iPhone: Add to Home Screen first.</p>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="fifty" /> 50 minutes</label>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="forty" checked /> 40 minutes</label>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="thirty" checked /> 30 minutes</label>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="twenty" checked /> 20 minutes</label>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="ten" /> 10 minutes</label>
+                <label class="check-row"><input type="checkbox" name="alertLevel" value="five" /> 5 minutes</label>
+              </fieldset>
               <p class="form-error" id="studentLoginError" hidden></p>
               <button class="btn" type="submit" id="loginSubmitBtn">Sign in</button>
             </form>
@@ -743,7 +742,7 @@
                   <h2 id="stampHolderName">Student</h2>
                   <p class="passport__idno" id="stampHolderId"></p>
                   <p class="stamp-progress" id="stampProgress">
-                    0 / 6 runes lit
+                    0 / 8 runes lit
                   </p>
                 </div>
               </div>
@@ -920,130 +919,17 @@
                         </g>
                       </svg>
                     </div>
-                    <div class="lantern__runes" id="lanternRunes">
-                      <div class="lantern__rune-slot" style="--rune: 0"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="1"
-                          aria-label="Trick-or-Ink"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <circle cx="20" cy="20" r="9" />
-                              <path
-                                d="M20 2v7M20 31v7M2 20h7M31 20h7M6 6l5 5M29 29l5 5M34 6l-5 5M6 34l5-5M20 11v18M11 20h18"
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/web.png?v=r6" alt="" /></span
-                        </button></div>
-                      <div class="lantern__rune-slot" style="--rune: 1"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="2"
-                          aria-label="Hat Trick"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <path
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/pumpkin.png?v=r6" alt="" /></span
-                        </button></div>
-                      <div class="lantern__rune-slot" style="--rune: 2"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="4"
-                          aria-label="Make a Monster"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <path
-                                d="M20 4l16 16-16 16L4 20zM20 4v32M4 20h32M8 8l24 24M32 8 8 32M20 10l10 10-10 10L10 20z"
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/crypt.png?v=r6" alt="" /></span
-                        </button></div>
-                      <div class="lantern__rune-slot" style="--rune: 3"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="5"
-                          aria-label="Tarot Reading"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <path
-                                d="M7 10c9 5 17 5 26 0M7 20h26M7 30c9-5 17-5 26 0M13 7v26M27 7v26M10 15l10 5 10-5M10 25l10-5 10 5"
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/moon.svg?v=r6" alt="" /></span
-                        </button></div>
-                      <div class="lantern__rune-slot" style="--rune: 4"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="6"
-                          aria-label="Drawn Alive"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <path
-                                d="M12 32V16c0-6 16-6 16 0v16M12 32h16M20 8v8M14 12h12M16 32v-9h8v9M20 23v9"
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/spark.svg?v=r6" alt="" /></span
-                        </button></div>
-                      <div class="lantern__rune-slot" style="--rune: 5"
-                        ><button
-                          class="lantern__rune"
-                          type="button"
-                          data-stamp="7"
-                          aria-label="Screamometer"
-                        >
-                          <span class="lantern__rune-glow"></span
-                          ><span class="lantern__rune-stone"></span
-                          ><span class="lantern__rune-etch"
-                            ><svg viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="15" />
-                              <path
-                                d="M20 6v8M20 26v8M8 20h8M24 20h8M11 11l5 5M24 24l5 5M29 11l-5 5M11 29l5-5"
-                              /></svg></span
-                          ><span class="lantern__rune-glyph" aria-hidden="true"
-                            ><img class="mark" src="img/marks/fang.svg?v=r6" alt="" /></span
-                        </button></div>
-                    </div>
-                  </div>
-                  <p class="lantern__hint" id="lanternHint">
-                    The spirit is caged. Stamp booths to uncover your ticket
-                  </p>
+                    <div class="lantern__runes" id="lanternRunes"></div>
+                </div>
+                <p class="lantern__hint" id="lanternHint">
+                  The spirit is caged. Stamp booths to uncover your ticket
+                </p>
                 </div>
                 <div class="pass-plate" id="passPlate">
                   <p class="pass-plate__name" id="passHolder"></p>
                   <p class="pass-plate__admin" id="passAdmin"></p>
-                  <p class="fast-pass__id is-locked" id="passId">
-                    Locked · 0 / 6 runes lit
-                  </p>
-                  <span class="fast-pass__used" id="passUsedMark" hidden
-                    >Laid to rest</span
-                  >
+                  <p class="fast-pass__id is-locked" id="passId">Locked · 0 / 8 runes lit</p>
+                  <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
                 </div>
                 <p class="muted" id="redeemedNote" hidden></p>
               </article>
@@ -1452,7 +1338,7 @@
               your stamp card. Collect each stamp at its booth.
             </li>
             <li>
-              Six stamps unlock the Fast Pass. Show it at the Fast Pass desk.
+              Eight stamps unlock a ticket to spin the wheel. Show it at the wheel.
             </li>
             <li>
               Send <strong>Feedback</strong> if a house or a booth needs a note.
@@ -1462,9 +1348,9 @@
           <h3 class="guide-heading">Walk-in alerts</h3>
           <ol class="how-list">
             <li>
-              Sign in, then tap <strong>Alert when walk-in</strong> on a scare
-              house. You will be notified at 10 minutes, at 5 minutes, when
-              the house is open, and when staff post an announcement.
+              Sign in and choose the waits you want, from 50 minutes down to 10 in
+              steps of 10, and also at 5 minutes. Then tap <strong>Alert when walk-in</strong>
+              on a scare house. You are also notified when staff post an announcement.
             </li>
             <li>Allow notifications when your phone asks.</li>
             <li>
@@ -1537,7 +1423,7 @@
                 data-staff-tab="redeem"
                 data-staff-scope="stamps"
               >
-                Redeem Fast Pass
+                Redeem wheel ticket
               </button>
               <button
                 class="nav__btn"
@@ -1628,7 +1514,7 @@
 
             <div class="staff-panel" data-staff-panel="redeem" hidden>
               <div class="section-head">
-                <h2>Redeem Fast Pass</h2>
+                <h2>Redeem wheel ticket</h2>
               </div>
               <form
                 class="auth-card award-stamp-form"
@@ -1656,7 +1542,7 @@
                 hidden
               >
                 <p class="fast-pass__kicker">Ready to redeem</p>
-                <h3>SP Scream Fest Fast Pass</h3>
+                <h3>Wheel ticket</h3>
                 <p class="fast-pass__holder" id="staffRedeemName"></p>
                 <p class="fast-pass__id" id="staffRedeemId"></p>
                 <p class="muted" id="staffRedeemStamps"></p>
@@ -1673,7 +1559,7 @@
                 hidden
               >
                 <p class="fast-pass__kicker">Used</p>
-                <h3>Fast Pass redeemed</h3>
+                <h3>Wheel ticket used</h3>
                 <p class="fast-pass__holder" id="staffUsedName"></p>
                 <p class="fast-pass__id" id="staffUsedId"></p>
                 <p class="muted" id="staffUsedNote"></p>
@@ -1847,6 +1733,7 @@
               <strong data-modal-wait></strong>
             </div>
             <p class="modal__story" data-modal-story></p>
+            <div class="screening-films" data-modal-films hidden></div>
             <p class="house-tags" data-modal-tags></p>
             <p class="muted" data-modal-updated></p>
             <div class="modal-actions">
@@ -1897,13 +1784,14 @@
           </div>
           <div class="modal__body">
             <p class="muted" data-booth-place></p>
+            <p class="modal__story" data-booth-blurb hidden></p>
+            <div class="booth-links" data-booth-links hidden></div>
+            <div class="booth-menu" data-booth-menu hidden></div>
             <img class="booth-logo" data-booth-logo alt="" hidden>
             <p class="modal__story" data-booth-summary></p>
             <ul class="booth-items" data-booth-items hidden></ul>
             <p class="booth-note" data-booth-note hidden></p>
             <p data-booth-about></p>
-            <div class="booth-menu" data-booth-menu hidden></div>
-            <div class="booth-links" data-booth-links hidden></div>
             <p class="muted" data-booth-stamp></p>
           </div>
         </div>
@@ -1911,7 +1799,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r84"></script>
+      <script type="module" src="js/app.js?v=r94"></script>
     </div>
   </body>
 </html>

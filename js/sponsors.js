@@ -6,4 +6,5 @@ export const SPONSORS = [
     logo: "img/sponsors/charms-n-links.png",
     url: "https://www.charmsandlinks.com/",
   },
+  { name: "Double Chin", logo: "img/sponsors/double-chin.png", url: "https://doublechincafe.com/" },
 ];
