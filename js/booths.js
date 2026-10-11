@@ -6,7 +6,7 @@ export const BOOTHS = [
     short: "Booth 01",
     code: "INK",
     place: "Eleven Square",
-    map: { x: 16, y: 22, side: "e", region: "0,47.2 0,0 31.5,0 33.6,37.4" },
+    map: { x: 16, y: 22, side: "s", region: "0,0 32,0 27,9 37,18 26,29 34,40 31,48 22,41 12,54 0,46" },
     summary: "Free temporary tattoos. Up to three designs.",
     about:
       "Spice up your look with a temporary tattoo, free. Each person can take up to three designs.",
@@ -18,7 +18,7 @@ export const BOOTHS = [
     short: "Booth 02",
     code: "HAT",
     place: "Eleven Square",
-    map: { x: 49, y: 22, side: "s", region: "55.1,49.9 33.6,37.4 31.5,0 64.9,0 64.7,40.1" },
+    map: { x: 50, y: 22, side: "s", region: "32,0 68,0 74,10 63,20 75,31 64,42 70,51 55,43 44,57 31,48 34,40 26,29 37,18 27,9" },
     summary: "Ring toss. Five throws. A prize for three successes.",
     about:
       "A classic carnival ring toss with Halloween targets: witch hats, bottles painted for the night, and graveyard stands. Each person gets five throws. Three successful throws win a prize.",
@@ -30,7 +30,7 @@ export const BOOTHS = [
     short: "Booth 03",
     code: "EYE",
     place: "Eleven Square",
-    map: { x: 82, y: 38, side: "w", region: "66,28 100,28 100,48 66,48" },
+    map: { x: 84, y: 22, side: "s", region: "68,0 100,0 100,47 93,55 82,40 70,51 64,42 75,31 63,20 74,10" },
     summary: "Three throws, then two tries at the task in the cup.",
     about:
       "Throw ping-pong eyeballs into Halloween cups: pumpkins, ghosts, and the rest of the night. Something to do is waiting at the bottom of the cup, such as a math problem. Each person gets three throws and two tries to answer. A prize for a successful throw and a correct answer.",
@@ -41,6 +41,7 @@ export const BOOTHS = [
     name: "Jagua Tattoo",
     short: "Booth 04",
     code: "JAGUA",
+    stamp: false,
     place: "Eleven Square",
     map: { x: 18, y: 40, side: "e", region: "0,28 32,28 32,48 0,48" },
     summary: "Temporary jagua tattoos. Skip this if your skin is sensitive.",
@@ -67,7 +68,7 @@ export const BOOTHS = [
     short: "Booth 06",
     code: "SKEL",
     place: "Eleven Square",
-    map: { x: 27, y: 57, side: "e", region: "53,69.1 0,72 0,47.2 33.5,37.4 55,49.9 54.8,66.3" },
+    map: { x: 24, y: 74, side: "n", region: "0,46 12,54 22,41 31,48 44,57 55,43 46,58 58,70 43,82 54,92 47,100 0,100" },
     summary: "Build a skeleton before the time runs out.",
     about:
       "A race for observation, memory, and teamwork. Assemble the skeleton correctly before the clock runs out.",
@@ -78,6 +79,7 @@ export const BOOTHS = [
     name: "Tarot Reading",
     short: "Booth 07",
     code: "TAROT",
+    stamp: false,
     place: "Eleven Square",
     map: { x: 80, y: 57, side: "w", region: "54.8,66.3 55,49.9 64.7,40.1 100,40.2 100,77.5" },
     summary: "A reading for the night.",
@@ -90,6 +92,7 @@ export const BOOTHS = [
     name: "Drawn Alive",
     short: "Booth 08",
     code: "DRAW",
+    stamp: false,
     place: "Eleven Square",
     map: { x: 27, y: 85, side: "n", region: "0,72 53,69.1 51.2,100 0,100" },
     summary: "A polaroid portrait to keep.",
@@ -103,7 +106,7 @@ export const BOOTHS = [
     short: "Booth 09",
     code: "SCREAM",
     place: "Eleven Square",
-    map: { x: 75, y: 86, side: "n", region: "53,69.3 54.9,66.3 100,77.5 100,100 51.2,100" },
+    map: { x: 74, y: 74, side: "n", region: "100,47 93,55 82,40 70,51 55,43 46,58 58,70 43,82 54,92 47,100 100,100" },
     summary: "One voice. Clear 85 decibels.",
     about:
       "Scream into the meter. One voice has to push the reading above 85 decibels.",

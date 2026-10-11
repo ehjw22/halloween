@@ -1,7 +1,7 @@
 import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r22";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r35";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r39";
 import { SPONSORS } from "./sponsors.js?v=r21";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
@@ -286,12 +286,21 @@ function staffScope() {
   return getAdminSession()?.payload?.staffScope || "admin";
 }
 
-function canStaff(tab) {
-  const scope = staffScope();
+function staffBoothId() {
+  const match = /^booth:([0-9]+)$/.exec(staffScope());
+  return match ? match[1] : "";
+}
+
+function staffSeesTab(scope, need) {
   if (scope === "admin") return true;
-  if (tab === "waits") return scope === "waits";
-  if (tab === "stamps") return scope === "stamps";
+  if (need === "waits") return scope === "waits";
+  if (need === "stamps") return /^booth:[0-9]+$/.test(scope);
+  if (need === "redeem") return scope === "redeem";
   return false;
+}
+
+function canStaff(tab) {
+  return staffSeesTab(staffScope(), tab === "stamps" || tab === "redeem" || tab === "waits" ? tab : "admin");
 }
 
 function nightStorageKey() {
@@ -1417,15 +1426,59 @@ function cssVarPx(el, name, fallback) {
   return width > 1 ? width : fallback;
 }
 
+function lanternSpoke(index, count, radius) {
+  const rad = (index * (360 / count) - 90) * (Math.PI / 180);
+  return { x: 140 + Math.cos(rad) * radius, y: 140 + Math.sin(rad) * radius };
+}
+
+function layoutLanternSigil(count) {
+  const n = Math.max(3, count || 0);
+  const svg = document.querySelector(".lantern__sigil");
+  if (!svg) return;
+  const points = (radius) => Array.from({ length: n }, (_, index) => {
+    const spoke = lanternSpoke(index, n, radius);
+    return `${spoke.x.toFixed(1)},${spoke.y.toFixed(1)}`;
+  }).join(" ");
+  const outer = svg.querySelector(".lantern__sigil-hex:not(.lantern__sigil-hex--inner)");
+  const inner = svg.querySelector(".lantern__sigil-hex--inner");
+  if (outer) outer.setAttribute("points", points(140));
+  if (inner) inner.setAttribute("points", points(126));
+  const ticks = svg.querySelector(".lantern__sigil-ticks");
+  const nodes = svg.querySelector(".lantern__sigil-nodes");
+  const script = svg.querySelector(".lantern__sigil-script");
+  if (script) {
+    script.innerHTML = Array.from({ length: n }, (_, index) => {
+      const start = lanternSpoke(index, n, 114);
+      const end = lanternSpoke(index, n, 122);
+      return `<path d="M${start.x.toFixed(1)} ${start.y.toFixed(1)}L${end.x.toFixed(1)} ${end.y.toFixed(1)}"></path>`;
+    }).join("");
+  }
+  if (ticks) {
+    ticks.innerHTML = Array.from({ length: n }, (_, index) => {
+      const start = lanternSpoke(index, n, 128);
+      const end = lanternSpoke(index, n, 140);
+      return `<path d="M${start.x.toFixed(1)} ${start.y.toFixed(1)}L${end.x.toFixed(1)} ${end.y.toFixed(1)}"></path>`;
+    }).join("");
+  }
+  if (nodes) {
+    nodes.innerHTML = Array.from({ length: n }, (_, index) => {
+      const spoke = lanternSpoke(index, n, 140);
+      return `<circle cx="${spoke.x.toFixed(1)}" cy="${spoke.y.toFixed(1)}" r="3.2"></circle>`;
+    }).join("");
+  }
+}
+
 function layoutLanternRunes() {
   document.querySelectorAll(".lantern").forEach((lantern) => {
     const ring = lantern.querySelector(".lantern__runes");
     if (!ring) return;
     const orbit = parseFloat(getComputedStyle(lantern).getPropertyValue("--rune-orbit")) || 168;
-    ring.querySelectorAll(".lantern__rune-slot").forEach((slot, index) => {
+    const slots = [...ring.querySelectorAll(".lantern__rune-slot")];
+    const count = slots.length || 5;
+    layoutLanternSigil(count);
+    slots.forEach((slot, index) => {
       const n = Number.parseFloat(String(slot.style.getPropertyValue("--rune") || index));
       const i = Number.isFinite(n) ? n : index;
-      const count = ring.querySelectorAll(".lantern__rune-slot").length || 7;
       const rad = (i * (360 / count) - 90) * (Math.PI / 180);
       slot.style.left = `${Math.cos(rad) * orbit}px`;
       slot.style.top = `${Math.sin(rad) * orbit}px`;
@@ -1903,16 +1956,18 @@ function paintStampUi() {
     const litFlags = STAMP_BOOTHS.map((booth) => isLit(booth.id));
     els.stampGrid.classList.toggle("is-complete", complete);
     els.stampGrid.classList.toggle("has-ink", litFlags.some(Boolean));
+    const cols = goal > 4 ? 3 : 2;
+    els.stampGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
     const pads = STAMP_BOOTHS.map((booth, index) => {
       const stamped = litFlags[index];
-      const col = index % 3;
-      const row = Math.floor(index / 3);
-      const rows = Math.ceil(litFlags.length / 3);
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const rows = Math.ceil(litFlags.length / cols);
       const joins = [];
-      if (stamped && col < 2 && litFlags[index + 1]) joins.push("is-join-e");
+      if (stamped && col < cols - 1 && litFlags[index + 1]) joins.push("is-join-e");
       if (stamped && col > 0 && litFlags[index - 1]) joins.push("is-join-w");
-      if (stamped && row < rows - 1 && litFlags[index + 3]) joins.push("is-join-s");
-      if (stamped && row > 0 && litFlags[index - 3]) joins.push("is-join-n");
+      if (stamped && row < rows - 1 && litFlags[index + cols]) joins.push("is-join-s");
+      if (stamped && row > 0 && litFlags[index - cols]) joins.push("is-join-n");
       const cls = ["stamp-pad", stamped ? "is-lit" : "", ...joins].filter(Boolean).join(" ");
       return `
         <button class="${cls}" type="button" data-stamp="${booth.id}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}${stamped ? " · stamped" : " · empty"}">
@@ -1937,10 +1992,10 @@ function paintStampUi() {
         const cells = litFlags
           .map((lit, index) => {
             if (!lit) return "";
-            const col = index % 3;
-            const row = Math.floor(index / 3);
-            const rows = Math.ceil(litFlags.length / 3);
-            return `linear-gradient(#fff, #fff) ${(col / 3) * 100}% ${(row / rows) * 100}% / 33.34% ${100 / rows}% no-repeat`;
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const rows = Math.ceil(litFlags.length / cols);
+            return `linear-gradient(#fff, #fff) ${(col / cols) * 100}% ${(row / rows) * 100}% / ${100 / cols}% ${100 / rows}% no-repeat`;
           })
           .filter(Boolean);
         const mask = cells.length ? cells.join(", ") : "linear-gradient(transparent, transparent)";
@@ -2251,9 +2306,29 @@ async function loadOps() {
 
 function fillAwardBoothSelect() {
   if (!els.awardBooth) return;
-  if (els.awardBooth.options.length && els.awardBooth.dataset.filled) return;
-  els.awardBooth.innerHTML = STAMP_BOOTHS.map((b) => `<option value="${b.id}">${b.short} · ${b.name}</option>`).join("");
-  els.awardBooth.dataset.filled = "1";
+  const lockedId = staffBoothId();
+  const list = lockedId ? STAMP_BOOTHS.filter((booth) => booth.id === lockedId) : STAMP_BOOTHS;
+  const signature = `${staffScope()}:${list.map((booth) => booth.id).join(",")}`;
+  if (els.awardBooth.dataset.filled !== signature) {
+    els.awardBooth.innerHTML = list.map((booth) => `<option value="${booth.id}">${booth.short} · ${booth.name}</option>`).join("");
+    els.awardBooth.dataset.filled = signature;
+  }
+  const booth = list[0];
+  const locked = Boolean(lockedId && booth);
+  els.awardBooth.disabled = locked;
+  const lockNote = document.getElementById("awardBoothLock");
+  const title = document.getElementById("awardStampTitle");
+  const lead = document.getElementById("awardStampLead");
+  const boothLabel = document.getElementById("awardBoothLabel");
+  const submit = document.getElementById("awardStampSubmit");
+  if (lockNote) {
+    lockNote.hidden = !locked;
+    lockNote.textContent = locked ? `This login awards ${booth.name}.` : "";
+  }
+  if (title) title.textContent = locked ? booth.name : "Award a booth stamp";
+  if (lead) lead.hidden = !locked;
+  if (boothLabel) boothLabel.hidden = locked;
+  if (submit) submit.textContent = locked ? `Award ${booth.name}` : "Award stamp";
 }
 
 function readStaffLog() {
@@ -2352,9 +2427,11 @@ async function renderAdmin() {
     houseSel.dataset.filled = "1";
   }
   const scope = staffScope();
+  const errorLog = document.getElementById("staffErrorLogWrap");
+  if (errorLog) errorLog.hidden = scope !== "admin";
   const allowed = [...document.querySelectorAll("[data-staff-tab]")].filter((btn) => {
     const need = btn.dataset.staffScope || "admin";
-    const ok = scope === "admin" || need === scope;
+    const ok = staffSeesTab(scope, need);
     btn.hidden = !ok;
     return ok;
   });

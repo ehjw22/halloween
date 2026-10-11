@@ -1198,6 +1198,9 @@ html.event-open .header-meta {
 .award-stamp-form {
   max-width: 640px;
 }
+.staff-log[hidden] {
+  display: none;
+}
 .staff-log {
   margin: 0 0 var(--s5);
   padding: var(--s3) var(--s4);
@@ -2088,7 +2091,7 @@ html.event-open .header-meta {
 }
 #stampGrid {
   position: relative;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
 }
 .stamp-grid__ticket {
@@ -2119,7 +2122,7 @@ html.event-open .header-meta {
   z-index: 1;
   display: block;
   width: 100%;
-  aspect-ratio: 32 / 27;
+  aspect-ratio: 16 / 9;
   padding: 0;
   overflow: hidden;
   border: 1px solid #16090c;
@@ -4268,6 +4271,10 @@ label {
   font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--ink);
+}
+label[hidden],
+.field-hint[hidden] {
+  display: none;
 }
 input, select, textarea {
   font: inherit;
