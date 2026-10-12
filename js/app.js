@@ -27,8 +27,9 @@ import {
   signIn,
   submitFeedback,
   normalizeAdminNumber,
+  isAdminNumber,
   userFacingError,
-} from "./session.js?v=r10";
+} from "./session.js?v=r11";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -2859,7 +2860,7 @@ async function handleAuthSubmit(event) {
     if (err) err.hidden = true;
     const idValue = normalizeAdminNumber(idInput?.value || "");
     if (idInput) idInput.value = idValue;
-    const idBad = setFieldError(idInput, "studentLoginIdError", /^P[0-9]{7}$/.test(idValue) ? "" : "Enter an admin number like P1234567.");
+    const idBad = setFieldError(idInput, "studentLoginIdError", isAdminNumber(idValue) ? "" : "Enter an admin number like P2512345. The digits start with 22, 23, 24, 25, or 26.");
     const nameBad = setFieldError(nameInput, "studentLoginNameError", nameInput?.value.trim() ? "" : "Enter your full name.");
     if (idBad || nameBad) {
       (idBad ? idInput : nameInput)?.focus();

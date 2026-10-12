@@ -236,9 +236,12 @@ export function normalizeAdminNumber(value) {
   return id;
 }
 
-function isAdminNumber(value) {
-  return /^P[0-9]{7}$/.test(normalizeAdminNumber(value));
+export function isAdminNumber(value) {
+  return /^P(22|23|24|25|26)[0-9]{5}$/.test(normalizeAdminNumber(value));
 }
+
+const ADMIN_NUMBER_HINT =
+  "Enter your admin number as P followed by 7 digits, starting with 22, 23, 24, 25, or 26.";
 
 function toB64Url(obj) {
   const json = JSON.stringify(obj);
@@ -373,7 +376,7 @@ function emptyCard(session) {
 export async function signIn({ adminNumber, fullName, password }) {
   const id = normalizeAdminNumber(adminNumber);
   if (!isAdminNumber(id)) {
-    throw new Error("Enter your admin number as P followed by 7 digits, for example P1234567.");
+    throw new Error(ADMIN_NUMBER_HINT);
   }
   const name = String(fullName || "").trim();
   if (name.length < 2) {
@@ -477,7 +480,7 @@ export async function awardStamp(studentNumber, boothId) {
   if (!session) throw new Error("Staff session expired. Sign in again.");
   const num = normalizeAdminNumber(studentNumber);
   if (!isAdminNumber(num)) {
-    throw new Error("Enter a valid admin number, for example P1234567.");
+    throw new Error(ADMIN_NUMBER_HINT);
   }
   const booth = boothById(boothId);
   if (!booth) throw new Error("Choose a valid booth.");

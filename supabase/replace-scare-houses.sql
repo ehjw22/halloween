@@ -84,7 +84,7 @@ begin
   if n ~ '^[0-9]{7}$' then
     n := 'P' || n;
   end if;
-  if n !~ '^P[0-9]{7}$' then
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
   booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');

@@ -1,5 +1,5 @@
 import { HOUSES } from "./houses.js?v=r19";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r9";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r11";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";

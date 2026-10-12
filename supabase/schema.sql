@@ -96,7 +96,7 @@ alter table public.students add constraint students_role_check
   check (role in ('student', 'admin', 'stamps', 'waits'));
 
 -- Grant staff tools (then they still type ADMIN_PASSCODE on sign-in):
--- update public.students set role = 'admin' where student_number = 'P1234567';
+-- update public.students set role = 'admin' where student_number = 'P2512345';
 -- Booth-only: role = 'stamps'. Wait-times only: role = 'waits'.
 
 create table if not exists public.stamp_cards (
@@ -222,7 +222,7 @@ begin
   if n ~ '^[0-9]{7}$' then
     n := 'P' || n;
   end if;
-  if n !~ '^P[0-9]{7}$' then
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
   nm := left(trim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g')), 80);
@@ -268,6 +268,9 @@ begin
   n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
   if n ~ '^[0-9]{7}$' then
     n := 'P' || n;
+  end if;
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
+    return jsonb_build_object('ok', false);
   end if;
   select * into card from public.stamp_cards where student_number = n;
   if not found then
@@ -426,7 +429,7 @@ begin
   if n ~ '^[0-9]{7}$' then
     n := 'P' || n;
   end if;
-  if n !~ '^P[0-9]{7}$' then
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
   booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
@@ -503,7 +506,7 @@ begin
   if n ~ '^[0-9]{7}$' then
     n := 'P' || n;
   end if;
-  if n !~ '^P[0-9]{7}$' then
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
     return jsonb_build_object('ok', false, 'error', 'bad_number');
   end if;
 
