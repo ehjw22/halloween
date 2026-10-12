@@ -2584,7 +2584,8 @@ html.event-welcome .view[data-view="welcome"].is-active {
   object-fit: contain;
   object-position: left center;
 }
-.map-booths .house-card--food .house-card__top:not(:has(.house-card__logo)) {
+.map-booths .house-card--food .house-card__top:not(:has(.house-card__logo)),
+.map-booths .house-card--zone .house-card__top {
   justify-content: flex-end;
 }
 .house-card__logo--mark {
@@ -4157,6 +4158,7 @@ a,
 }
 .fast-pass.is-redeemed .lantern__runes,
 .fast-pass.is-redeemed .lantern__rune,
+.fast-pass.is-redeemed .lantern__rune-glyph,
 .fast-pass.is-redeemed .lantern__sigil-wrap,
 .fast-pass.is-redeemed .lantern__sigil-flow,
 .fast-pass.is-redeemed .lantern__sigil-orbit--inner,

@@ -599,9 +599,7 @@ function boothDirectoryCard(booth) {
   const theme = food && booth.theme ? ` data-theme="${escapeHtml(booth.theme)}"` : "";
   const logo = food && booth.logo
     ? `<img class="house-card__logo" src="${escapeHtml(booth.logo)}" alt="">`
-    : food
-      ? ""
-      : `<span class="house-card__short">${escapeHtml(booth.short || "")}</span>`;
+    : "";
   const body = `<span class="house-card__top">
         ${logo}
         <span class="status-pill">${food ? "Food" : "Booth"}</span>
@@ -891,8 +889,9 @@ function boothListButton(booth) {
   const mark = booth.logo
     ? `<img class="booths-list__logo" data-brand="${escapeHtml(booth.theme || "")}" src="${escapeHtml(booth.logo)}" alt="">`
     : markImg(booth.icon, "mark mark--booth");
+  const label = booth.food ? escapeHtml(booth.short) : "";
   return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
-      <span>${mark} ${escapeHtml(booth.short)}</span>
+      <span>${mark}${label ? ` ${label}` : ""}</span>
       <strong>${escapeHtml(booth.name)}</strong>
       ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
@@ -1203,7 +1202,7 @@ function openBooth(id, opts = {}) {
   const modal = els.boothModal;
   if (!booth || !modal) return;
   const stamped = cardState.stamps[slotKey(id)] || cardState.stamps[Number(id)];
-  modal.querySelector("[data-booth-code]").textContent = booth.short;
+  modal.querySelector("[data-booth-code]").textContent = booth.food ? booth.short : "Booth";
   modal.querySelector("[data-booth-title]").textContent = booth.name;
   const place = modal.querySelector("[data-booth-place]");
   if (place) {
@@ -2018,7 +2017,10 @@ function paintStampUi() {
 
   const runeRing = document.getElementById("lanternRunes");
   if (runeRing) {
-    runeRing.innerHTML = STAMP_BOOTHS.map((booth, index) => `
+    const signature = STAMP_BOOTHS.map((booth) => booth.id).join(",");
+    if (runeRing.dataset.booths !== signature) {
+      runeRing.dataset.booths = signature;
+      runeRing.innerHTML = STAMP_BOOTHS.map((booth, index) => `
       <div class="lantern__rune-slot" style="--rune: ${index}">
         <button class="lantern__rune" type="button" data-stamp="${escapeHtml(booth.id)}" aria-label="${escapeHtml(booth.name)}">
           <span class="lantern__rune-glow"></span>
@@ -2026,6 +2028,18 @@ function paintStampUi() {
           <span class="lantern__rune-glyph" aria-hidden="true">${markImg(booth.icon)}</span>
         </button>
       </div>`).join("");
+      const orbit = runeRing.getAnimations().find((anim) => anim.animationName === "rune-orbit");
+      if (orbit && orbit.currentTime != null) {
+        runeRing.querySelectorAll(".lantern__rune-glyph").forEach((glyph) => {
+          const spin = glyph.getAnimations().find((anim) => anim.animationName === "rune-spin");
+          if (spin) spin.currentTime = orbit.currentTime;
+        });
+      }
+    }
+    const isLit = (id) => Boolean(stamps[id] || stamps[Number(id)]);
+    runeRing.querySelectorAll(".lantern__rune").forEach((btn) => {
+      btn.classList.toggle("is-lit", isLit(btn.dataset.stamp));
+    });
   }
 
   const adminNo = cardState.studentNumber || session.payload.studentNumber || "";
