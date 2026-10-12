@@ -142,7 +142,7 @@ end $$;
 
 create table if not exists public.event_feedback (
   id uuid primary key default gen_random_uuid(),
-  kind text not null check (kind in ('scare_house', 'booth')),
+  kind text not null check (kind in ('general', 'scare_house', 'booth')),
   target_id text not null,
   message text not null,
   student_number text,
@@ -169,6 +169,11 @@ drop policy if exists "anon update announcements" on public.announcements;
 drop policy if exists "anon read announcements" on public.announcements;
 
 alter table public.event_feedback add column if not exists rating smallint check (rating is null or (rating >= 1 and rating <= 5));
+
+alter table public.event_feedback drop constraint if exists event_feedback_kind_check;
+alter table public.event_feedback
+  add constraint event_feedback_kind_check
+  check (kind in ('general', 'scare_house', 'booth'));
 
 alter table public.announcements add column if not exists audience text not null default 'all';
 alter table public.announcements add column if not exists house_id text;

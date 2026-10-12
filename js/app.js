@@ -593,32 +593,141 @@ function boothSealHtml() {
   return `<span class="booth-seal" aria-hidden="true"><span class="booth-seal__ink">Stamped</span></span>`;
 }
 
+const BOOTH_THEMES = {
+  1: "ink",
+  2: "hat",
+  8: "eye",
+  4: "skel",
+  7: "scream",
+  9: "jagua",
+  3: "glam",
+  5: "tarot",
+  6: "polaroid",
+};
+
+function boothTheme(booth) {
+  if (booth.food && booth.theme) return booth.theme;
+  return BOOTH_THEMES[String(booth.id)] || "";
+}
+
+const BOOTH_TILT = {
+  ink: "-1.6deg",
+  hat: "1.5deg",
+  eye: "-1deg",
+  skel: "1.8deg",
+  scream: "-1.8deg",
+  jagua: "1.2deg",
+  glam: "-1.4deg",
+  tarot: "1.7deg",
+  polaroid: "-0.8deg",
+  beamori: "1.3deg",
+  pasta: "-1.5deg",
+  kwazy: "1.6deg",
+  matcha: "-1.2deg",
+};
+
+function posterArt(fill, line, shapes, details = "") {
+  return `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="${line}" transform="translate(2.2 2.2)">${shapes}</g><g fill="${fill}" stroke="${line}" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke fill">${shapes}</g>${details}</svg>`;
+}
+
+const BOOTH_IDLE_DELAY = {
+  ink: "0s",
+  hat: "0.45s",
+  eye: "0.9s",
+  skel: "1.4s",
+  scream: "0.2s",
+  jagua: "1.7s",
+  glam: "0.7s",
+  tarot: "1.15s",
+  polaroid: "1.95s",
+  beamori: "0.3s",
+  pasta: "1.5s",
+  kwazy: "0.6s",
+  matcha: "2.1s",
+};
+
+function boothArt(theme) {
+  const hi = "#fff6ea";
+  const art = {
+    ink: `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M8 8h68a4 4 0 0 1 4 4v44L56 88H12a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="#1a1022" transform="translate(1.5 1.5)"/><path d="M8 8h68a4 4 0 0 1 4 4v44L56 88H12a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="#f7f1e4" stroke="#1a1022" stroke-width="2.6" stroke-linejoin="round"/><g fill="#3cbf6a" stroke="#1a1022" stroke-width="1.6" stroke-linejoin="round"><path d="M24 26c-8-6-14 1-7 5 2.4-1.6 4.6-1.6 7 0z"/><path d="M24 26c8-6 14 1 7 5-2.4-1.6-4.6-1.6-7 0z"/><circle cx="24" cy="26.6" r="2.3"/></g><circle cx="62" cy="30" r="10" fill="#ff8a2e" stroke="#1a1022" stroke-width="1.8"/><path d="M62 20v-5" stroke="#3cbf6a" stroke-width="2.4" stroke-linecap="round"/><path d="M57 28h3.2l-1.6 2.4zM67 28h-3.2l1.6 2.4z" fill="#1a1022"/><path d="M57 35c2 3 8 3 10 0" fill="none" stroke="#1a1022" stroke-width="1.6" stroke-linecap="round"/><path d="M22 46c2-8 16-10 18-2v12l-3.2-3-2.8 3-3-3-3 3-3-3-3 3z" fill="#fff" stroke="#6a3cae" stroke-width="1.7" stroke-linejoin="round"/><circle cx="28" cy="50" r="1.5" fill="#1a1022"/><circle cx="34" cy="50" r="1.5" fill="#1a1022"/><circle cx="52" cy="54" r="8" fill="#fff" stroke="#6a3cae" stroke-width="1.7"/><circle cx="49" cy="53" r="1.5" fill="#1a1022"/><circle cx="55" cy="53" r="1.5" fill="#1a1022"/><path d="M52 56.5v2.2M49 62h6" stroke="#1a1022" stroke-width="1.4" stroke-linecap="round"/><g fill="none" stroke="#7a4fd0" stroke-width="1.5" stroke-linecap="round"><circle cx="28" cy="72" r="8"/><circle cx="28" cy="72" r="4"/><path d="M28 64v16M20 72h16M22.4 66.4l11.2 11.2M33.6 66.4 22.4 77.6"/></g><g class="peel"><path d="M56 62c16 1 24 12 20 22-10-1-16-9-20-22z" fill="#fffaf3" stroke="#1a1022" stroke-width="2.2" stroke-linejoin="round"/></g></svg>`,
+    hat: `<svg viewBox="0 0 96 96" aria-hidden="true"><path class="hoop" d="M18 44a22 8 0 0 0 44 0" fill="none" stroke="#ff8a2e" stroke-width="6" stroke-linecap="round"/><path d="M36 4 30 22 18 66h44L52 22 42 4z" fill="#2a1848" stroke="#100814" stroke-width="2.6" stroke-linejoin="round"/><path d="M34 14 26 58" fill="none" stroke="#e4d8ff" stroke-width="2.6" stroke-linecap="round"/><path d="M26 54h28l-1 3.2H27z" fill="#d4c4ff"/><ellipse cx="40" cy="68" rx="34" ry="7" fill="#140e24" stroke="#100814" stroke-width="2.4"/><path d="M10 66c10-4 20-6 30-6s20 2 30 6" fill="none" stroke="#d8ccf8" stroke-width="2" stroke-linecap="round"/><path class="hoop" d="M18 44a22 8 0 0 1 44 0" fill="none" stroke="#ff8a2e" stroke-width="6" stroke-linecap="round"/><path d="M70 8c6 2 12 6 14 12" fill="none" stroke="#ffb15a" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 3.4"/><g transform="rotate(-22 78 18)"><g class="arc"><ellipse cx="78" cy="18" rx="22" ry="8" fill="none" stroke="#ff8a2e" stroke-width="6"/></g></g><g class="bat"><path d="M12 18c-6-5-11 1-5 4 2-1.2 3.4-1.2 5 0z" fill="#f4f0ff" stroke="#100814" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 18c6-5 11 1 5 4-2-1.2-3.4-1.2-5 0z" fill="#f4f0ff" stroke="#100814" stroke-width="1.3" stroke-linejoin="round"/><circle cx="12" cy="18.6" r="1.5" fill="#f4f0ff" stroke="#100814" stroke-width="1"/></g></svg>`,
+    eye: posterArt("#d4f3c6", "#14301c", `
+      <path d="M22 52h52l-8 30H30z"/>
+    `, `<g class="bob"><circle cx="28" cy="22" r="12" fill="${hi}" stroke="#14301c" stroke-width="2.4"/><circle cx="28" cy="23" r="5" fill="#e23b3b"/><circle cx="28" cy="23" r="2" fill="#1a100c"/><circle cx="52" cy="34" r="10" fill="${hi}" stroke="#14301c" stroke-width="2.4"/><circle cx="52" cy="35" r="4" fill="#e23b3b"/><circle cx="52" cy="35" r="1.6" fill="#1a100c"/></g><ellipse cx="48" cy="52" rx="16" ry="4" fill="${hi}"/>`),
+    skel: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#141a28" transform="translate(1.6 1.8)"><circle cx="24" cy="16" r="10"/><rect x="16" y="28" width="16" height="16" rx="4"/><rect x="8" y="32" width="10" height="4" rx="2"/><rect x="30" y="30" width="12" height="4" rx="2" transform="rotate(-24 30 32)"/><rect x="16" y="46" width="16" height="6" rx="2"/><rect x="16" y="54" width="5" height="20" rx="2"/><rect x="27" y="54" width="5" height="20" rx="2"/><path d="M62 18h20c-2 8-8 12-10 16 2 4 8 8 10 16H62c2-8 8-12 10-16-2-4-8-8-10-16z"/></g><circle cx="24" cy="16" r="10" fill="#f7f4ec" stroke="#141a28" stroke-width="2.4"/><circle cx="20" cy="15" r="1.7" fill="#141a28"/><circle cx="28" cy="15" r="1.7" fill="#141a28"/><g class="jaw"><path d="M17 20h14c0 4-3 7-7 7s-7-3-7-7z" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="28" width="16" height="16" rx="4" fill="#f7f4ec" stroke="#141a28" stroke-width="2.2"/><path d="M18 33h12M18 37h12M18 41h12" stroke="#141a28" stroke-width="1.6" stroke-linecap="round"/><rect x="8" y="32" width="10" height="4" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><g class="arm"><rect x="30" y="28" width="14" height="4.5" rx="2" transform="rotate(-28 32 30)" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="46" width="16" height="6" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="16" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="27" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><path d="M60 16h22c-2 9-9 13-11 18 2 5 9 9 11 18H60c2-9 9-13 11-18-2-5-9-9-11-18z" fill="#f7f4ec" stroke="#141a28" stroke-width="2.4" stroke-linejoin="round"/><ellipse cx="71" cy="28" rx="6" ry="4" fill="#e8b34a"/><ellipse cx="71" cy="56" rx="7" ry="4" fill="#f0c14a"/><g class="sand"><rect x="70" y="32" width="2.4" height="8" rx="1" fill="#e8b34a"/><circle cx="71.2" cy="42" r="2.2" fill="#f6d56a"/></g></svg>`,
+    scream: posterArt("#f6d0d4", "#2a1218", ``, `<g class="ghost"><path d="M18 34c0-16 34-18 36 0 8 2 14 16 4 24 4 12-6 22-18 24S14 72 18 54c-10-2-12-14-4-20z" fill="#f6d0d4" stroke="#2a1218" stroke-width="2.6" stroke-linejoin="round"/><circle cx="32" cy="36" r="2.4" fill="#2a1218"/><circle cx="46" cy="36" r="2.4" fill="#2a1218"/><ellipse cx="39" cy="48" rx="5" ry="8" fill="#2a1218"/></g><g class="meter"><rect x="70" y="18" width="8" height="18" rx="2" fill="#ffd8dc" stroke="#2a1218" stroke-width="2"/><rect x="70" y="40" width="12" height="8" rx="2" fill="#ff9aa6" stroke="#2a1218" stroke-width="2"/><rect x="70" y="52" width="16" height="8" rx="2" fill="#ff6d80" stroke="#2a1218" stroke-width="2"/></g>`),
+    jagua: `<svg viewBox="0 0 96 96" aria-hidden="true"><defs><clipPath id="jaguaPalm"><path d="M16 60h48c3 8 1 16-6 22-10 8-26 8-36 0-6-6-8-14-6-22z"/></clipPath><clipPath id="jaguaThumb"><rect x="0" y="60" width="24" height="14" rx="7" transform="rotate(42 24 67)"/></clipPath></defs><g fill="#f2c7a6" stroke="#3a2218" stroke-width="2.1" stroke-linejoin="round"><rect x="16" y="32" width="10" height="30" rx="5"/><rect x="30" y="10" width="10" height="50" rx="5"/><rect x="44" y="20" width="10" height="40" rx="5"/><rect x="58" y="32" width="8" height="28" rx="4"/><path d="M16 60h48c3 8 1 16-6 22-10 8-26 8-36 0-6-6-8-14-6-22z"/><rect x="0" y="60" width="24" height="14" rx="7" transform="rotate(42 24 67)"/></g><g clip-path="url(#jaguaPalm)"><path class="henna" pathLength="100" d="M28 78c2-14 20-16 24-1" fill="none" stroke="#140c3a" stroke-width="3" stroke-linecap="round"/></g><g fill="none" stroke="#140c3a" stroke-width="3" stroke-linecap="round"><path class="henna henna-b" pathLength="100" d="M18.5 46h5M32.5 26h5M46.5 36h5M60 46h4"/></g><g fill="#140c3a"><circle cx="21" cy="36" r="1.6"/><circle cx="35" cy="15" r="1.6"/><circle cx="49" cy="25" r="1.6"/><circle cx="62" cy="36.5" r="1.45"/></g><g clip-path="url(#jaguaThumb)" stroke="#140c3a" stroke-width="3" stroke-linecap="round"><path class="henna henna-c" pathLength="100" d="M8 67h12" transform="rotate(42 24 67)" fill="none"/><circle cx="5" cy="67" r="1.6" transform="rotate(42 24 67)" fill="#140c3a" stroke="none"/></g><path d="M78 28l12 6-14 30z" fill="#f4f1ea" stroke="#12142e" stroke-width="2.4" stroke-linejoin="round"/><circle cx="77" cy="63" r="3.2" fill="#5ec8ff" stroke="#12142e" stroke-width="1.6"/><g class="gel"><path d="M75 69c2.6 5 1 9-3.4 9s-5.8-4-3.2-9c1.2-2 3.4-2 6.6 0z" fill="#7ad4ff" stroke="#12142e" stroke-width="1.5"/></g><g class="bat"><path d="M70 12c-6-5-11 1-5 4 1.8-1.3 3.2-1.3 5 0z" fill="#f4f6ff" stroke="#12142e" stroke-width="1.4" stroke-linejoin="round"/><path d="M70 12c6-5 11 1 5 4-1.8-1.3-3.2-1.3-5 0z" fill="#f4f6ff" stroke="#12142e" stroke-width="1.4" stroke-linejoin="round"/><circle cx="70" cy="12.6" r="1.6" fill="#f4f6ff" stroke="#12142e" stroke-width="1.1"/></g></svg>`,
+    glam: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#2a1218" transform="translate(2 2)"><ellipse cx="28" cy="64" rx="22" ry="14"/><circle cx="62" cy="36" r="18"/></g><ellipse cx="28" cy="64" rx="22" ry="14" fill="#fff6f8" stroke="#1a1014" stroke-width="2.4"/><circle cx="16" cy="62" r="5" fill="#ff4d88" stroke="#1a1014" stroke-width="1.6"/><circle cx="28" cy="58" r="5" fill="#fff" stroke="#1a1014" stroke-width="1.6"/><circle cx="40" cy="62" r="5" fill="#1a1014"/><circle cx="28" cy="70" r="4" fill="#ffb3cc" stroke="#1a1014" stroke-width="1.4"/><circle cx="62" cy="36" r="18" fill="#fff6f8" stroke="#1a1014" stroke-width="2.4"/><path d="M62 18a18 18 0 0 1 0 36V18z" fill="#ff5c93"/><circle cx="55" cy="34" r="2.2" fill="#1a1014"/><circle cx="69" cy="34" r="2.2" fill="#1a1014"/><path d="M62 40v5" stroke="#1a1014" stroke-width="2" stroke-linecap="round"/><path d="M56 48c2 2 10 2 12 0" fill="none" stroke="#1a1014" stroke-width="1.8" stroke-linecap="round"/><g class="brush"><rect x="44" y="72" width="30" height="6" rx="3" transform="rotate(-32 58 75)" fill="#ffd0e0" stroke="#1a1014" stroke-width="2"/><path d="M70 58l8 6-3 4-8-6z" fill="#1a1014"/></g></svg>`,
+    tarot: `<svg viewBox="0 0 96 96" aria-hidden="true"><g transform="rotate(-16 24 52)"><rect x="8" y="30" width="24" height="38" rx="3" fill="#4a2c78" stroke="#f6e7b0" stroke-width="2.6"/><path d="M20 42a5 5 0 1 0 0.1 0zM16 50h8" fill="#f6e7b0" stroke="#f6e7b0" stroke-width="1.6"/></g><g transform="rotate(10 46 48)"><rect x="28" y="22" width="24" height="38" rx="3" fill="#3c2468" stroke="#f6e7b0" stroke-width="2.6"/><path d="M40 34l1.6 3.4 3.6.4-2.7 2.4.8 3.6L40 42l-3.3 1.8.8-3.6-2.7-2.4 3.6-.4z" fill="#f6e7b0"/></g><ellipse cx="66" cy="74" rx="16" ry="5" fill="#e2b85a" stroke="#6a4a16" stroke-width="1.6"/><path d="M54 60h24l-4 12H58z" fill="#f3d78c" stroke="#6a4a16" stroke-width="1.8" stroke-linejoin="round"/><g class="ball"><circle cx="66" cy="44" r="18" fill="#c9fff4" stroke="#14302c" stroke-width="2.6"/><circle class="glow" cx="66" cy="44" r="18" fill="#efe4ff"/><circle cx="59" cy="38" r="4.5" fill="#fff"/><g class="swirl"><path d="M60 42c7 0 9 7 3 11" fill="none" stroke="#7a4fd0" stroke-width="2.2" stroke-linecap="round"/><path d="M70 48l1.2 2.4 2.6.2-2 1.8.6 2.6-2.4-1.4-2.4 1.4.6-2.6-2-1.8 2.6-.2z" fill="#f6e7b0"/></g></g></svg>`,
+    polaroid: posterArt("#f0d4b4", "#2a1c12", `
+      <rect x="18" y="8" width="58" height="72" rx="3"/>
+    `, `<rect x="26" y="16" width="42" height="40" fill="#1a140e"/><g class="develop"><path d="M40 28c10-10 20 2 10 14-6 8-16 6-16-2 2-2 4-2 6-12z" fill="${hi}"/><circle cx="46" cy="34" r="1.8" fill="#2a1c12"/><circle cx="54" cy="34" r="1.8" fill="#2a1c12"/></g>`),
+    beamori: `<svg viewBox="0 0 96 96" aria-hidden="true"><defs><clipPath id="beamoriCup"><path d="M26 50h44l-7 38H33z"/></clipPath></defs><path d="M6 56h18l-3 26H9z" fill="#f0d78a" stroke="#2a1c12" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 56c0-9 20-9 20 0" fill="#fff8f0" stroke="#2a1c12" stroke-width="1.6"/><path d="M72 58h18l-3 24H75z" fill="#ead6b4" stroke="#2a1c12" stroke-width="1.6" stroke-linejoin="round"/><path d="M71 58c0-9 20-9 20 0" fill="#fff8f0" stroke="#2a1c12" stroke-width="1.6"/><g clip-path="url(#beamoriCup)"><path d="M26 50h44l-7 38H33z" fill="#e09a4e"/><rect x="34" y="62" width="12" height="8" rx="2" transform="rotate(-14 40 66)" fill="#fff6e8" fill-opacity="0.78" stroke="#a86a32" stroke-width="1.2"/><rect x="50" y="70" width="10" height="7" rx="2" transform="rotate(10 55 73)" fill="#fff6e8" fill-opacity="0.7" stroke="#a86a32" stroke-width="1.2"/></g><path d="M26 50h44l-7 38H33z" fill="none" stroke="#2a1c12" stroke-width="1.8" stroke-linejoin="round"/><g class="ghost"><path d="M22 52C22 24 74 24 74 52Z" fill="#fff6ea" stroke="#2a1c12" stroke-width="1.8"/><circle cx="42" cy="40" r="1.7" fill="#3a2a22"/><circle cx="54" cy="40" r="1.7" fill="#3a2a22"/><circle cx="42.6" cy="39.4" r="0.55" fill="#fff6ea"/><circle cx="54.6" cy="39.4" r="0.55" fill="#fff6ea"/><g class="spark" fill="#e2b84a" stroke="#2a1c12" stroke-width="0.6"><circle cx="36" cy="34" r="1.7"/><circle cx="48" cy="30" r="1.5"/><circle cx="58" cy="35" r="1.6"/><circle cx="44" cy="36" r="1.2"/></g></g></svg>`,
+    pasta: `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M42 14h14v14l18 32c4 16-6 26-26 26s-30-10-26-26l20-32z" fill="#3a1714" transform="translate(2 2)"/><path d="M42 14h14v14l18 32c4 16-6 26-26 26s-30-10-26-26l20-32z" fill="#f7f3ee" stroke="#3a1714" stroke-width="2.6" stroke-linejoin="round"/><path d="M32 64c4 14 28 16 36 2-6 12-16 16-20 16s-14-4-16-18z" fill="#ff3b3b"/><path d="M36 50c8 4 8-4 16 0M34 58c10 4 10-5 20 0M38 66c6 3 8-2 14 1" fill="none" stroke="#f0c84a" stroke-width="3.2" stroke-linecap="round"/><path d="M46 4v18M53 4v18" stroke="#f7f3ee" stroke-width="2.6" stroke-linecap="round"/><path d="M44 6h12" stroke="#3a1714" stroke-width="2.4" stroke-linecap="round"/><g class="bub"><circle cx="34" cy="20" r="3" fill="#fff6ea" stroke="#3a1714" stroke-width="1.4"/><circle cx="60" cy="14" r="2.3" fill="#fff6ea" stroke="#3a1714" stroke-width="1.3"/><circle cx="48" cy="10" r="1.7" fill="#fff6ea" stroke="#3a1714" stroke-width="1.2"/></g></svg>`,
+    kwazy: posterArt("#ffe0a8", "#3a1024", `
+      <rect x="30" y="6" width="28" height="46" rx="14"/>
+      <rect x="40" y="48" width="8" height="22" rx="3"/>
+    `, `<g class="drip"><path d="M24 62c6 10 2 16-4 20 6-2 10-8 4-20z" fill="#ff8fbe" stroke="#3a1024" stroke-width="2.2"/><path d="M62 60c4 12 8 16 2 22-2-8-2-14-2-22z" fill="#ff8fbe" stroke="#3a1024" stroke-width="2.2"/></g>`),
+    matcha: `<svg viewBox="0 0 96 96" aria-hidden="true"><defs><clipPath id="matchaGlass"><path d="M26 34h44l-6 50H32z"/></clipPath></defs><g clip-path="url(#matchaGlass)"><path d="M24 34h50l-8 54H30z" fill="#f4efe4"/><path d="M26 34h44l-4 36H31z" fill="#3f9a2c"/><path d="M28 50c10 5 16-3 26 1 6 2 12 1 16-3v16H30z" fill="#2d7420"/><g class="swirl"><path d="M48 52c6 0 8 6 3 9-5 3-10 0-9-5 0-3 3-4 6-4z" fill="none" stroke="#d6ff9a" stroke-width="2.5" stroke-linecap="round"/></g><rect x="34" y="42" width="11" height="8" rx="2" transform="rotate(-14 39 46)" fill="#e7f6ff" stroke="#163024" stroke-width="1.4"/><rect x="52" y="48" width="10" height="7" rx="2" transform="rotate(12 57 51)" fill="#e7f6ff" stroke="#163024" stroke-width="1.4"/></g><path d="M26 34h44l-6 50H32z" fill="none" stroke="#e7ffd4" stroke-width="2.8" stroke-linejoin="round"/><g class="ghost"><path d="M38 30c0-8 18-8 18 0v7l-3-2.2-3 2.2-3-2.2-3 2.2-3-2.2-3 2.2z" fill="#f7fff2" stroke="#163024" stroke-width="1.6" stroke-linejoin="round"/><circle cx="43" cy="29" r="1.3" fill="#163024"/><circle cx="51" cy="29" r="1.3" fill="#163024"/></g><rect x="58" y="10" width="5" height="30" rx="2.5" transform="rotate(16 60 25)" fill="#f7f3ea" stroke="#163024" stroke-width="1.8"/></svg>`,
+  };
+  return art[theme] || "";
+}
+
 function boothDirectoryCard(booth) {
   const food = Boolean(booth.food);
-  const stamped = !food && booth.stamp !== false && boothIsStamped(booth.id);
-  const theme = food && booth.theme ? ` data-theme="${escapeHtml(booth.theme)}"` : "";
+  const ticket = !food && booth.stamp !== false;
+  const stamped = ticket && boothIsStamped(booth.id);
+  const theme = boothTheme(booth);
   const logo = food && booth.logo
     ? `<img class="house-card__logo" src="${escapeHtml(booth.logo)}" alt="">`
     : "";
-  const body = `<span class="house-card__top">
-        ${logo}
-        <span class="status-pill">${food ? "Food" : "Booth"}</span>
-      </span>
-      <strong class="house-card__name">${escapeHtml(booth.name)}</strong>
-      <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>`;
-  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${stamped ? " is-stamped" : ""}"${theme}>
+  const pill = food ? "Food" : "Booth";
+  const art = boothArt(theme);
+  const tilt = BOOTH_TILT[theme] || "0deg";
+  return `<article class="house-card${food ? " house-card--food" : " house-card--zone"}${ticket ? " is-ticket" : ""}${stamped ? " is-stamped" : ""}" data-theme="${escapeHtml(theme)}">
+    <span class="house-card__rail" aria-hidden="true"></span>
     <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
-      <span class="house-card__rail" aria-hidden="true"></span>
-      ${body}
+      <span class="house-card__top">
+        <span class="house-card__title">${logo}<strong class="house-card__name">${escapeHtml(booth.name)}</strong></span>
+        <span class="status-pill">${pill}</span>
+      </span>
+      <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>
+      <span class="booth-art">${art ? `<span class="booth-mark" style="--tilt:${tilt};--idle-delay:${BOOTH_IDLE_DELAY[theme] || "0s"}" aria-hidden="true">${art}</span>` : ""}</span>
+      ${ticket ? `<span class="visually-hidden">Needed to spin the wheel.</span>` : ""}
       ${stamped ? boothSealHtml() : ""}
       ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
     </button>
   </article>`;
 }
 
+function boothsInDirectoryOrder() {
+  const ticket = BOOTHS.filter((booth) => booth.stamp !== false);
+  const rest = BOOTHS.filter((booth) => booth.stamp === false);
+  return [...ticket, ...rest, ...FOOD_BOOTHS];
+}
+
+let boothMotionObserver = null;
+
+function watchBoothMotion() {
+  if (boothMotionObserver) boothMotionObserver.disconnect();
+  if (!("IntersectionObserver" in window)) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const nodes = document.querySelectorAll("#boothDirectory .booth-mark");
+  if (!nodes.length) return;
+  boothMotionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-peek");
+      boothMotionObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.6 });
+  nodes.forEach((node) => boothMotionObserver.observe(node));
+}
+
 function paintBoothDirectory() {
   const booths = document.getElementById("boothDirectory");
-  if (booths) booths.innerHTML = [...BOOTHS, ...FOOD_BOOTHS].map(boothDirectoryCard).join("");
+  if (booths) booths.innerHTML = boothsInDirectoryOrder().map(boothDirectoryCard).join("");
+  watchBoothMotion();
 }
 
 function renderDashboard() {
@@ -901,7 +1010,7 @@ function boothListButton(booth) {
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
   if (!list) return;
-  list.innerHTML = [...BOOTHS, ...FOOD_BOOTHS].map(boothListButton).join("");
+  list.innerHTML = boothsInDirectoryOrder().map(boothListButton).join("");
 }
 
 function syncBoothStampsOnMap() {
@@ -2126,7 +2235,15 @@ async function renderStamps({ refresh = false } = {}) {
 function fillFeedbackTargets(selectEl, kind) {
   const el = selectEl || els.feedbackTarget;
   if (!el) return;
-  const type = kind || els.feedbackKind?.value || "scare_house";
+  const type = kind || els.feedbackKind?.value || "general";
+  const which = document.getElementById("feedbackWhich");
+  if (type === "general") {
+    if (which) which.hidden = true;
+    el.innerHTML = `<option value="night">The night</option>`;
+    el.value = "night";
+    return;
+  }
+  if (which) which.hidden = false;
   const options = type === "booth"
     ? BOOTHS.map((b) => `<option value="${b.id}">${b.name}</option>`)
     : HOUSES.filter((h) => h.kind !== "screening").map((h) => `<option value="${h.id}">${h.name}</option>`);
@@ -2145,6 +2262,7 @@ function escapeHtml(value) {
 }
 
 function feedbackLabel(row) {
+  if (row.kind === "general") return "The night";
   if (row.kind === "booth") return boothById(row.target_id)?.name || row.target_id;
   return houseMeta(row.target_id)?.name || row.target_id;
 }
@@ -2165,7 +2283,7 @@ async function loadAdminFeedback() {
         const when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
         const who = row.student_number ? escapeHtml(row.student_number) : "Visitor";
         return `<li class="feedback-item">
-          <p><strong>${escapeHtml(feedbackLabel(row))}</strong> · ${row.kind === "booth" ? "Booth" : "Scare house"}</p>
+          <p><strong>${escapeHtml(feedbackLabel(row))}</strong> · ${row.kind === "booth" ? "Booth" : row.kind === "general" ? "General" : "Scare house"}</p>
           <p>${escapeHtml(row.message)}</p>
           <p class="muted">${who} · ${escapeHtml(when)}${row.rating ? ` · ${row.rating}/5` : ""}</p>
         </li>`;
@@ -2183,7 +2301,7 @@ function paintAdminFeedbackTargetSelect() {
   const wrap = document.getElementById("feedbackTargetWrap");
   const select = els.adminFeedbackTarget;
   if (!wrap || !select) return;
-  if (!feedbackKindFilter) {
+  if (!feedbackKindFilter || feedbackKindFilter === "general") {
     wrap.hidden = true;
     select.innerHTML = `<option value="">All in this type</option>`;
     return;
@@ -3186,16 +3304,22 @@ async function handleAuthSubmit(event) {
     event.preventDefault();
     if (els.feedbackError) els.feedbackError.hidden = true;
     if (els.feedbackOk) els.feedbackOk.hidden = true;
-    const kindBad = setFieldError(els.feedbackKind, "feedbackKindError", els.feedbackKind?.value ? "" : "Choose what this note is about.");
-    const targetBad = setFieldError(els.feedbackTarget, "feedbackTargetError", els.feedbackTarget?.value ? "" : "Choose which house or booth.");
+    const kind = els.feedbackKind?.value || "general";
+    const general = kind === "general";
+    const kindBad = setFieldError(els.feedbackKind, "feedbackKindError", kind ? "" : "Choose what this note is about.");
+    const targetBad = setFieldError(
+      els.feedbackTarget,
+      "feedbackTargetError",
+      general || els.feedbackTarget?.value ? "" : "Choose which house or booth."
+    );
     if (kindBad || targetBad) {
       (kindBad ? els.feedbackKind : els.feedbackTarget)?.focus();
       return;
     }
     try {
       await submitFeedback(
-        els.feedbackKind.value,
-        els.feedbackTarget.value,
+        kind,
+        general ? "night" : els.feedbackTarget.value,
         document.getElementById("feedbackMessage").value,
         document.getElementById("feedbackRating")?.value
       );
