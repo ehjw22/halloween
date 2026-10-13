@@ -31,7 +31,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r123" />
+    <link rel="stylesheet" href="css/styles.css?v=r143" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -570,7 +570,10 @@
             </div>
             <ul class="announce-list" id="announceStrip"></ul>
           </section>
-          <div class="section-head">
+          <nav class="map-jump" id="mapJump" aria-label="Jump to a cluster">
+            <div class="map-jump__track" id="mapJumpTrack"></div>
+          </nav>
+          <div class="section-head" id="scareHouses">
             <h2>Scare houses</h2>
           </div>
           <div class="house-filters" id="houseFilters">
@@ -628,8 +631,22 @@
               </button>
             </div>
           </div>
+          <div class="cards-sky" id="cardsSky" aria-hidden="true">
+            <svg class="cards-sky__moon" viewBox="0 0 200 200">
+              <defs>
+                <radialGradient id="cardsMoonGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="55%" stop-color="#f6e7b0" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="#f6e7b0" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="96" fill="url(#cardsMoonGlow)"/>
+              <path d="M122 30a70 70 0 1 0 26 116 56 56 0 1 1-26-116z" fill="#f4e4b4"/>
+            </svg>
+            <span class="cards-sky__cloud"></span>
+            <span class="cards-sky__cloud cards-sky__cloud--b"></span>
+          </div>
           <div class="house-grid" id="houseGrid"></div>
-          <section class="map-booths" aria-label="Booths, Eleven squared">
+          <section class="map-booths" id="map-booths" aria-label="Booths, Eleven squared">
             <div class="section-head">
               <h2>Booths · Eleven<sup>2</sup></h2>
               <p>Complete the stations marked in <span class="booth-key">yellow</span> for a chance to spin the wheel and win prizes.</p>
@@ -1725,7 +1742,11 @@
           role="dialog"
           aria-modal="true"
           aria-labelledby="houseModalTitle"
+          data-cluster=""
+          data-house-status=""
         >
+          <span class="modal__drip" aria-hidden="true"></span>
+          <svg class="modal__web" viewBox="0 0 48 48" aria-hidden="true"><path d="M2 2c14 4 24 16 28 36M4 16c10 2 16 10 16 22M14 2c2 12 10 20 24 22" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
           <div class="modal__bar">
             <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
             <div>
@@ -1734,6 +1755,7 @@
             </div>
           </div>
           <div class="modal__body">
+            <div class="modal__art" data-modal-art aria-hidden="true"></div>
             <div class="modal__meta">
               <span class="status-pill" data-modal-status></span>
               <strong data-modal-wait></strong>
@@ -1805,7 +1827,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r130"></script>
+      <script type="module" src="js/app.js?v=r144"></script>
     </div>
   </body>
 </html>

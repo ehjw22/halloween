@@ -105,14 +105,28 @@ const els = {
   adminAnnounceList: document.getElementById("adminAnnounceList"),
 };
 
+const WAIT_OPEN = 6;
+const WAIT_BUSY = 21;
+const WAIT_LONG = 40;
+const WAIT_CLOSED = 60;
+
 function statusFromWait(minutes) {
   if (minutes === null || minutes === undefined || minutes === "") return "open";
   const wait = Math.max(0, Number(minutes) || 0);
-  if (wait >= 60) return "closed";
-  if (wait >= 40) return "long";
-  if (wait >= 21) return "busy";
-  if (wait >= 6) return "open";
+  if (wait >= WAIT_CLOSED) return "closed";
+  if (wait >= WAIT_LONG) return "long";
+  if (wait >= WAIT_BUSY) return "busy";
+  if (wait >= WAIT_OPEN) return "open";
   return "gonow";
+}
+
+function statusChipLabel(id) {
+  if (id === "gonow") return `Go now (<${WAIT_OPEN} min)`;
+  if (id === "open") return `Open (${WAIT_OPEN}–${WAIT_BUSY - 1} min)`;
+  if (id === "busy") return `Busy (${WAIT_BUSY}–${WAIT_LONG - 1} min)`;
+  if (id === "long") return `Long (${WAIT_LONG}–${WAIT_CLOSED - 1} min)`;
+  if (id === "closed") return "Closed";
+  return STATUS_LABEL[id] || id;
 }
 
 function hasPublishedWait(row) {
@@ -173,11 +187,6 @@ function waitLabel(minutes, status) {
   return `${Number(minutes) || 0} min`;
 }
 
-function isGoNowHouse(row) {
-  if (!hasPublishedWait(row)) return false;
-  return statusFromWait(row.wait_minutes) === "gonow";
-}
-
 function statusPillLabel(row) {
   return STATUS_LABEL[statusFromWait(row.wait_minutes)] || row.status;
 }
@@ -231,6 +240,7 @@ function filteredHouses() {
 
 function paintHouseFilters() {
   document.querySelectorAll("[data-filter-status]").forEach((btn) => {
+    btn.textContent = statusChipLabel(btn.dataset.filterStatus);
     btn.classList.toggle("is-on", btn.dataset.filterStatus === houseFilter.status);
   });
   document.querySelectorAll("[data-filter-tag]").forEach((btn) => {
@@ -262,25 +272,99 @@ function tagChips(meta) {
   return (meta?.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
 }
 
+function houseArt(id) {
+  const ink = "#1a1218";
+  const art = {
+    "three-doors": `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="8" y="16" width="22" height="64" rx="2" fill="#f3d7ae" stroke="${ink}" stroke-width="2.4"/><g class="arm"><rect x="37" y="16" width="22" height="64" rx="2" fill="#e7c48a" stroke="${ink}" stroke-width="2.4"/></g><rect x="66" y="16" width="22" height="64" rx="2" fill="#f3d7ae" stroke="${ink}" stroke-width="2.4"/><circle cx="26" cy="50" r="2" fill="${ink}"/><circle cx="54" cy="50" r="2" fill="${ink}"/><circle cx="84" cy="50" r="2" fill="${ink}"/></svg>`,
+    marionette: `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 6v16M28 8l14 20M68 8 54 28" stroke="${ink}" stroke-width="2" stroke-linecap="round"/><g class="bob"><circle cx="48" cy="32" r="12" fill="#f6e2c4" stroke="${ink}" stroke-width="2.4"/><circle cx="43" cy="31" r="1.6" fill="${ink}"/><circle cx="53" cy="31" r="1.6" fill="${ink}"/><rect x="38" y="46" width="20" height="28" rx="6" fill="#d85a6a" stroke="${ink}" stroke-width="2.2"/><path d="M38 54H22M58 54h16" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/></g></svg>`,
+    caligari: `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 18 86 84H10Z" fill="#f6efe4" stroke="${ink}" stroke-width="2.6" stroke-linejoin="round"/><path d="M48 24 70 84H58Z" fill="#d23a42"/><path d="M48 24 26 84H38Z" fill="#d23a42"/><path d="M48 30 62 84h-10Z" fill="#d23a42"/><path d="M48 30 34 84h10Z" fill="#d23a42"/><path d="M36 84c2-24 8-30 12-30s10 8 12 30" fill="#10080c"/><path d="M34 68c10 8 18 6 26-2" fill="none" stroke="#f6efe4" stroke-width="2" stroke-linecap="round"/><g class="glow"><circle cx="43" cy="72" r="3.4" fill="#f6e7b0" stroke="${ink}" stroke-width="1.2"/><circle cx="55" cy="72" r="3.4" fill="#f6e7b0" stroke="${ink}" stroke-width="1.2"/><circle cx="44" cy="72" r="1.5" fill="${ink}"/><circle cx="56" cy="72" r="1.5" fill="${ink}"/></g><path d="M20 60h56" stroke="#f0d36a" stroke-width="5" stroke-linecap="round"/><path d="M48 18V8" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/><g class="arm"><path d="M48 8h16l-4 4.5 4 4.5H48z" fill="#e23b4a" stroke="${ink}" stroke-width="1.6" stroke-linejoin="round"/></g></svg>`,
+    clowns: `<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="50" r="28" fill="#fff6ea" stroke="${ink}" stroke-width="2.6"/><path d="M22 40c8-16 44-16 52 0" fill="#e23b4a" stroke="${ink}" stroke-width="2"/><circle cx="38" cy="48" r="3" fill="${ink}"/><circle cx="58" cy="48" r="3" fill="${ink}"/><circle cx="48" cy="56" r="4" fill="#e23b4a"/><g class="jaw"><path d="M36 64c6 8 18 8 24 0" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/></g></svg>`,
+    illusionist: `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M16 12h28v72H16z" fill="#6a2a4a" stroke="${ink}" stroke-width="2.2"/><path d="M52 12h28v72H52z" fill="#4a1c38" stroke="${ink}" stroke-width="2.2"/><g class="glow"><path d="M48 40l2 6 6 1-5 4 2 6-5-3-5 3 2-6-5-4 6-1z" fill="#f6e7b0"/></g></svg>`,
+    "last-laugh": `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M14 78V34c0-16 68-16 68 0v44" fill="#2a2438" stroke="#f3e6d8" stroke-width="2.6"/><circle cx="48" cy="50" r="14" fill="#fff6ea" stroke="${ink}" stroke-width="2.2"/><circle cx="43" cy="48" r="2" fill="${ink}"/><circle cx="53" cy="48" r="2" fill="${ink}"/><g class="jaw"><path d="M42 56c3 4 9 4 12 0" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/></g></svg>`,
+    "cursed-cavern": `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M8 80c8-28 16-48 40-52 24 4 32 24 40 52" fill="#243028" stroke="#d7ecdf" stroke-width="2.6"/><path d="M28 80c4-16 10-24 20-26 10 2 16 10 20 26" fill="#0e1612"/><g class="bat"><path d="M46 36c-6-5-11 1-5 4 2-1 3-1 5 0z" fill="#f4f0ff" stroke="${ink}" stroke-width="1.2"/><path d="M46 36c6-5 11 1 5 4-2-1-3-1-5 0z" fill="#f4f0ff" stroke="${ink}" stroke-width="1.2"/></g></svg>`,
+    "no-one-leaves": `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 14 84 46H12z" fill="#e7d3b4" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/><rect x="22" y="46" width="52" height="34" fill="#f3e6d0" stroke="${ink}" stroke-width="2.4"/><g class="glow"><rect x="30" y="56" width="12" height="12" fill="#1a1218"/><rect x="54" y="56" width="12" height="12" fill="#1a1218"/></g></svg>`,
+    prisoner: `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="14" y="8" width="68" height="80" rx="3" fill="#1c2430" stroke="#f3e6d8" stroke-width="2.4"/><g class="ghost"><circle cx="48" cy="32" r="12" fill="#f4f7fb" stroke="${ink}" stroke-width="2.2"/><circle cx="44" cy="31" r="1.7" fill="${ink}"/><circle cx="53" cy="31" r="1.7" fill="${ink}"/><path d="M38 38h4M56 38h4" stroke="${ink}" stroke-width="1.4" stroke-linecap="round"/><path d="M34 46h28l-2 32H36z" fill="#f7f4ec" stroke="${ink}" stroke-width="2.2"/><path d="M44 38c2 2 6 2 8 0" fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/><rect x="35" y="52" width="26" height="6" fill="${ink}"/><rect x="34" y="64" width="27" height="6" fill="${ink}"/></g><path d="M28 8v80M48 8v80M68 8v80" stroke="#e7e1d6" stroke-width="4.5" stroke-linecap="round"/><circle cx="28" cy="58" r="4.2" fill="#f4f7fb" stroke="${ink}" stroke-width="1.8"/><circle cx="68" cy="58" r="4.2" fill="#f4f7fb" stroke="${ink}" stroke-width="1.8"/></svg>`,
+    "whispering-woods": `<svg viewBox="0 0 96 96" aria-hidden="true"><ellipse cx="48" cy="84" rx="36" ry="6" fill="#d5e4ea"/><g class="bob" fill="none" stroke="#f3e6d8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 84c1-18-2-28-8-36" stroke-width="4"/><path d="M14 48c6-8 2-16-4-20M14 50c8-2 12-12 6-18M16 58c8 0 10-8 16-6" stroke-width="3"/><path d="M48 86c-1-26-6-34-2-50" stroke-width="5"/><path d="M46 36c-8-4-10-14-2-20M46 40c10-2 16-12 10-18M50 52c12-4 16 2 18 10" stroke-width="3"/><path d="M74 84c1-16 6-26 2-38" stroke-width="4"/><path d="M76 46c8-6 10-14 2-18M76 48c-8-2-12-12-4-16" stroke-width="3"/></g><ellipse class="glow" cx="48" cy="82" rx="28" ry="5" fill="#eef6f8"/></svg>`,
+    slenderman: `<svg viewBox="0 0 96 96" aria-hidden="true"><g class="ghost"><ellipse cx="48" cy="14" rx="8" ry="10" fill="#f7f8fb" stroke="${ink}" stroke-width="2.2"/><path d="M41 24h14l5 58H36z" fill="#12121a" stroke="#f4f6fb" stroke-width="2.2" stroke-linejoin="round"/><path d="M45 28h6l2 20h-10z" fill="#e23b4a"/><path d="M40 34C18 48 8 68 6 88" fill="none" stroke="#12121a" stroke-width="5.5" stroke-linecap="round"/><path d="M56 34c22 14 32 34 34 54" fill="none" stroke="#12121a" stroke-width="5.5" stroke-linecap="round"/><path d="M40 34C18 48 8 68 6 88M56 34c22 14 32 34 34 54" fill="none" stroke="#f4f6fb" stroke-width="1.5" stroke-linecap="round"/></g><g class="tendril"><path d="M44 40c-8 12-4 24-14 30" fill="none" stroke="#d5dcf0" stroke-width="1.7" stroke-linecap="round"/><path d="M52 42c10 10 8 22 18 28" fill="none" stroke="#d5dcf0" stroke-width="1.7" stroke-linecap="round"/><path d="M48 46c2 14-6 22-2 32" fill="none" stroke="#d5dcf0" stroke-width="1.5" stroke-linecap="round"/></g></svg>`,
+    "he-who-watches": `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="22" y="12" width="52" height="72" rx="2" fill="#16120e" stroke="#f3e6d8" stroke-width="2.4"/><path d="M48 16v64" stroke="#0c0908" stroke-width="6" stroke-linecap="round"/><g class="look"><ellipse cx="38" cy="44" rx="7" ry="5.5" fill="#f7fbff" stroke="${ink}" stroke-width="1.6"/><ellipse cx="58" cy="44" rx="7" ry="5.5" fill="#f7fbff" stroke="${ink}" stroke-width="1.6"/><circle cx="39" cy="44" r="2.4" fill="${ink}"/><circle cx="59" cy="44" r="2.4" fill="${ink}"/></g><g class="blink"><rect x="30" y="37" width="16" height="14" rx="6" fill="#16120e"/><rect x="50" y="37" width="16" height="14" rx="6" fill="#16120e"/></g><path d="M22 74c8-8 12-4 16 2M58 78c8-10 14-4 16 0" fill="#143024" stroke="#d7ecdf" stroke-width="2" stroke-linejoin="round"/></svg>`,
+    "screening-lt17a": `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="14" y="22" width="68" height="52" rx="4" fill="#1a1c28" stroke="#f3e6d8" stroke-width="2.6"/><path d="M14 32h68M14 64h68" stroke="#f3e6d8" stroke-width="3"/><path d="M42 42l16 8-16 8z" fill="#f6e7b0"/></svg>`,
+    "abandoned-asylum": `<svg viewBox="0 0 96 96" aria-hidden="true"><g class="tilt"><path d="M30 30 36 12l8 16 6-18 6 18 8-14 6 16" fill="#2a221c" stroke="${ink}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="48" cy="34" r="14" fill="#f3e0d4" stroke="${ink}" stroke-width="2.4"/><ellipse cx="42" cy="34" rx="3.2" ry="4.4" fill="${ink}"/><ellipse cx="55" cy="34" rx="3.2" ry="4.4" fill="${ink}"/><path d="M44 42h8" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/></g><path d="M26 54h44l6 30H20z" fill="#f4f7f2" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/><path d="M30 64c14 8 22 8 36 0" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/><path d="M24 70c16 10 32 8 48-6" fill="none" stroke="#8a3038" stroke-width="3.4" stroke-linecap="round"/></svg>`,
+    "forever-patients": `<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 4v12" stroke="${ink}" stroke-width="2.2" stroke-linecap="round"/><g class="flicker"><path d="M34 16h28l-5 12H39z" fill="#f6e7b0" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/></g><path d="M72 22v34" stroke="#d5dde4" stroke-width="2.6" stroke-linecap="round"/><rect x="64" y="12" width="16" height="14" rx="2" fill="#f4f7fb" stroke="${ink}" stroke-width="1.8"/><path d="M72 36c-10 8-8 16-2 22" fill="none" stroke="#d5dde4" stroke-width="1.8" stroke-linecap="round"/><path d="M12 62h72" stroke="#c5ced6" stroke-width="4" stroke-linecap="round"/><path d="M18 62v20M78 62v20M18 78h60" stroke="#9aa6b0" stroke-width="3" stroke-linecap="round"/><path d="M20 60c6-14 50-16 58 2v16H20z" fill="#f4efe6" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/><path d="M28 54c12 8 20 2 28 10 4-8 2-6-2-12-8 6-16 2-26 2z" fill="#8a3038"/></svg>`,
+    "living-dead": `<svg viewBox="0 0 96 96" aria-hidden="true"><g class="ghost"><path d="M24 40c0-16 48-18 48 2 6 2 10 14 4 22 4 10-4 18-14 18l-6-8-6 8-6-8-6 8c-10 0-16-8-14-18-8-2-10-12 0-16z" fill="#f4fff8" stroke="${ink}" stroke-width="2.4"/><circle cx="40" cy="42" r="2.2" fill="${ink}"/><circle cx="56" cy="42" r="2.2" fill="${ink}"/></g></svg>`,
+    "screening-lt12c": `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="10" y="28" width="34" height="44" rx="3" fill="#1c1428" stroke="#f3e6d8" stroke-width="2.2"/><rect x="52" y="22" width="34" height="50" rx="3" fill="#241820" stroke="#f3e6d8" stroke-width="2.2"/><path d="M22 46l10 6-10 6zM64 42l10 6-10 6z" fill="#f6e7b0"/></svg>`,
+  };
+  return art[id] || "";
+}
+
+function houseMarkHtml(meta) {
+  const svg = houseArt(meta?.id);
+  if (!svg) return "";
+  const tilt = ["-1.5deg", "1.2deg", "-1deg", "1.6deg"][(meta.id || "").length % 4];
+  const delay = `${((meta.id || "").length % 7) * 0.35}s`;
+  return `<span class="house-art"><span class="booth-mark" style="--tilt:${tilt};--idle-delay:${delay}" aria-hidden="true">${svg}</span></span>`;
+}
+
+function attractionLabel(meta) {
+  if (meta?.kind === "scarezone") return "Scare Zone";
+  if (meta?.kind === "screening") return "Screening";
+  return "Scare House";
+}
+
+function kindBadge(meta) {
+  return `<span class="map-badge map-badge--kind">${escapeHtml(attractionLabel(meta))}</span>`;
+}
+
+const CARD_CHARMS = {
+  "three-doors": ["skull"],
+  marionette: ["hat"],
+  clowns: ["pumpkins"],
+  illusionist: ["curtain"],
+  "no-one-leaves": ["spider"],
+  prisoner: ["web"],
+  "whispering-woods": ["candle", "crow"],
+  "screening-lt17a": ["ears"],
+  "screening-lt12c": ["ears"],
+};
+
+function cardCharm(id) {
+  const kinds = CARD_CHARMS[id];
+  if (!kinds) return "";
+  const ink = "#1a1218";
+  const svg = {
+    curtain: `<svg viewBox="0 0 92 46"><g class="drip"><path d="M14 0c1.2 8 0 14 2.6 24 1 3.4-.4 7-3.4 7s-4.8-3-3.6-7.2C11.6 14 11 7 14 0z" fill="#8e2430" stroke="${ink}" stroke-width="1.6"/><path d="M34 0c2 10-.6 16 4 28 1.4 3.6-.6 8-4.6 8s-6.4-3.6-4.8-8.4C32 16 30 8 34 0z" fill="#c2454c" stroke="${ink}" stroke-width="1.6"/><path d="M56 0c1.4 7 .2 12 3 20 1 3-.4 6.2-3.2 6.2s-4.4-2.6-3.2-6.4C54.4 12 53.4 6 56 0z" fill="#9a2834" stroke="${ink}" stroke-width="1.6"/><path d="M74 1c1 6-.2 10 2.2 16 .8 2.2-.2 4.8-2.4 4.8s-3.4-2-2.6-4.8C72.6 10 72 5 74 1z" fill="#7a1c28" stroke="${ink}" stroke-width="1.6"/><path d="M16 8c.8 2 .2 3-.4 2.6M36 8c1.2 3 .2 5-.4 4.4" fill="none" stroke="#f3c2bc" stroke-width="1.3" stroke-linecap="round"/></g></svg>`,
+    hat: `<svg viewBox="0 0 64 40"><g class="hat"><path d="M28 30C32 16 34 8 40 3c1.6-1.4 4-.6 4.2 2 .6 8-1 16 1.4 25" fill="#2a1c24" stroke="${ink}" stroke-width="1.7"/><path d="M4 30c5-3 12-4 20-2 8 1 14 0 22-2 8-1 14 1 16 4-2 5-12 8-24 7C22 38 8 36 4 30z" fill="#241820" stroke="${ink}" stroke-width="1.7"/><path d="M16 29c8 2 18 1 28-2" fill="none" stroke="#6a3038" stroke-width="2.6" stroke-linecap="round"/><path d="M34 25h6l-.6 4.5h-4.6z" fill="#e2b34a" stroke="${ink}" stroke-width="1.1" transform="rotate(-8 37 27)"/></g></svg>`,
+    skull: `<svg viewBox="0 0 48 54"><path d="M24 3c-11 1-19 10-19 21 0 8 4 13 8 16v2h22v-2c4-3 8-8 8-16C43 13 35 2 24 3z" fill="#f4ead8" stroke="${ink}" stroke-width="1.8"/><ellipse cx="16.5" cy="23" rx="4.6" ry="5.6" fill="${ink}" transform="rotate(-8 16.5 23)"/><ellipse cx="31" cy="22" rx="4.4" ry="5.8" fill="${ink}" transform="rotate(6 31 22)"/><path d="M22 31h4.2l-.6 5h-3z" fill="${ink}"/><g class="jaw"><path d="M13 40h22v5.5c0 3.2-4.4 6-11 6s-11-2.8-11-6z" fill="#f4ead8" stroke="${ink}" stroke-width="1.8"/><path d="M18 44.5v3.2M23 44.2v4M28 44.5v3.2" stroke="${ink}" stroke-width="1.5" stroke-linecap="round"/></g></svg>`,
+    pumpkins: `<svg viewBox="0 0 96 40"><g transform="translate(2 10)"><path d="M12 2c.6 1.4.4 2.2-.2 3" fill="none" stroke="#3d6a32" stroke-width="1.6" stroke-linecap="round"/><path d="M2 16c0-5 2.4-8 5-8 1.6 0 2.2 1.6 5 1.6s3.2-1.6 4.8-1.6c2.6 0 5 3 5 8 0 5.4-3.4 9-7.4 9H9.2C5.2 25 2 21.4 2 16z" fill="#d86a14" stroke="${ink}" stroke-width="1.5"/><path d="M8 20l2 1.4-2 1.4M16 20l-2 1.4 2 1.4" fill="${ink}"/></g><g transform="translate(28 0)"><path d="M20 4c1.2 2.4 1 4-.2 6" fill="none" stroke="#3d6a32" stroke-width="2" stroke-linecap="round"/><path d="M4 22c0-8 4-14 8-14 2.4 0 3.2 2.6 8 2.6s5.4-2.6 8-2.6c4 0 8 6 8 14 0 8-5 14-12 14h-8C9 36 4 30 4 22z" fill="#e07a18" stroke="${ink}" stroke-width="1.7"/><path d="M14 14c-.4 6-.2 12.4 1 20M26 14c.4 6 .2 12-1 20" fill="none" stroke="#a85210" stroke-width="1.4"/><path d="M14 22l3.2 2.4L14 27M26 22l-3.2 2.4L26 27" fill="${ink}"/><path d="M16 30c1.6 1.6 5 1.6 7 0" fill="none" stroke="${ink}" stroke-width="1.4" stroke-linecap="round"/></g><g transform="translate(72 12)"><path d="M10 1c.5 1.2.3 2-.2 2.6" fill="none" stroke="#3d6a32" stroke-width="1.5" stroke-linecap="round"/><path d="M1 14c0-4.4 2-7 4.4-7 1.4 0 2 1.4 4.4 1.4S14 7 15.2 7c2.2 0 4.4 2.6 4.4 7 0 4.6-3 8-6.4 8H7.2C3.8 22 1 18.6 1 14z" fill="#c45e12" stroke="${ink}" stroke-width="1.5"/><path d="M7 17l1.6 1.1L7 19.2M14 17l-1.6 1.1L14 19.2" fill="${ink}"/></g></svg>`,
+    web: `<svg viewBox="0 0 64 64"><g fill="none" stroke="#f4efe6" stroke-linecap="round"><path d="M62 62V6M62 62H6" stroke-width="1.7"/><path d="M62 62 38 10M62 62 18 28M62 62 10 46" stroke-width="1.5"/><path d="M62 50a12 12 0 0 0-12 12" stroke-width="1.6"/><path d="M62 36a26 26 0 0 0-26 26" stroke-width="1.6"/><path d="M62 20a42 42 0 0 0-42 42" stroke-width="1.5"/><path d="M50 62a8 8 0 0 1 8-10M36 62c2-10 8-16 18-20" stroke-width="1.3"/></g><g class="spider"><ellipse cx="40" cy="44" rx="4.2" ry="3.3" fill="${ink}"/><circle cx="40" cy="39.4" r="2.2" fill="${ink}"/><path d="M36 41l-6-4M36 43.5l-7 0M36 46l-6 4M44 41l6-4M44 43.5l7 .2M44 46l6 4" fill="none" stroke="${ink}" stroke-width="1.3" stroke-linecap="round"/></g></svg>`,
+    candle: `<svg viewBox="0 0 36 56"><g class="flame"><path d="M18 1c4 6 8 10 8 15 0 5-3.4 8.5-8 8.5S10 21 10 16C10 11 14 7 18 1z" fill="#ffe7a0" stroke="${ink}" stroke-width="1.5"/><path d="M18 10c1.6 2.4 2.8 4 2.8 6.2 0 2-1.2 3.4-2.8 3.4s-2.8-1.4-2.8-3.4c0-2.2 1.2-3.8 2.8-6.2z" fill="#e07a18"/></g><path d="M11 24h14l-2 28H13z" fill="#fff6e8" stroke="${ink}" stroke-width="1.8"/><path d="M13 30c2 4 1 7-1.2 9 3.2-.6 5.4 1.4 4.2 5" fill="#c2454c" stroke="${ink}" stroke-width="1.1"/><path d="M23 36c1.2 2.4.4 5-.2 7" fill="none" stroke="#c2454c" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+    ears: `<svg viewBox="0 0 96 44"><g class="ears"><path d="M4 42 26 3l20 39z" fill="#2a1c24" stroke="#f3e6d8" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 42 26 16l10 26z" fill="#6a3040"/><path d="M50 42 76 6l20 36z" fill="#2a1c24" stroke="#f3e6d8" stroke-width="2.2" stroke-linejoin="round"/><path d="M64 42 76 18l10 24z" fill="#6a3040"/></g></svg>`,
+    crow: `<svg viewBox="0 0 48 36"><g class="crow"><path d="M24 2v8" fill="none" stroke="#f3e6d8" stroke-width="1.4"/><path d="M8 22c2-8 10-12 16-10 4 1 8 6 14 4-2 6-6 8-10 8 2 4-2 8-8 7-8 1-14-2-16-8 2-1 3-1 4-1z" fill="#241820" stroke="#f3e6d8" stroke-width="1.7"/><circle cx="30" cy="18" r="1.6" fill="#f6e7b0"/><path d="M36 18l8 2-8 3z" fill="#e2b34a" stroke="#1a1218" stroke-width="1"/></g></svg>`,
+    spider: `<svg viewBox="0 0 28 56"><path d="M14 0v24" fill="none" stroke="#d9d0c6" stroke-width="1.2"/><g class="spider"><ellipse cx="14" cy="32" rx="5" ry="5.5" fill="#1a1218"/><circle cx="14" cy="26.5" r="2.3" fill="#1a1218"/><path d="M9 30c-7-2-8 5-5 7M19 30c7-2 8 5 5 7M9 36c-6 2-5 7-1 7M19 36c6 2 5 7 1 7" fill="none" stroke="#1a1218" stroke-width="1.3" stroke-linecap="round"/></g></svg>`,
+  };
+  return kinds.map((kind) => (
+    `<span class="card-charm card-charm--${kind}" aria-hidden="true">${svg[kind]}</span>`
+  )).join("");
+}
+
 function houseCardOpenInner(row, meta) {
-  const metric = waitMetric(row);
   const tags = tagChips(meta);
+  const status = statusFromWait(row.wait_minutes);
   return `
     <span class="house-card__rail" aria-hidden="true"></span>
+    ${kindBadge(meta)}
     <span class="house-card__top">
       <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
     </span>
     <strong class="house-card__name">${escapeHtml(row.name)}</strong>
     <span class="house-card__metric">
-      <span class="status-pill">${escapeHtml(statusPillLabel(row))}</span>
-      <span class="house-card__wait${metric.kind === "clear" ? " is-phrase" : ""}">${escapeHtml(metric.value)}</span>
-      ${metric.unit ? `<span class="house-card__unit">${escapeHtml(metric.unit)}</span>` : ""}
+      <span class="status-pill">${escapeHtml(waitLabel(row.wait_minutes, status))}</span>
     </span>
     <span class="house-card__meta">
       ${meta?.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
       <span class="fresh">${escapeHtml(freshnessLabel(row.updated_at))}</span>
       ${tags ? `<span class="house-tags">${tags}</span>` : ""}
-    </span>`;
+    </span>
+    ${houseMarkHtml(meta)}`;
 }
 
 function staffScope() {
@@ -549,7 +633,8 @@ function houseCardHtml(row, watching) {
   const meta = houseMeta(row.id);
   const on = watching.has(row.id);
   const status = statusFromWait(row.wait_minutes);
-  return `<article class="house-card status-${status}">
+  return `<article class="house-card status-${status}" data-cluster="${escapeHtml(meta?.cluster || "")}">
+    ${cardCharm(row.id)}
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
       ${houseCardOpenInner(row, meta)}
     </button>
@@ -689,7 +774,7 @@ function boothDirectoryCard(booth) {
     <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
       <span class="house-card__top">
         <span class="house-card__title">${logo}<strong class="house-card__name">${escapeHtml(booth.name)}</strong></span>
-        <span class="status-pill">${pill}</span>
+        <span class="house-card__marks">${ticket ? `<span class="map-badge map-badge--wheel">Wheel</span>` : ""}<span class="status-pill">${pill}</span></span>
       </span>
       <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>
       <span class="booth-art">${art ? `<span class="booth-mark" style="--tilt:${tilt};--idle-delay:${BOOTH_IDLE_DELAY[theme] || "0s"}" aria-hidden="true">${art}</span>` : ""}</span>
@@ -712,7 +797,7 @@ function watchBoothMotion() {
   if (boothMotionObserver) boothMotionObserver.disconnect();
   if (!("IntersectionObserver" in window)) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const nodes = document.querySelectorAll("#boothDirectory .booth-mark");
+  const nodes = document.querySelectorAll("#boothDirectory .booth-mark, #houseGrid .booth-mark");
   if (!nodes.length) return;
   boothMotionObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -735,24 +820,15 @@ function renderDashboard() {
   paintBoothDirectory();
   if (!els.houseGrid) return;
   const watching = new Set(readNight().watch);
-  const goNow = sortedHouses().filter((row) => houseMatchesFilter(row) && isGoNowHouse(row));
   const groups = CLUSTERS.map((cluster) => ({
     cluster,
-    members: clusterMembers(cluster.id).filter(listingMatches),
+    members: clusterMembers(cluster.id).filter(listingMatches).sort(compareClusterMembers),
   })).filter((group) => group.members.length);
-  if (!goNow.length && !groups.length) {
+  if (!groups.length) {
     els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Nothing is left with these filters.</p><button class="btn" type="button" data-clear-filters>Clear filters</button></div>`;
+    paintMapJump([]);
     return;
   }
-  const showGoNow = goNow.length || !filterIsActive();
-  const goNowBlock = showGoNow
-    ? `<div class="house-grid__gonow">
-        <p class="house-grid__gonow-kicker">Go now</p>
-        ${goNow.length
-          ? goNow.map((row) => houseCardHtml(row, watching)).join("")
-          : `<p class="gonow-empty">No house is at 5 minutes or less yet. Staff publish the waits.</p>`}
-      </div>`
-    : "";
   const clusterBlock = groups.map(({ cluster, members }) => {
     const places = [...new Set(members.map((house) => pinById(house.pin)?.label || house.short))].join(" · ");
     const cards = members.map((meta) => {
@@ -761,7 +837,7 @@ function renderDashboard() {
       const row = houses.find((h) => h.id === meta.id);
       return row ? houseCardHtml(row, watching) : "";
     }).join("");
-    return `<section class="cluster-group">
+    return `<section class="cluster-group" id="cluster-${escapeHtml(cluster.id)}">
       <header class="cluster-group__head">
         <p class="cluster-group__kicker">${escapeHtml(cluster.kicker)} · ${escapeHtml(places)}</p>
         <h3>${escapeHtml(cluster.name)}</h3>
@@ -769,16 +845,32 @@ function renderDashboard() {
       <div class="cluster-group__grid">${cards}</div>
     </section>`;
   }).join("");
-  els.houseGrid.innerHTML = `${goNowBlock}${clusterBlock}`;
+  els.houseGrid.innerHTML = clusterBlock;
+  paintMapJump(groups.map(({ cluster }) => cluster.id));
+  watchBoothMotion();
+  syncCardsSky();
+}
+
+function compareClusterMembers(a, b) {
+  const walkA = !isWalkthrough(a);
+  const walkB = !isWalkthrough(b);
+  if (walkA !== walkB) return walkA ? -1 : 1;
+  if (!walkA) return 0;
+  const rowA = houses.find((house) => house.id === a.id);
+  const rowB = houses.find((house) => house.id === b.id);
+  const wa = rowA && hasPublishedWait(rowA) ? Number(rowA.wait_minutes) : Number.POSITIVE_INFINITY;
+  const wb = rowB && hasPublishedWait(rowB) ? Number(rowB.wait_minutes) : Number.POSITIVE_INFINITY;
+  return wa - wb || a.name.localeCompare(b.name);
 }
 
 function placeCardHtml(meta, pill, label) {
-  return `<article class="house-card${meta.kind === "scarezone" ? " house-card--zone" : ""}">
+  return `<article class="house-card${meta.kind === "scarezone" ? " house-card--zone" : ""}" data-cluster="${escapeHtml(meta.cluster || "")}">
+    ${cardCharm(meta.id)}
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
       <span class="house-card__rail" aria-hidden="true"></span>
+      ${kindBadge(meta)}
       <span class="house-card__top">
         <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
-        <span class="status-pill">${escapeHtml(pill)}</span>
       </span>
       <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
       <span class="house-card__metric">
@@ -787,8 +879,40 @@ function placeCardHtml(meta, pill, label) {
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(label)}</span>
       </span>
+      ${houseMarkHtml(meta)}
     </button>
   </article>`;
+}
+
+let mapJumpObserver = null;
+
+function paintMapJump(visibleIds) {
+  const track = document.getElementById("mapJumpTrack");
+  if (!track) return;
+  const chips = CLUSTERS.filter((cluster) => visibleIds.includes(cluster.id)).map((cluster) => (
+    `<button type="button" class="map-jump__chip" data-jump="cluster-${escapeHtml(cluster.id)}">${escapeHtml(cluster.name)}</button>`
+  ));
+  chips.push(`<button type="button" class="map-jump__chip" data-jump="map-booths">Booths</button>`);
+  track.innerHTML = chips.join("");
+  if (mapJumpObserver) mapJumpObserver.disconnect();
+  const sections = [...track.querySelectorAll("[data-jump]")].map((btn) => document.getElementById(btn.dataset.jump)).filter(Boolean);
+  if (!sections.length || !("IntersectionObserver" in window)) return;
+  const seen = new Map();
+  mapJumpObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) seen.set(entry.target.id, entry);
+      else seen.delete(entry.target.id);
+    });
+    const current = [...seen.values()].sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!current) return;
+    track.querySelectorAll("[data-jump]").forEach((btn) => {
+      const on = btn.dataset.jump === current.target.id;
+      btn.classList.toggle("is-on", on);
+      if (on) btn.setAttribute("aria-current", "true");
+      else btn.removeAttribute("aria-current");
+    });
+  }, { rootMargin: "-108px 0px -62% 0px", threshold: [0, 0.15, 0.4] });
+  sections.forEach((section) => mapJumpObserver.observe(section));
 }
 
 function scareZoneCardHtml(meta) {
@@ -1208,6 +1332,16 @@ function openHouse(id, opts = {}) {
   const zone = meta.kind === "scarezone";
   const screening = meta.kind === "screening";
   const status = row && !zone ? statusFromWait(row.wait_minutes) : "open";
+  const panel = els.modal.querySelector(".modal__panel");
+  if (panel) {
+    panel.dataset.cluster = meta.cluster || "";
+    panel.dataset.houseStatus = zone || screening ? "plain" : status;
+  }
+  const artEl = els.modal.querySelector("[data-modal-art]");
+  if (artEl) {
+    const svg = houseArt(meta.id);
+    artEl.innerHTML = svg ? `<span class="booth-mark" aria-hidden="true">${svg}</span>` : "";
+  }
   els.modal.querySelector("[data-modal-wait]").textContent = zone ? "Scare Zone" : screening ? "Movie" : waitLabel(row.wait_minutes, status);
   els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare Zone" : screening ? "Screening" : statusPillLabel(row);
   els.modal.querySelector("[data-modal-status]").className = `status-pill${row && !zone ? ` status-${status}` : ""}`;
@@ -2802,12 +2936,34 @@ function setMoreMenu(open) {
   more.setAttribute("aria-expanded", String(open));
 }
 
+function syncCardsSky() {
+  const start = document.getElementById("scareHouses");
+  const end = document.getElementById("map-booths");
+  const sky = document.getElementById("cardsSky");
+  if (!start || !end || !sky) return;
+  const top = Math.max(0, start.getBoundingClientRect().top);
+  const bottom = Math.max(0, window.innerHeight - end.getBoundingClientRect().bottom);
+  sky.style.setProperty("--sky-top", `${top}px`);
+  sky.style.setProperty("--sky-bottom", `${bottom}px`);
+}
+
 function bindUi() {
   fillAwardBoothSelect();
   paintStaffLog();
   document.getElementById("staffLogClear")?.addEventListener("click", () => {
     sessionStorage.removeItem("scream-staff-log");
     paintStaffLog();
+  });
+  syncCardsSky();
+  window.addEventListener("scroll", syncCardsSky, { passive: true });
+  window.addEventListener("resize", syncCardsSky);
+  document.getElementById("mapJump")?.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-jump]");
+    if (!chip) return;
+    const target = document.getElementById(chip.dataset.jump);
+    if (!target) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   });
   const houseSearch = document.getElementById("houseSearch");
   houseSearch?.addEventListener("input", () => {

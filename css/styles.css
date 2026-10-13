@@ -2464,11 +2464,273 @@ html.event-welcome .view[data-view="welcome"].is-active {
 }
 .section-head--map { margin-top: 0; }
 
+.view[data-view="map"] { position: relative; }
+.view[data-view="map"] > :not(.cards-sky) { position: relative; }
+.map-atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.map-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: radial-gradient(rgba(255, 244, 230, 0.05) 0.6px, transparent 0.8px);
+  background-size: 3px 3px;
+}
+.map-fog {
+  position: absolute;
+  left: -20%;
+  top: 18%;
+  width: 70%;
+  height: 180px;
+  background: radial-gradient(ellipse at center, rgba(210, 196, 214, 0.14), transparent 70%);
+  animation: map-fog 28s ease-in-out infinite;
+}
+.map-fog--b {
+  left: auto;
+  right: -25%;
+  top: 62%;
+  animation-duration: 36s;
+  animation-direction: reverse;
+}
+.map-web {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  color: rgba(243, 230, 216, 0.22);
+}
+.map-web--tl { top: 0; left: 0; }
+.map-web--br { right: 0; bottom: 0; }
+.map-star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(246, 231, 176, 0.55);
+  animation: map-twinkle 4.8s ease-in-out infinite;
+}
+.map-bat {
+  position: absolute;
+  width: 22px;
+  height: 12px;
+  fill: rgba(244, 240, 255, 0.28);
+  animation: map-bat 11s ease-in-out infinite;
+}
+.map-bat--b { animation-duration: 14s; animation-delay: -4s; }
+.map-bat--c { width: 16px; animation-duration: 9s; animation-delay: -2s; }
+.map-bat--d { width: 28px; height: 14px; animation-duration: 16s; animation-delay: -6s; }
+.map-bat--e { width: 12px; height: 7px; animation-duration: 8s; animation-delay: -1s; }
+.map-moon {
+  position: absolute;
+  top: 3%;
+  right: 7%;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  box-shadow: -9px 3px 0 0 rgba(246, 231, 176, 0.32);
+}
+.map-fog--c {
+  left: 10%;
+  top: 40%;
+  width: 55%;
+  opacity: 0.7;
+  animation-duration: 42s;
+}
+.map-ember {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 168, 92, 0.4);
+  animation: map-ember 10s ease-in-out infinite;
+}
+.map-silhouette {
+  position: absolute;
+  color: rgba(232, 214, 204, 0.16);
+  fill: currentColor;
+}
+.map-silhouette--tent { left: 2%; top: 46%; width: 78px; height: 56px; }
+.map-silhouette--trees { right: 1%; top: 54%; width: 92px; height: 70px; }
+.map-silhouette--graves { left: 4%; top: 72%; width: 70px; height: 40px; }
+@keyframes map-ember {
+  0%, 100% { transform: translateY(0); opacity: 0.15; }
+  50% { transform: translateY(-16px); opacity: 0.5; }
+}
+@keyframes map-fog {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(12%); }
+}
+@keyframes map-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.8; }
+}
+@keyframes map-bat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(18px, -8px); }
+}
+.view[data-view="map"] > .map-jump {
+  position: sticky;
+  top: 54px;
+  z-index: 8;
+  margin: 0 0 var(--s4);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.view[data-view="map"] > .map-jump::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 28px;
+  background: linear-gradient(var(--bg), transparent);
+  pointer-events: none;
+}
+.map-jump__track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0 10px;
+  scrollbar-width: none;
+}
+.map-jump__track::-webkit-scrollbar { display: none; }
+.map-jump__chip {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-1);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.map-jump__chip.is-on {
+  color: #1a0d05;
+  background: #f0c36a;
+  border-color: #f0c36a;
+}
+.cluster-group,
+.map-booths {
+  scroll-margin-top: 112px;
+}
+.house-card__marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.map-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.map-badge--wheel { color: #f0c36a; }
+.map-booths .house-card--food .house-card__marks { align-self: flex-start; }
+
 .house-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
   gap: var(--s3);
   margin: 0;
+  align-items: stretch;
+}
+#houseGrid .house-card {
+  height: 100%;
+  min-height: 188px;
+  border-radius: var(--r-1);
+  background-color: var(--surface-1);
+  background-image:
+    radial-gradient(rgba(255, 244, 230, 0.045) 0.55px, transparent 0.7px),
+    linear-gradient(180deg, var(--house-tint, var(--surface-2)) 0%, var(--surface-1) 78%);
+  background-size: 3px 3px, auto;
+  border-color: var(--house-line, var(--border));
+  color: var(--ink);
+}
+#houseGrid .house-card[data-cluster="carnival"] { --house-tint: #3c1a28; --house-line: #6a3a4c; }
+#houseGrid .house-card[data-cluster="phobias"] { --house-tint: #102c30; --house-line: #2c5856; }
+#houseGrid .house-card[data-cluster="slender"] { --house-tint: #161a34; --house-line: #3a446e; }
+#houseGrid .house-card[data-cluster="asylum"] { --house-tint: #14262e; --house-line: #3a5862; }
+#houseGrid .house-card:hover {
+  transform: translateY(-2px);
+  background-color: var(--surface-1);
+  background-image:
+    radial-gradient(rgba(255, 244, 230, 0.045) 0.55px, transparent 0.7px),
+    linear-gradient(180deg, var(--house-tint, var(--surface-2)) 0%, var(--surface-1) 78%);
+  border-color: var(--house-line, var(--border-strong));
+}
+#houseGrid .house-card__open { position: relative; min-height: 148px; }
+#houseGrid .house-card__name { padding-right: 4px; }
+#houseGrid .house-card__meta { max-width: calc(100% - 76px); color: #f3e6d8; }
+#houseGrid .house-card__short { color: #f3e6d8; }
+#houseGrid .house-card { overflow: visible; }
+#houseGrid .house-card__watch { border-radius: 0 0 var(--r-1) var(--r-1); }
+#houseGrid .house-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: var(--r-1) 0 0 var(--r-1);
+  background: #8d8680;
+  z-index: 4;
+  pointer-events: none;
+}
+#houseGrid .house-card__rail { display: none; }
+#houseGrid .status-gonow::before,
+#houseGrid .status-open::before { background: #6aab7a; }
+#houseGrid .status-busy::before,
+#houseGrid .status-long::before,
+#houseGrid .status-at_capacity::before { background: #e2b34a; }
+#houseGrid .status-closed::before { background: #c45a4e; }
+#houseGrid .map-badge--kind {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  z-index: 1;
+  margin: 0;
+  color: #f3e6d8;
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+#houseGrid .house-card__top { padding-right: 6.5rem; }
+#houseGrid .house-art {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}
+#houseGrid .booth-mark,
+#houseGrid .booth-mark svg {
+  width: 64px;
+  height: 64px;
+}
+#houseGrid .map-badge {
+  color: var(--house-accent, var(--ink-2));
+}
+#houseGrid .house-card__metric { margin-top: var(--s2); }
+#houseGrid .house-card__metric .status-pill {
+  font-size: 0.95rem;
+  font-weight: 600;
+  gap: 8px;
+}
+#houseGrid .house-card__metric .status-pill::before {
+  width: 7px;
+  height: 7px;
 }
 /* Walk-in houses sit in a labelled band, not a mint glass box. */
 .house-grid__gonow {
@@ -2514,9 +2776,77 @@ html.event-welcome .view[data-view="welcome"].is-active {
   font-size: var(--fs-sm);
 }
 .cluster-group {
+  position: relative;
   grid-column: 1 / -1;
   display: grid;
   gap: var(--s3);
+}
+.cluster-group__head,
+.cluster-group__grid { position: relative; z-index: 1; }
+.card-charm {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+}
+.card-charm svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.card-charm--curtain { left: 50%; bottom: -26px; width: 84px; height: 26px; margin-left: -42px; z-index: 5; }
+#houseGrid .cluster-group:has(.card-charm--curtain) .cluster-group__grid { padding-bottom: 32px; }
+.card-charm--hat { top: -7px; left: 56px; width: 36px; height: 24px; transform: rotate(-3deg); }
+.card-charm--skull { top: -38px; right: 8px; width: 42px; height: 46px; transform: rotate(4deg); z-index: 6; }
+.card-charm--pumpkins { left: 2px; bottom: -6px; width: 78px; height: 34px; transform: rotate(-2deg); }
+#houseGrid .house-card:has(.card-charm--pumpkins) .house-card__watch { padding-left: 70px; }
+.card-charm--web { right: -2px; bottom: -2px; width: 60px; height: 60px; }
+#houseGrid .house-card:has(.card-charm--web) .house-card__watch { padding-right: 46px; }
+#houseGrid .house-card:has([data-open-house="prisoner"]) .house-art { bottom: 34px; }
+.card-charm--candle { left: 8px; bottom: -2px; width: 34px; height: 52px; transform: rotate(-2deg); }
+#houseGrid .house-card:has(.card-charm--candle) .house-card__watch { padding-left: 40px; }
+.card-charm--ears { top: -22px; left: 58px; width: 76px; height: 34px; transform: rotate(-2deg); }
+#houseGrid .house-card:has([data-open-house="screening-lt12c"]) .card-charm--ears { left: 62px; transform: rotate(3deg); }
+.card-charm--crow { top: -14px; left: 62px; width: 40px; height: 30px; transform: rotate(3deg); }
+.card-charm--spider { top: 0; left: 44%; width: 20px; height: 36px; }
+.card-charm .drip { transform-box: fill-box; transform-origin: top center; animation: charm-stretch 3.8s ease-in-out infinite; }
+.card-charm .hat { transform-box: fill-box; transform-origin: 55% 92%; animation: charm-wobble 4.4s ease-in-out infinite; }
+.card-charm .jaw { transform-box: fill-box; transform-origin: center top; animation: booth-jaw 4.2s ease-in-out infinite; }
+.card-charm .flame { transform-box: fill-box; transform-origin: center bottom; animation: house-flicker 3.2s ease-in-out infinite; }
+.card-charm .ears { transform-box: fill-box; transform-origin: center bottom; animation: charm-wobble 5s ease-in-out infinite; }
+.card-charm .spider { transform-box: fill-box; transform-origin: center top; animation: charm-bob 4.6s ease-in-out infinite; }
+.card-charm .crow { transform-box: fill-box; transform-origin: center top; animation: charm-bob 4.8s ease-in-out infinite; }
+.cards-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: inset(var(--sky-top, 100%) 0 var(--sky-bottom, 100%) 0);
+}
+.cards-sky__moon {
+  position: absolute;
+  top: 9vh;
+  right: 2vw;
+  width: min(38vw, 320px);
+  height: min(38vw, 320px);
+}
+.cards-sky__cloud {
+  position: absolute;
+  top: calc(9vh + min(16vw, 130px));
+  right: 6vw;
+  width: min(24vw, 200px);
+  height: min(8vw, 64px);
+  border-radius: 999px;
+  background: rgba(244, 236, 228, 0.42);
+  filter: blur(3px);
+  animation: cloud-drift 22s ease-in-out infinite;
+}
+.cards-sky__cloud--b {
+  top: calc(9vh + min(8vw, 70px));
+  right: 0;
+  width: min(16vw, 140px);
+  height: min(6vw, 48px);
+  animation-duration: 28s;
+  animation-direction: reverse;
+}
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-28px); }
 }
 .cluster-group__head h3 {
   margin: 0;
@@ -2675,13 +3005,18 @@ html.event-welcome .view[data-view="welcome"].is-active {
   height: 78px;
   pointer-events: none;
 }
-.map-booths .booth-mark,
-.map-booths .booth-mark svg {
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark svg {
   display: block;
   width: 78px;
   height: 78px;
 }
-.map-booths .booth-mark { transform: rotate(var(--tilt, 0deg)); }
+#houseGrid .booth-mark,
+#houseGrid .booth-mark svg {
+  width: 64px;
+  height: 64px;
+}
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark { transform: rotate(var(--tilt, 0deg)); }
 .map-booths .house-card.is-stamped .house-card__name,
 .map-booths .house-card.is-stamped .house-card__meta {
   padding-right: 0;
@@ -2703,8 +3038,17 @@ html.event-welcome .view[data-view="welcome"].is-active {
 }
 @media (max-width: 699px) {
   .map-booths .cluster-group__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(158px, auto);
   }
+  .map-booths .booth-art { width: 56px; height: 56px; }
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark,
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark svg { width: 56px; height: 56px; }
+  #houseGrid .booth-mark,
+  #houseGrid .booth-mark svg { width: 52px; height: 52px; }
+  .map-booths .house-card__meta { max-width: calc(100% - 62px); }
+  .map-booths .house-card--food .house-card__logo,
+  .map-booths .house-card--food[data-theme="beamori"] .house-card__logo { height: 36px; }
 }
 .house-card__logo--mark {
   width: 22px;
@@ -2852,72 +3196,94 @@ a,
     linear-gradient(180deg, var(--booth-tint, var(--surface-2)) 0%, var(--surface-1) 46%);
   border-color: var(--booth-line, var(--border-strong));
 }
-.map-booths .booth-mark .bub,
-.map-booths .booth-mark .bob,
-.map-booths .booth-mark .ghost,
-.map-booths .booth-mark .ball,
-.map-booths .booth-mark .drip,
-.map-booths .booth-mark .bat,
-.map-booths .booth-mark .brush,
-.map-booths .booth-mark .meter,
-.map-booths .booth-mark .develop,
-.map-booths .booth-mark .sand,
-.map-booths .booth-mark .jaw,
-.map-booths .booth-mark .arm,
-.map-booths .booth-mark .hoop,
-.map-booths .booth-mark .swirl,
-.map-booths .booth-mark .inkdrop,
-.map-booths .booth-mark .glow,
-.map-booths .booth-mark .arc,
-.map-booths .booth-mark .peel,
-.map-booths .booth-mark .henna,
-.map-booths .booth-mark .gel,
-.map-booths .booth-mark .spark {
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bub,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bob,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .ghost,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .ball,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .drip,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bat,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .brush,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .meter,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .develop,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .sand,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .jaw,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .arm,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .hoop,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .swirl,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .inkdrop,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .glow,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .arc,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .peel,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .henna,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .gel,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .blink,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .look,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .flicker,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .tilt,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .tendril,
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .spark {
   transform-box: fill-box;
   transform-origin: center;
   animation-delay: var(--idle-delay, 0s);
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }
-.map-booths .booth-mark .bub { animation-name: booth-bub; animation-duration: 4.4s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bub { animation-name: booth-bub; animation-duration: 4.4s; }
 .map-booths .house-card[data-theme="matcha"] .bub { animation-duration: 5.4s; }
 .map-booths .house-card[data-theme="pasta"] .bub { animation-duration: 3.8s; }
-.map-booths .booth-mark .bob { animation-name: booth-bob; animation-duration: 3.6s; }
-.map-booths .booth-mark .ghost { animation-name: booth-ghost; animation-duration: 3.2s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bob { animation-name: booth-bob; animation-duration: 3.6s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .ghost { animation-name: booth-ghost; animation-duration: 3.2s; }
 .map-booths .house-card[data-theme="beamori"] .ghost {
   animation-duration: 4.8s;
   transform-origin: 50% 100%;
 }
-.map-booths .booth-mark .spark { animation-name: booth-spark; animation-duration: 3.6s; }
-.map-booths .booth-mark .ball { animation-name: booth-pulse; animation-duration: 4.8s; }
-.map-booths .booth-mark .drip { animation-name: booth-drip; animation-duration: 4.2s; }
-.map-booths .booth-mark .sand { animation-name: booth-sand; animation-duration: 4.6s; }
-.map-booths .booth-mark .jaw { animation-name: booth-jaw; animation-duration: 4.2s; transform-origin: center top; }
-.map-booths .booth-mark .arm { animation-name: booth-arm; animation-duration: 5s; transform-origin: 0% 50%; }
-.map-booths .booth-mark .hoop {
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .spark { animation-name: booth-spark; animation-duration: 3.6s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .ball { animation-name: booth-pulse; animation-duration: 4.8s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .drip { animation-name: booth-drip; animation-duration: 4.2s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .sand { animation-name: booth-sand; animation-duration: 4.6s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .jaw { animation-name: booth-jaw; animation-duration: 4.2s; transform-origin: center top; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .arm { animation-name: booth-arm; animation-duration: 5s; transform-origin: 0% 50%; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .hoop {
   animation-name: booth-hoop;
   animation-duration: 3.4s;
   transform-box: view-box;
   transform-origin: 41.7% 45.8%;
 }
-.map-booths .booth-mark .arc { animation-name: booth-arc; animation-duration: 4.8s; }
-.map-booths .booth-mark .peel { animation-name: booth-peel; animation-duration: 4.2s; transform-origin: 0% 30%; }
-.map-booths .booth-mark .gel { animation-name: booth-sponge; animation-duration: 3.6s; }
-.map-booths .booth-mark .henna {
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .arc { animation-name: booth-arc; animation-duration: 4.8s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .peel { animation-name: booth-peel; animation-duration: 4.2s; transform-origin: 0% 30%; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .gel { animation-name: booth-sponge; animation-duration: 3.6s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .henna {
   animation-name: booth-draw;
   animation-duration: 5.2s;
   stroke-dasharray: 100;
 }
-.map-booths .booth-mark .henna-b { animation-delay: calc(var(--idle-delay, 0s) + 0.7s); }
-.map-booths .booth-mark .henna-c { animation-delay: calc(var(--idle-delay, 0s) + 1.3s); }
-.map-booths .booth-mark .swirl { animation-name: booth-swirl; animation-duration: 5.5s; }
-.map-booths .booth-mark .inkdrop { animation-name: booth-ink; animation-duration: 3.4s; }
-.map-booths .booth-mark .glow { animation-name: booth-glow; animation-duration: 4.8s; }
-.map-booths .booth-mark .bat { animation-name: booth-bat; animation-duration: 3.8s; transform-origin: 30% 80%; }
-.map-booths .booth-mark .brush { animation-name: booth-brush; animation-duration: 4.6s; transform-origin: 80% 20%; }
-.map-booths .booth-mark .meter { animation-name: booth-meter; animation-duration: 3.5s; }
-.map-booths .booth-mark .develop { animation-name: booth-develop; animation-duration: 5.2s; }
-.map-booths .booth-mark.is-peek {
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .henna-b { animation-delay: calc(var(--idle-delay, 0s) + 0.7s); }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .henna-c { animation-delay: calc(var(--idle-delay, 0s) + 1.3s); }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .swirl { animation-name: booth-swirl; animation-duration: 5.5s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .inkdrop { animation-name: booth-ink; animation-duration: 3.4s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .glow { animation-name: booth-glow; animation-duration: 4.8s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .blink {
+  animation-name: house-blink;
+  animation-duration: 4.8s;
+  transform-origin: center top;
+}
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .look { animation-name: house-look; animation-duration: 5.4s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .flicker { animation-name: house-flicker; animation-duration: 3.4s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .tilt {
+  animation-name: house-tilt;
+  animation-duration: 5.6s;
+  transform-origin: center bottom;
+}
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .tendril {
+  animation-name: house-tendril;
+  animation-duration: 4.8s;
+  transform-origin: center top;
+}
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .bat { animation-name: booth-bat; animation-duration: 3.8s; transform-origin: 30% 80%; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .brush { animation-name: booth-brush; animation-duration: 4.6s; transform-origin: 80% 20%; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .meter { animation-name: booth-meter; animation-duration: 3.5s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark .develop { animation-name: booth-develop; animation-duration: 5.2s; }
+:is(#houseGrid, .map-booths, #detailModal) .booth-mark.is-peek {
   animation: booth-peek 0.9s ease;
 }
 @keyframes booth-bub {
@@ -3020,6 +3386,46 @@ a,
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+@keyframes house-blink {
+  0%, 84%, 100% { transform: scaleY(0.08); }
+  88%, 93% { transform: scaleY(1); }
+}
+@keyframes house-look {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(2.5px); }
+  70% { transform: translateX(-2.5px); }
+}
+@keyframes house-flicker {
+  0%, 100% { opacity: 1; }
+  16% { opacity: 0.2; }
+  22% { opacity: 0.95; }
+  46% { opacity: 0.35; }
+  54% { opacity: 1; }
+}
+@keyframes house-tilt {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(7deg); }
+}
+@keyframes house-tendril {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes charm-stretch {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.14); }
+}
+@keyframes charm-wobble {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3.5deg); }
+}
+@keyframes charm-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+}
+@keyframes charm-walk {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(22px); }
+}
 @keyframes booth-peek {
   0% { transform: rotate(var(--tilt, 0deg)) scale(1); }
   45% { transform: rotate(var(--tilt, 0deg)) scale(1.08) translateY(-3px); }
@@ -3027,13 +3433,18 @@ a,
 }
 @media (prefers-reduced-motion: reduce) {
   .map-booths .house-card,
-  .map-booths .house-card:hover {
+  .map-booths .house-card:hover,
+  #houseGrid .house-card,
+  #houseGrid .house-card:hover {
     transition: none;
     transform: none;
   }
-  .map-booths .booth-mark,
-  .map-booths .booth-mark *,
-  .map-booths .house-card:hover .booth-mark {
+  .map-fog, .map-star, .map-bat, .map-ember,
+  .card-charm, .card-charm *,
+  .cards-sky__cloud { animation: none; }
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark,
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark *,
+  :is(#houseGrid, .map-booths, #detailModal) .house-card:hover .booth-mark {
     animation: none !important;
     transform: none;
   }
@@ -4734,6 +5145,77 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   padding: var(--s4) var(--s5) var(--s5);
   background: var(--surface-1);
 }
+#detailModal .modal__panel {
+  --house-tint: #2c1a20;
+  background-color: var(--surface-1);
+  background-image:
+    radial-gradient(rgba(255, 244, 230, 0.05) 0.55px, transparent 0.7px),
+    linear-gradient(180deg, var(--house-tint) 0%, var(--surface-1) 74%);
+  background-size: 3px 3px, auto;
+}
+#detailModal .modal__panel[data-cluster="carnival"] { --house-tint: #3c1a28; }
+#detailModal .modal__panel[data-cluster="phobias"] { --house-tint: #102c30; }
+#detailModal .modal__panel[data-cluster="slender"] { --house-tint: #161a34; }
+#detailModal .modal__panel[data-cluster="asylum"] { --house-tint: #14262e; }
+#detailModal .modal__bar,
+#detailModal .modal__body { background: transparent; }
+#detailModal .modal__panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: var(--r-4) 0 0 var(--r-4);
+  background: #8d8680;
+  z-index: 5;
+  pointer-events: none;
+}
+#detailModal .modal__panel[data-house-status="gonow"]::before,
+#detailModal .modal__panel[data-house-status="open"]::before { background: #6aab7a; }
+#detailModal .modal__panel[data-house-status="busy"]::before,
+#detailModal .modal__panel[data-house-status="long"]::before { background: #e2b34a; }
+#detailModal .modal__panel[data-house-status="closed"]::before { background: #c45a4e; }
+#detailModal .modal__bar,
+#detailModal .modal__body { padding-left: 22px; }
+#detailModal .modal__body { position: relative; }
+#detailModal .modal__art {
+  float: right;
+  width: 104px;
+  height: 104px;
+  margin: 0 0 8px 12px;
+  pointer-events: none;
+}
+#detailModal .modal__art .booth-mark,
+#detailModal .modal__art svg {
+  width: 104px;
+  height: 104px;
+  display: block;
+}
+#detailModal .modal__drip {
+  position: absolute;
+  top: 0;
+  left: 30%;
+  z-index: 4;
+  width: 40px;
+  height: 16px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 0, #8a3038 0 42%, transparent 70%),
+    radial-gradient(ellipse at 62% 0, #8a3038 0 36%, transparent 72%),
+    radial-gradient(ellipse at 88% 0, #8a3038 0 28%, transparent 70%);
+}
+#detailModal .modal__web {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 4;
+  width: 52px;
+  height: 52px;
+  color: rgba(243, 230, 216, 0.34);
+  pointer-events: none;
+  transform: rotate(2deg);
+}
 .modal__close {
   order: 1;
   position: relative;
@@ -6329,6 +6811,53 @@ li.empty-state { list-style: none; }
     padding: 12px 10px 10px 12px;
   }
   .house-card__name { font-size: 0.9rem; }
+  #houseGrid .house-card { min-height: 168px; }
+  #houseGrid .house-card__open { padding: 10px 8px 8px 12px; min-height: 0; }
+  #houseGrid .house-card__name { font-size: 0.8125rem; }
+  #houseGrid .house-card__wait { font-size: 1.05rem; }
+  #houseGrid .house-art,
+  #houseGrid .booth-mark,
+  #houseGrid .booth-mark svg { width: 46px; height: 46px; }
+  .card-charm--hat { top: -8px; left: 50px; width: 30px; height: 20px; }
+  .card-charm--ears { top: -20px; left: 46px; width: 52px; height: 26px; }
+  #houseGrid .house-card:has([data-open-house="screening-lt12c"]) .card-charm--ears { left: 40px; }
+  .card-charm--skull { top: -30px; right: 2px; width: 34px; height: 36px; }
+  .card-charm--pumpkins { width: 62px; height: 28px; }
+  #houseGrid .house-card:has(.card-charm--pumpkins) .house-card__watch { padding-left: 54px; }
+  .card-charm--curtain { width: 64px; height: 22px; margin-left: -32px; bottom: -20px; }
+  #houseGrid .cluster-group:has(.card-charm--curtain) .cluster-group__grid { padding-bottom: 24px; }
+  .card-charm--web { width: 52px; height: 52px; }
+  #houseGrid .house-card:has([data-open-house="prisoner"]) .house-art { bottom: 26px; }
+  .card-charm--candle { width: 28px; height: 44px; }
+  .card-charm--crow { left: 46px; width: 32px; height: 24px; top: -10px; }
+  .card-charm--spider { top: 0; left: 40%; width: 16px; height: 28px; }
+  #houseGrid .house-card__metric .status-pill { font-size: 0.82rem; }
+  #houseGrid .map-badge--kind { top: 8px; right: 6px; font-size: 0.62rem; }
+  #houseGrid .house-card__top { padding-right: 5.2rem; }
+  #houseGrid .house-card__meta { max-width: calc(100% - 58px); }
+  .map-booths .house-card__top { flex-wrap: wrap; align-items: flex-start; row-gap: 4px; }
+  .map-booths .house-card__title { flex: 1 1 100%; }
+  .map-booths .house-card__marks { margin-left: auto; }
+  .map-booths .house-card__name { font-size: 0.8125rem; }
+  .map-booths .house-card--food .house-card__title { flex-wrap: wrap; }
+  .map-booths .house-card--food .house-card__name { flex: 1 1 5.5rem; }
+  .map-booths .cluster-group__grid { grid-auto-rows: minmax(150px, auto); }
+  .map-booths .house-card { min-height: 150px; }
+  .map-booths .house-card__open { padding: 12px 10px; }
+  .map-booths .house-card.is-ticket .house-card__open { padding-left: 16px; }
+  .map-booths .booth-art,
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark,
+  :is(#houseGrid, .map-booths, #detailModal) .booth-mark svg { width: 48px; height: 48px; }
+  #detailModal .modal__art,
+  #detailModal .modal__art .booth-mark,
+  #detailModal .modal__art svg { width: 84px; height: 84px; }
+  #houseGrid .booth-mark,
+  #houseGrid .booth-mark svg { width: 46px; height: 46px; }
+  .map-booths .house-card__meta { max-width: calc(100% - 54px); }
+  .map-booths .house-card--food .house-card__logo,
+  .map-booths .house-card--food[data-theme="beamori"] .house-card__logo { height: 32px; }
+  .view[data-view="map"] > .map-jump { top: 48px; }
+  .cluster-group, .map-booths { scroll-margin-top: 104px; }
   .club-card { padding: 14px 12px; }
   .session-chip span { max-width: min(40vw, 9rem); }
 }
