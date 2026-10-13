@@ -2574,31 +2574,36 @@ html.event-welcome .view[data-view="welcome"].is-active {
 .view[data-view="map"] > .map-jump {
   position: sticky;
   top: 54px;
-  z-index: 8;
+  z-index: 30;
   margin: 0 0 var(--s4);
+  padding: 10px 0 12px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
 }
-.view[data-view="map"] > .map-jump::after {
+.view[data-view="map"] > .map-jump::before {
   content: "";
   position: absolute;
-  left: 0;
+  top: 0;
   right: 0;
-  top: 100%;
-  height: 28px;
-  background: linear-gradient(var(--bg), transparent);
+  bottom: 0;
+  width: 36px;
+  background: linear-gradient(90deg, transparent, var(--bg) 78%);
   pointer-events: none;
+  z-index: 2;
 }
 .map-jump__track {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
-  padding: 8px 0 10px;
+  padding: 0;
   scrollbar-width: none;
 }
 .map-jump__track::-webkit-scrollbar { display: none; }
 .map-jump__chip {
   flex: 0 0 auto;
+  height: 36px;
   min-height: 36px;
   padding: 0 12px;
   border-radius: var(--r-1);
@@ -6091,13 +6096,14 @@ body.is-board { background: #050308; }
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 300;
     width: 100%;
     flex-wrap: nowrap;
     gap: 0;
     padding: 0 0 env(safe-area-inset-bottom, 0px);
-    background: rgba(22, 12, 16, 0.97);
+    background: var(--bg);
     border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.4);
+    z-index: 400;
     box-sizing: border-box;
     overflow: visible;
     touch-action: manipulation;
@@ -6476,6 +6482,22 @@ body.is-board { background: #050308; }
 .login-page .section-head { max-width: none; }
 
 @media (max-width: 800px) {
+  .view[data-view="map"] > .map-jump {
+    top: 0;
+    z-index: 30;
+    margin-left: -12px;
+    margin-right: -12px;
+    margin-bottom: 12px;
+    padding: 10px 16px 12px;
+    background: var(--bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+  }
+  .cluster-group,
+  .cluster-group__head,
+  .map-booths { scroll-margin-top: 64px; }
   .modal-actions .btn { flex: 1 1 140px; }
   .auth-card { margin: 12px auto 20px; padding: 18px; }
   .passport { padding: 16px; }
@@ -6856,8 +6878,9 @@ li.empty-state { list-style: none; }
   .map-booths .house-card__meta { max-width: calc(100% - 54px); }
   .map-booths .house-card--food .house-card__logo,
   .map-booths .house-card--food[data-theme="beamori"] .house-card__logo { height: 32px; }
-  .view[data-view="map"] > .map-jump { top: 48px; }
-  .cluster-group, .map-booths { scroll-margin-top: 104px; }
+  .cluster-group,
+  .cluster-group__head,
+  .map-booths { scroll-margin-top: 64px; }
   .club-card { padding: 14px 12px; }
   .session-chip span { max-width: min(40vw, 9rem); }
 }

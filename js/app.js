@@ -905,13 +905,27 @@ function paintMapJump(visibleIds) {
     });
     const current = [...seen.values()].sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
     if (!current) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     track.querySelectorAll("[data-jump]").forEach((btn) => {
       const on = btn.dataset.jump === current.target.id;
       btn.classList.toggle("is-on", on);
-      if (on) btn.setAttribute("aria-current", "true");
-      else btn.removeAttribute("aria-current");
+      if (!on) {
+        btn.removeAttribute("aria-current");
+        return;
+      }
+      btn.setAttribute("aria-current", "true");
+      const edge = 28;
+      const left = btn.offsetLeft;
+      const right = left + btn.offsetWidth;
+      const viewLeft = track.scrollLeft;
+      const viewRight = viewLeft + track.clientWidth;
+      if (left < viewLeft + edge) {
+        track.scrollTo({ left: Math.max(0, left - edge), behavior: reduce ? "auto" : "smooth" });
+      } else if (right > viewRight - edge) {
+        track.scrollTo({ left: right - track.clientWidth + edge, behavior: reduce ? "auto" : "smooth" });
+      }
     });
-  }, { rootMargin: "-108px 0px -62% 0px", threshold: [0, 0.15, 0.4] });
+  }, { rootMargin: "-72px 0px -55% 0px", threshold: [0, 0.15, 0.4] });
   sections.forEach((section) => mapJumpObserver.observe(section));
 }
 
