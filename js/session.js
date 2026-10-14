@@ -672,6 +672,19 @@ export async function submitScore(gameId, score) {
   return data;
 }
 
+export async function unredeemPass(studentNumber) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired.");
+  const res = await apiFetch(apiUrl("unredeem"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentNumber }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw apiFail(data, res, "Could not undo that redeem.");
+  return data;
+}
+
 export async function redeemPass(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");

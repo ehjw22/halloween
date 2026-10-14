@@ -23,14 +23,16 @@ import {
   lookupStudent,
   postAnnouncement,
   redeemPass,
+  unredeemPass,
   setAnnouncementActive,
   signIn,
   submitFeedback,
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=r11";
+} from "./session.js?v=r12";
 import {
+  describePushBlock,
   disablePushNotifications,
   enablePushNotifications,
   paintPushHint,
@@ -39,7 +41,7 @@ import {
   setWantsPush,
   syncPushWatch,
   dismissPushHint,
-} from "./push.js?v=r7";
+} from "./push.js?v=r8";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -578,7 +580,10 @@ function setView(name, extra) {
     paintStampUi();
     requestAnimationFrame(layoutStampPage);
   }
-  if (name === "help") paintSafety();
+  if (name === "help") {
+    paintSafety();
+    paintGuideHouses();
+  }
   paintClubs();
   paintSponsors();
   paintWelcomeBoothCount();
@@ -594,39 +599,47 @@ function setView(name, extra) {
   }
 }
 
-function toggleWatchHouse(id) {
-  if (!id) return;
-  const night = readNight();
-  const watching = night.watch.includes(id);
-  night.watch = watching ? night.watch.filter((hid) => hid !== id) : [...night.watch, id];
-  writeNight(night);
+function paintWatchedHouse(id) {
   renderDashboard();
   renderPins();
   if (openHouseId === id && els.modal && !els.modal.hidden) openHouse(id);
   if (openClusterKey && els.clusterModal && !els.clusterModal.hidden) paintClusterModal(openClusterKey);
-  if (!watching) {
-    setWantsPush(true);
-    enablePushNotifications(pushWatchList(night.watch)).then((result) => {
-      paintPushHint();
-      const when = alertChoiceLabel();
-      if (result?.ok) {
-        showWaitToast("Alerts on", when ? `We’ll ping this phone at ${when}.` : "Pick at least one wait on the sign-in page.", false);
-        return;
-      }
-      if (result?.reason === "ios-install") {
-        showWaitToast("Add to Home Screen", "On iPhone, install the app first, then tap Alert when walk-in again.", false);
-        return;
-      }
-      if (result?.reason === "denied") {
-        showWaitToast("Notifications blocked", "Allow notifications for this site in your phone settings.", false);
-        return;
-      }
-      showWaitToast("Alerts on", alertChoiceLabel() ? `You’ll see a message here at ${alertChoiceLabel()}.` : "Pick at least one wait on the sign-in page.", false);
-    }).catch(paintPushHint);
-  } else {
+}
+
+function toggleWatchHouse(id) {
+  if (!id) return;
+  const night = readNight();
+  const watching = night.watch.includes(id);
+  if (watching) {
+    night.watch = night.watch.filter((hid) => hid !== id);
+    writeNight(night);
+    paintWatchedHouse(id);
     syncPushWatch(pushWatchList(night.watch));
     showWaitToast("Alert off", "This house will no longer ping you.", false);
+    return;
   }
+  const nextWatch = pushWatchList([...night.watch, id]);
+  enablePushNotifications(nextWatch).then((result) => {
+    paintPushHint();
+    if (!result?.ok) {
+      const blocked = result?.reason === "denied" || result?.reason === "ios-install";
+      showWaitToast(
+        blocked ? "Notifications blocked" : "Alert not on",
+        describePushBlock(result?.reason),
+        false
+      );
+      return;
+    }
+    const latest = readNight();
+    if (!latest.watch.includes(id)) latest.watch = [...latest.watch, id];
+    writeNight(latest);
+    paintWatchedHouse(id);
+    const when = alertChoiceLabel();
+    showWaitToast("Alerts on", when ? `We’ll ping this phone at ${when}.` : "Pick at least one wait on the sign-in page.", false);
+  }).catch(() => {
+    paintPushHint();
+    showWaitToast("Alert not on", describePushBlock("save-failed"), false);
+  });
 }
 
 function houseCardHtml(row, watching) {
@@ -672,10 +685,6 @@ function boothIsStamped(id) {
   if (!getStudentSession()) return false;
   const stamps = cardState.stamps || {};
   return Boolean(stamps[String(id)] || stamps[Number(id)]);
-}
-
-function boothSealHtml() {
-  return `<span class="booth-seal" aria-hidden="true"><span class="booth-seal__ink">Stamped</span></span>`;
 }
 
 const BOOTH_THEMES = {
@@ -773,14 +782,13 @@ function boothDirectoryCard(booth) {
     <span class="house-card__rail" aria-hidden="true"></span>
     <button class="house-card__open" type="button" data-open-booth="${escapeHtml(booth.id)}">
       <span class="house-card__top">
-        <span class="house-card__title">${logo}<strong class="house-card__name">${escapeHtml(booth.name)}</strong></span>
-        <span class="house-card__marks">${ticket ? `<span class="map-badge map-badge--wheel">Wheel</span>` : ""}<span class="status-pill">${pill}</span></span>
+        <span class="house-card__title">${logo}<strong class="house-card__name">${escapeHtml(booth.name).replace(/-/g, "\u2011")}</strong></span>
+        <span class="house-card__marks">${ticket ? `<span class="map-badge map-badge--wheel">Wheel</span>` : ""}${stamped ? `<span class="map-badge map-badge--done">✓ Done</span>` : ""}<span class="status-pill">${pill}</span></span>
       </span>
       <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>
       <span class="booth-art">${art ? `<span class="booth-mark" style="--tilt:${tilt};--idle-delay:${BOOTH_IDLE_DELAY[theme] || "0s"}" aria-hidden="true">${art}</span>` : ""}</span>
       ${ticket ? `<span class="visually-hidden">Needed to spin the wheel.</span>` : ""}
-      ${stamped ? boothSealHtml() : ""}
-      ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
+      ${stamped ? `<span class="visually-hidden">Done</span>` : ""}
     </button>
   </article>`;
 }
@@ -885,6 +893,66 @@ function placeCardHtml(meta, pill, label) {
 }
 
 let mapJumpObserver = null;
+let jumpLockId = "";
+let jumpLockTimer = 0;
+
+function releaseJumpLock() {
+  window.clearTimeout(jumpLockTimer);
+  window.removeEventListener("scrollend", releaseJumpLock);
+  jumpLockId = "";
+  syncMapJump();
+}
+
+function jumpSections() {
+  const track = document.getElementById("mapJumpTrack");
+  if (!track) return [];
+  return [...track.querySelectorAll("[data-jump]")].map((btn) => document.getElementById(btn.dataset.jump)).filter(Boolean);
+}
+
+function sectionUnderJumpBar(sections) {
+  const list = sections || jumpSections();
+  if (!list.length) return null;
+  const bar = document.getElementById("mapJump");
+  const line = (bar ? bar.getBoundingClientRect().bottom : 64) + 8;
+  let current = list[0];
+  list.forEach((section) => {
+    if (section.getBoundingClientRect().top <= line) current = section;
+  });
+  return current;
+}
+
+function markJumpChip(id) {
+  const track = document.getElementById("mapJumpTrack");
+  if (!track || !id) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  track.querySelectorAll("[data-jump]").forEach((btn) => {
+    const on = btn.dataset.jump === id;
+    btn.classList.toggle("is-on", on);
+    if (!on) {
+      btn.removeAttribute("aria-current");
+      return;
+    }
+    btn.setAttribute("aria-current", "true");
+    const edge = 28;
+    const left = btn.offsetLeft;
+    const right = left + btn.offsetWidth;
+    const viewLeft = track.scrollLeft;
+    const viewRight = viewLeft + track.clientWidth;
+    if (left < viewLeft + edge) {
+      track.scrollTo({ left: Math.max(0, left - edge), behavior: reduce ? "auto" : "smooth" });
+    } else if (right > viewRight - edge) {
+      track.scrollTo({ left: right - track.clientWidth + edge, behavior: reduce ? "auto" : "smooth" });
+    }
+  });
+}
+
+function syncMapJump() {
+  if (jumpLockId) return;
+  const map = document.querySelector('.view[data-view="map"]');
+  if (!map || map.hidden || !map.classList.contains("is-active")) return;
+  const current = sectionUnderJumpBar();
+  if (current) markJumpChip(current.id);
+}
 
 function paintMapJump(visibleIds) {
   const track = document.getElementById("mapJumpTrack");
@@ -895,38 +963,16 @@ function paintMapJump(visibleIds) {
   chips.push(`<button type="button" class="map-jump__chip" data-jump="map-booths">Booths</button>`);
   track.innerHTML = chips.join("");
   if (mapJumpObserver) mapJumpObserver.disconnect();
-  const sections = [...track.querySelectorAll("[data-jump]")].map((btn) => document.getElementById(btn.dataset.jump)).filter(Boolean);
+  const sections = jumpSections();
   if (!sections.length || !("IntersectionObserver" in window)) return;
-  const seen = new Map();
-  mapJumpObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) seen.set(entry.target.id, entry);
-      else seen.delete(entry.target.id);
-    });
-    const current = [...seen.values()].sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-    if (!current) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    track.querySelectorAll("[data-jump]").forEach((btn) => {
-      const on = btn.dataset.jump === current.target.id;
-      btn.classList.toggle("is-on", on);
-      if (!on) {
-        btn.removeAttribute("aria-current");
-        return;
-      }
-      btn.setAttribute("aria-current", "true");
-      const edge = 28;
-      const left = btn.offsetLeft;
-      const right = left + btn.offsetWidth;
-      const viewLeft = track.scrollLeft;
-      const viewRight = viewLeft + track.clientWidth;
-      if (left < viewLeft + edge) {
-        track.scrollTo({ left: Math.max(0, left - edge), behavior: reduce ? "auto" : "smooth" });
-      } else if (right > viewRight - edge) {
-        track.scrollTo({ left: right - track.clientWidth + edge, behavior: reduce ? "auto" : "smooth" });
-      }
-    });
-  }, { rootMargin: "-72px 0px -55% 0px", threshold: [0, 0.15, 0.4] });
+  const bar = document.getElementById("mapJump");
+  const topInset = Math.max(48, Math.round(bar?.getBoundingClientRect().height || 64));
+  mapJumpObserver = new IntersectionObserver(() => {
+    syncMapJump();
+  }, { rootMargin: `-${topInset}px 0px -45% 0px`, threshold: [0, 0.01, 0.2, 0.6, 1] });
   sections.forEach((section) => mapJumpObserver.observe(section));
+  if (jumpLockId) markJumpChip(jumpLockId);
+  else syncMapJump();
 }
 
 function scareZoneCardHtml(meta) {
@@ -1013,6 +1059,17 @@ function paintSafety() {
     "Keep your bag closed, and give people space in the line.",
   ];
   list.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+}
+
+function paintGuideHouses() {
+  document.querySelectorAll("[data-guide-house]").forEach((card) => {
+    const meta = HOUSES.find((house) => house.id === card.dataset.guideHouse);
+    if (!meta) return;
+    const short = card.querySelector(".house-card__short");
+    const name = card.querySelector(".house-card__name");
+    if (short) short.textContent = meta.short || "";
+    if (name) name.textContent = meta.name;
+  });
 }
 
 function paintClubs() {
@@ -1140,8 +1197,8 @@ function boothListButton(booth) {
   return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
       <span>${mark}${label ? ` ${label}` : ""}</span>
       <strong>${escapeHtml(booth.name)}</strong>
-      ${stamped ? boothSealHtml() : ""}
-      ${stamped ? `<span class="visually-hidden">Stamped</span>` : ""}
+      ${stamped ? `<span class="map-badge map-badge--done">✓ Done</span>` : ""}
+      ${stamped ? `<span class="visually-hidden">Done</span>` : ""}
     </button>`;
 }
 
@@ -2559,13 +2616,39 @@ async function loadAdminAnnouncements() {
   }
 }
 
+let opsSeq = 0;
+let opsTimer = 0;
+
+function noteStaffChange() {
+  loadOps();
+}
+
+function startOpsRefresh() {
+  window.clearInterval(opsTimer);
+  loadOps();
+  opsTimer = window.setInterval(() => {
+    if (staffTab === "ops" && document.visibilityState !== "hidden") loadOps();
+  }, 12000);
+}
+
+function stopOpsRefresh() {
+  window.clearInterval(opsTimer);
+  opsTimer = 0;
+}
+
 async function loadOps() {
   const grid = document.getElementById("opsGrid");
   const audit = document.getElementById("opsAudit");
   if (!grid) return;
+  const seq = ++opsSeq;
   try {
     const data = await fetchOps();
-    const boothBits = STAMP_BOOTHS.map((b) => `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${data.stampsPerBooth?.[b.id] || 0}</strong></div>`).join("");
+    if (seq !== opsSeq) return;
+    const counts = data.stampsPerBooth || {};
+    const boothBits = STAMP_BOOTHS.map((b) => {
+      const n = counts[b.id] ?? counts[String(b.id)] ?? 0;
+      return `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${n}</strong></div>`;
+    }).join("");
     grid.innerHTML = `
       <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
       <div class="ops-card"><span>Wheel tickets unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
@@ -2581,6 +2664,7 @@ async function loadOps() {
         : "<li class='empty-state'><p class='empty-state__title'>No audit rows yet</p><p class='empty-state__hint'>Staff actions will appear here.</p></li>";
     }
   } catch (error) {
+    if (seq !== opsSeq) return;
     grid.innerHTML = `<div class="empty-state"><p class="empty-state__title">Command post unavailable</p><p class="empty-state__hint">${escapeHtml(userFacingError(error, "Could not load the command post. Try again."))}</p></div>`;
   }
 }
@@ -2725,7 +2809,8 @@ async function renderAdmin() {
   document.querySelectorAll("[data-staff-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.staffPanel !== staffTab;
   });
-  if (staffTab === "ops") loadOps();
+  if (staffTab === "ops") startOpsRefresh();
+  else stopOpsRefresh();
 }
 
 function readAdminRow(tr) {
@@ -2969,15 +3054,28 @@ function bindUi() {
     paintStaffLog();
   });
   syncCardsSky();
-  window.addEventListener("scroll", syncCardsSky, { passive: true });
+  window.addEventListener("scroll", () => {
+    syncCardsSky();
+    syncMapJump();
+  }, { passive: true });
   window.addEventListener("resize", syncCardsSky);
   document.getElementById("mapJump")?.addEventListener("click", (event) => {
     const chip = event.target.closest("[data-jump]");
     if (!chip) return;
     const target = document.getElementById(chip.dataset.jump);
     if (!target) return;
+    window.removeEventListener("scrollend", releaseJumpLock);
+    window.clearTimeout(jumpLockTimer);
+    jumpLockId = target.id;
+    markJumpChip(target.id);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    if (reduce) {
+      releaseJumpLock();
+      return;
+    }
+    window.addEventListener("scrollend", releaseJumpLock);
+    jumpLockTimer = window.setTimeout(releaseJumpLock, 900);
   });
   const houseSearch = document.getElementById("houseSearch");
   houseSearch?.addEventListener("input", () => {
@@ -3270,18 +3368,47 @@ async function handleAuthSubmit(event) {
     if (name) name.textContent = `${data.fullName || ""} · ${data.studentNumber || ""}`;
     if (id) id.textContent = data.passId || `SP-FP-${data.studentNumber || ""}`;
     if (note) note.textContent = formatRedeemedLine(data.redeemedAt, data.redeemedBy);
+    const usedErr = document.getElementById("staffUsedError");
+    if (usedErr) {
+      usedErr.hidden = true;
+      usedErr.textContent = "";
+    }
+    const undo = document.getElementById("staffRedeemUndo");
+    if (undo) {
+      const at = data.redeemedAt ? new Date(data.redeemedAt).getTime() : (data.allowUndo ? Date.now() : 0);
+      const open = Number.isFinite(at) && at > 0 && Date.now() - at < 2 * 60 * 1000;
+      undo.hidden = !open;
+      undo.disabled = false;
+      undo.textContent = "Undo redeem";
+      undo.dataset.studentNumber = open ? data.studentNumber || "" : "";
+      undo.dataset.fullName = open ? data.fullName || "" : "";
+    }
   }
+
+  let redeemLookupSeq = 0;
 
   document.getElementById("staffRedeemLookupForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const seq = ++redeemLookupSeq;
     const err = document.getElementById("staffRedeemError");
+    const ready = document.getElementById("staffRedeemReady");
+    const used = document.getElementById("staffRedeemUsed");
+    const submit = document.getElementById("staffRedeemLookup");
     if (err) {
       err.hidden = true;
       err.textContent = "";
     }
+    if (ready) ready.hidden = true;
+    if (used) used.hidden = true;
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = "Looking up…";
+      submit.setAttribute("aria-busy", "true");
+    }
     const input = document.getElementById("redeemStudentNumber");
     try {
       const data = await lookupStudent(input.value);
+      if (seq !== redeemLookupSeq) return;
       if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
       const filled = typeof data.stampCount === "number" ? data.stampCount : stampCount(data.stamps || {});
       const passId = data.passId || `SP-FP-${data.studentNumber}`;
@@ -3293,20 +3420,29 @@ async function handleAuthSubmit(event) {
         throw new Error(`This student has ${filled} / ${STAMP_BOOTHS.length} stamps. The wheel ticket is not unlocked.`);
       }
       const form = document.getElementById("staffRedeemLookupForm");
-      const ready = document.getElementById("staffRedeemReady");
-      const used = document.getElementById("staffRedeemUsed");
       if (form) form.hidden = true;
       if (used) used.hidden = true;
       if (ready) ready.hidden = false;
       document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
       document.getElementById("staffRedeemId").textContent = passId;
       document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to spin the wheel`;
-      document.getElementById("staffRedeemConfirm").dataset.studentNumber = data.studentNumber;
+      const confirm = document.getElementById("staffRedeemConfirm");
+      if (confirm) {
+        confirm.dataset.studentNumber = data.studentNumber;
+        confirm.dataset.fullName = data.fullName || "";
+      }
     } catch (error) {
+      if (seq !== redeemLookupSeq) return;
       pushStaffLog("Redeem lookup", error);
       if (err) {
         err.hidden = false;
         err.textContent = staffDeskError(error);
+      }
+    } finally {
+      if (seq === redeemLookupSeq && submit) {
+        submit.disabled = false;
+        submit.textContent = "Look up";
+        submit.removeAttribute("aria-busy");
       }
     }
   });
@@ -3315,11 +3451,15 @@ async function handleAuthSubmit(event) {
     const btn = document.getElementById("staffRedeemConfirm");
     const err = document.getElementById("staffRedeemError");
     const studentNumber = btn?.dataset.studentNumber;
-    if (!studentNumber) return;
+    const fullName = btn?.dataset.fullName || "";
+    if (!studentNumber || !btn) return;
+    const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
+    if (!window.confirm(`Mark the wheel ticket as used for ${who}?`)) return;
     btn.disabled = true;
     try {
       const result = await redeemPass(studentNumber);
-      showStaffUsedPass(result);
+      showStaffUsedPass({ ...result, allowUndo: !result.already });
+      noteStaffChange();
       if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
         await renderStamps({ refresh: true });
         paintStampUi();
@@ -3336,6 +3476,49 @@ async function handleAuthSubmit(event) {
     }
   });
 
+  document.getElementById("staffRedeemUndo")?.addEventListener("click", async () => {
+    const undo = document.getElementById("staffRedeemUndo");
+    const err = document.getElementById("staffUsedError");
+    const studentNumber = undo?.dataset.studentNumber;
+    const fullName = undo?.dataset.fullName || "";
+    if (!undo || !studentNumber) return;
+    const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
+    if (!window.confirm(`Undo the redeem for ${who}? The ticket will be usable again.`)) return;
+    undo.disabled = true;
+    undo.textContent = "Undoing…";
+    try {
+      const result = await unredeemPass(studentNumber);
+      const lookup = await lookupStudent(studentNumber);
+      if (isPassRedeemed(lookup.redeemedAt)) {
+        throw new Error("Undo did not clear the ticket. It is still marked used.");
+      }
+      const filled = typeof lookup.stampCount === "number" ? lookup.stampCount : stampCount(lookup.stamps || {});
+      const form = document.getElementById("staffRedeemLookupForm");
+      const ready = document.getElementById("staffRedeemReady");
+      const used = document.getElementById("staffRedeemUsed");
+      if (form) form.hidden = true;
+      if (used) used.hidden = true;
+      if (ready) ready.hidden = false;
+      document.getElementById("staffRedeemName").textContent = `${result.fullName || fullName} · ${result.studentNumber || studentNumber}`;
+      document.getElementById("staffRedeemId").textContent = result.passId || `SP-FP-${studentNumber}`;
+      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to spin the wheel`;
+      const confirm = document.getElementById("staffRedeemConfirm");
+      if (confirm) {
+        confirm.dataset.studentNumber = result.studentNumber || studentNumber;
+        confirm.dataset.fullName = result.fullName || fullName;
+      }
+      noteStaffChange();
+    } catch (error) {
+      undo.disabled = false;
+      undo.textContent = "Undo redeem";
+      pushStaffLog("Undo redeem", error);
+      if (err) {
+        err.hidden = false;
+        err.textContent = staffDeskError(error);
+      }
+    }
+  });
+
   document.querySelectorAll("[data-redeem-reset]").forEach((btn) => {
     btn.addEventListener("click", () => {
       resetStaffRedeemView();
@@ -3348,6 +3531,7 @@ async function handleAuthSubmit(event) {
   });
 
   document.getElementById("adminLock")?.addEventListener("click", () => {
+    stopOpsRefresh();
     clearAdminSession();
     updateNav();
     setView(getStudentSession() ? "admin" : "login");
@@ -3407,7 +3591,8 @@ async function handleAuthSubmit(event) {
         loadAdminFeedback();
       }
       if (staffTab === "announce") loadAdminAnnouncements();
-      if (staffTab === "ops") loadOps();
+      if (staffTab === "ops") startOpsRefresh();
+      else stopOpsRefresh();
       if (staffTab === "announce") loadAdminAnnouncements();
     });
   });
@@ -3425,47 +3610,62 @@ async function handleAuthSubmit(event) {
 
   els.adminFeedbackTarget?.addEventListener("change", () => loadAdminFeedback());
 
+  let awardSeq = 0;
   els.awardStampForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (els.awardStampError) els.awardStampError.hidden = true;
-    if (els.awardStampOk) els.awardStampOk.hidden = true;
+    const seq = ++awardSeq;
+    if (els.awardStampError) {
+      els.awardStampError.hidden = true;
+      els.awardStampError.textContent = "";
+    }
+    if (els.awardStampOk) {
+      els.awardStampOk.hidden = true;
+      els.awardStampOk.textContent = "";
+    }
     const busy = document.getElementById("awardStampBusy");
     const submit = document.getElementById("awardStampSubmit") || els.awardStampForm.querySelector("button[type=submit]");
-    const phrases = ["Looking up student…", "Saving stamp…", "Confirming on the card…"];
-    let phraseIndex = 0;
+    const label = submit ? submit.textContent : "Award stamp";
     if (busy) {
       busy.hidden = false;
-      busy.textContent = phrases[0];
+      busy.textContent = "Looking up…";
     }
-    if (submit) submit.disabled = true;
-    const tick = window.setInterval(() => {
-      phraseIndex = (phraseIndex + 1) % phrases.length;
-      if (busy) busy.textContent = phrases[phraseIndex];
-    }, 800);
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = "Looking up…";
+      submit.setAttribute("aria-busy", "true");
+    }
     try {
       const data = await awardStamp(
         document.getElementById("awardStudentNumber").value,
         els.awardBooth.value
       );
+      if (seq !== awardSeq) return;
       if (els.awardStampOk) {
         els.awardStampOk.hidden = false;
         els.awardStampOk.textContent = data.local
           ? `Awarded ${data.boothName} to ${data.studentNumber} on this device (demo).`
           : `Awarded ${data.boothName} to ${data.fullName} (${data.studentNumber}).`;
       }
+      noteStaffChange();
       if (getStudentSession()?.payload.studentNumber === data.studentNumber) {
         await renderStamps({ refresh: true });
       }
     } catch (error) {
+      if (seq !== awardSeq) return;
       pushStaffLog("Award stamp", error);
       if (els.awardStampError) {
         els.awardStampError.hidden = false;
         els.awardStampError.textContent = staffDeskError(error);
       }
     } finally {
-      window.clearInterval(tick);
-      if (busy) busy.hidden = true;
-      if (submit) submit.disabled = false;
+      if (seq === awardSeq) {
+        if (busy) busy.hidden = true;
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = label;
+          submit.removeAttribute("aria-busy");
+        }
+      }
     }
   });
 

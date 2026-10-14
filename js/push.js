@@ -110,20 +110,38 @@ export async function syncPushWatch(watchIds) {
   }
 }
 
+export function describePushBlock(reason) {
+  const ios = isIos();
+  const phone = ios || /Android|Mobile/i.test(navigator.userAgent || "");
+  const home = " On iPhone and iPad, notifications only work after you add this site to the Home Screen: tap Share, then Add to Home Screen, and open it from that icon.";
+  if (reason === "ios-install") {
+    return "Notifications on iPhone and iPad only work after you add this site to the Home Screen. Tap Share, choose Add to Home Screen, then open Scream Fest from that icon.";
+  }
+  if (reason === "denied") {
+    if (ios) return `Notifications are blocked. Allow them in your iPhone or iPad settings.${home}`;
+    if (phone) return "Notifications are blocked. Allow them for this site in your phone or browser settings, then try again.";
+    return "Notifications are blocked. Allow them for this site in the browser's site settings (the lock icon in the address bar), then try again.";
+  }
+  return "The walk-in alert could not be turned on. This house was not marked as watching.";
+}
+
 export async function enablePushNotifications(watchIds = []) {
-  setWantsPush(true);
-  paintPushHint();
   if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, reason: "unsupported" };
   }
   if (isIos() && !isStandalone()) {
+    setWantsPush(true);
+    paintPushHint();
     return { ok: false, reason: "ios-install" };
+  }
+  if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+    return { ok: false, reason: "denied" };
   }
   const key = await vapidKey();
   if (!key) return { ok: false, reason: "no-vapid" };
   const reg = await registerPushWorker();
   if (!reg) return { ok: false, reason: "no-worker" };
-  const permission = await Notification.requestPermission();
+  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permission !== "granted") return { ok: false, reason: "denied" };
   await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
@@ -140,7 +158,8 @@ export async function enablePushNotifications(watchIds = []) {
     body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { ok: false, reason: data.error || "save-failed" };
+  if (!res.ok) return { ok: false, reason: "save-failed" };
+  setWantsPush(true);
   paintPushHint();
   return { ok: true };
 }
