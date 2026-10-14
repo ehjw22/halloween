@@ -1525,12 +1525,27 @@
                   </label>
                 </div>
                 <p class="form-error" id="awardStampError" hidden></p>
-                <p class="muted" id="awardStampBusy" hidden>Awarding stamp…</p>
-                <p class="form-ok" id="awardStampOk" hidden></p>
-                <button class="btn" id="awardStampSubmit" type="submit">
-                  Award stamp
-                </button>
+                <button class="btn" id="awardStampSubmit" type="submit">Look up</button>
               </form>
+              <article class="fast-pass staff-pass-preview" id="awardStampReady" hidden>
+                <p class="fast-pass__kicker">Ready to stamp</p>
+                <h3 id="awardReadyBooth"></h3>
+                <p class="fast-pass__holder" id="awardReadyName"></p>
+                <p class="fast-pass__id" id="awardReadyId"></p>
+                <p class="muted" id="awardReadyNote"></p>
+                <button class="btn" id="awardStampConfirm" type="button">Award stamp</button>
+                <button class="btn btn--ghost" type="button" data-award-reset>Look up another</button>
+              </article>
+              <article class="fast-pass is-redeemed staff-pass-used" id="awardStampDone" hidden>
+                <p class="fast-pass__kicker">Stamped</p>
+                <h3 id="awardDoneBooth"></h3>
+                <p class="fast-pass__holder" id="awardDoneName"></p>
+                <p class="fast-pass__id" id="awardDoneId"></p>
+                <p class="muted" id="awardDoneNote"></p>
+                <p class="form-error" id="awardDoneError" hidden></p>
+                <button class="btn btn--ghost" id="awardStampUndo" type="button" hidden>Undo stamp</button>
+                <button class="btn" type="button" data-award-reset>Look up another</button>
+              </article>
             </div>
 
             <div class="staff-panel" data-staff-panel="redeem" hidden>
@@ -1822,14 +1837,13 @@
             <ul class="booth-items" data-booth-items hidden></ul>
             <p class="booth-note" data-booth-note hidden></p>
             <p data-booth-about></p>
-            <p class="muted" data-booth-stamp></p>
           </div>
         </div>
       </div>
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r150"></script>
+      <script type="module" src="js/app.js?v=r153"></script>
     </div>
   </body>
 </html>

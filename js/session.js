@@ -15,6 +15,10 @@ export function apiUrl(name, params = {}) {
   return `/api?${q.toString()}`;
 }
 
+function looksTechnical(raw) {
+  return /select\s+.+\s+from|insert\s+into|schema\.sql|sql editor|service_role|jwt_secret|supabase|postgres|pgrst|row-level security|relation |duplicate key|unique constraint|check constraint|violates|sqlstate|syntax error|stack trace|at Object|\/api\/config|vercel|anon key|passcode/i.test(String(raw || ""));
+}
+
 export function userFacingError(error, fallback = "Something went wrong. Try again.") {
   const raw = String((error && error.message) || error || "")
     .split(/\s+[—–-]\s+/)[0]
@@ -25,7 +29,7 @@ export function userFacingError(error, fallback = "Something went wrong. Try aga
     .replace(/\s*[·|]\s*/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
-  if (!raw || /^(request failed|not found|internal server error|bad request|unauthorized|forbidden|error)$/i.test(raw)) {
+  if (!raw || looksTechnical(raw) || /^(request failed|not found|internal server error|bad request|unauthorized|forbidden|error)$/i.test(raw)) {
     return fallback;
   }
   return raw;
@@ -508,6 +512,24 @@ export async function awardStamp(studentNumber, boothId) {
   return data;
 }
 
+export async function unawardStamp(studentNumber, boothId) {
+  const session = getAdminSession();
+  if (!session) throw new Error("Staff session expired. Sign in again.");
+  const num = normalizeAdminNumber(studentNumber);
+  if (!isAdminNumber(num)) throw new Error(ADMIN_NUMBER_HINT);
+  const booth = boothById(boothId);
+  if (!booth) throw new Error("Choose a valid booth.");
+  if (session.payload.local) return unawardStampLocal(num, booth);
+  const res = await apiFetch(apiUrl("unaward-stamp"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentNumber: num, boothId: booth.id }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw apiFail(data, res, "Could not undo that stamp.");
+  return data;
+}
+
 function awardStampLocal(session, num, booth) {
   const card = readLocalCard(num) || {
     stamps: {},
@@ -529,6 +551,30 @@ function awardStampLocal(session, num, booth) {
     fullName: card.fullName || "",
     stamps,
     awarded: booth.id,
+    boothName: booth.name,
+    local: true,
+  };
+}
+
+function unawardStampLocal(num, booth) {
+  const card = readLocalCard(num);
+  const stamps = { ...(card?.stamps || {}) };
+  const stamp = stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)];
+  if (!stamp) throw new Error("This student does not have that stamp.");
+  const at = Number(stamp.at);
+  if (!Number.isFinite(at) || Date.now() - at > 2 * 60 * 1000) {
+    throw new Error("The undo window has closed.");
+  }
+  delete stamps[booth.id];
+  delete stamps[String(booth.id)];
+  delete stamps[Number(booth.id)];
+  const next = { ...(card || {}), stamps, studentNumber: num };
+  writeLocalCard(num, next);
+  return {
+    studentNumber: num,
+    fullName: card.fullName || "",
+    stamps,
+    boothId: String(booth.id),
     boothName: booth.name,
     local: true,
   };
@@ -605,7 +651,7 @@ export async function postAnnouncement(message, extra = {}) {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data.announcement;
-    if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+    if (res.status === 401 || res.status === 403) throw new Error(userFacingError(data.error, "Staff session expired."));
     if (!isBrowserLocal()) throw apiFail(data, res, "Could not post announcement.");
   } catch (error) {
     if (!isBrowserLocal() || (error.message && error.message.includes("Staff session"))) throw error;
@@ -641,7 +687,7 @@ export async function setAnnouncementActive(id, active) {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) return data.announcement;
-    if (res.status === 401 || res.status === 403) throw new Error(data.error || "Staff session expired.");
+    if (res.status === 401 || res.status === 403) throw new Error(userFacingError(data.error, "Staff session expired."));
     if (!isBrowserLocal()) throw apiFail(data, res, "Could not update announcement.");
   } catch (error) {
     if (!isBrowserLocal() || (error.message && error.message.includes("Staff session"))) throw error;

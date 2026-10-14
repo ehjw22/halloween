@@ -189,10 +189,7 @@ export function createStore(onChange) {
     const hasRemote = Boolean(config.supabaseUrl && config.supabaseAnonKey);
     if (!hasRemote || !window.supabase) {
       emit();
-      return {
-        mode: "local",
-        error: hasRemote ? "Supabase library failed to load." : "No Supabase keys loaded.",
-      };
+      return { mode: "local" };
     }
 
     client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
@@ -204,7 +201,7 @@ export function createStore(onChange) {
       console.warn("Supabase read failed, using local demo mode.", error.message);
       markStale();
       emit();
-      return { mode: "local", error: error.message };
+      return { mode: "local" };
     }
 
     markLive();
@@ -269,7 +266,7 @@ export function createStore(onChange) {
     if (session.payload.local) {
       return {
         ok: false,
-        error: "This staff login is demo-only. Wait times stay on this device and are not written to Supabase.",
+        error: "This staff login is demo-only. Wait times stay on this device.",
       };
     }
 

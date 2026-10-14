@@ -5,11 +5,12 @@ import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r39"
 import { SPONSORS } from "./sponsors.js?v=r21";
 import { applyGhostPass } from "./ghost-pass.js?v=r6";
 import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r8";
+import { createStore } from "./store.js?v=r9";
 import {
   apiFetch,
   apiUrl,
   awardStamp,
+  unawardStamp,
   clearAdminSession,
   clearStudentSession,
   fetchAnnouncements,
@@ -30,7 +31,7 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=r13";
+} from "./session.js?v=r15";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -1520,7 +1521,6 @@ function openBooth(id, opts = {}) {
   const booth = boothById(id);
   const modal = els.boothModal;
   if (!booth || !modal) return;
-  const stamped = cardState.stamps[slotKey(id)] || cardState.stamps[Number(id)];
   modal.querySelector("[data-booth-code]").textContent = booth.food ? booth.short : "Booth";
   modal.querySelector("[data-booth-title]").textContent = booth.name;
   const place = modal.querySelector("[data-booth-place]");
@@ -1595,17 +1595,6 @@ function openBooth(id, opts = {}) {
     menu.innerHTML = images
       .map((src) => `<img src="${escapeHtml(src)}" alt="">`)
       .join("");
-  }
-  const stampLine = modal.querySelector("[data-booth-stamp]");
-  if (booth.food || booth.stamp === false) {
-    stampLine.hidden = true;
-    stampLine.textContent = "";
-  } else if (stamped) {
-    stampLine.textContent = "";
-    stampLine.hidden = true;
-  } else {
-    stampLine.hidden = false;
-    stampLine.textContent = "Not on your card yet. Staff award this after you finish the booth.";
   }
   showSheet(modal, `#booth/${id}`, opts.fromHash);
 }
@@ -2696,9 +2685,12 @@ function fillAwardBoothSelect() {
     lockNote.textContent = locked ? `This login awards ${booth.name}.` : "";
   }
   if (title) title.textContent = locked ? booth.name : "Award a booth stamp";
-  if (lead) lead.hidden = !locked;
+  if (lead) {
+    lead.hidden = !locked;
+    lead.textContent = locked ? `Look up the student, then confirm the ${booth.name} stamp.` : "";
+  }
   if (boothLabel) boothLabel.hidden = locked;
-  if (submit) submit.textContent = locked ? `Award ${booth.name}` : "Award stamp";
+  if (submit) submit.textContent = "Look up";
 }
 
 function readStaffLog() {
@@ -3632,6 +3624,82 @@ async function handleAuthSubmit(event) {
 
   els.adminFeedbackTarget?.addEventListener("change", () => loadAdminFeedback());
 
+  function stampRecord(stamps, boothId) {
+    const map = stamps || {};
+    return map[boothId] || map[String(boothId)] || map[Number(boothId)] || null;
+  }
+
+  function resetAwardView() {
+    const form = document.getElementById("awardStampForm");
+    const ready = document.getElementById("awardStampReady");
+    const done = document.getElementById("awardStampDone");
+    if (form) form.hidden = false;
+    if (ready) ready.hidden = true;
+    if (done) done.hidden = true;
+    if (els.awardStampError) {
+      els.awardStampError.hidden = true;
+      els.awardStampError.textContent = "";
+    }
+  }
+
+  function showAwardReady(data, booth) {
+    const form = document.getElementById("awardStampForm");
+    const ready = document.getElementById("awardStampReady");
+    const done = document.getElementById("awardStampDone");
+    if (form) form.hidden = true;
+    if (done) done.hidden = true;
+    if (ready) ready.hidden = false;
+    const boothName = booth?.name || "Booth";
+    document.getElementById("awardReadyBooth").textContent = boothName;
+    document.getElementById("awardReadyName").textContent = `${data.fullName || ""} · ${data.studentNumber || ""}`;
+    document.getElementById("awardReadyId").textContent = data.passId || `SP-FP-${data.studentNumber || ""}`;
+    document.getElementById("awardReadyNote").textContent = `Does not have the ${boothName} stamp yet.`;
+    const confirm = document.getElementById("awardStampConfirm");
+    if (confirm) {
+      confirm.disabled = false;
+      confirm.textContent = `Award ${boothName}`;
+      confirm.dataset.studentNumber = data.studentNumber || "";
+      confirm.dataset.fullName = data.fullName || "";
+      confirm.dataset.boothId = booth?.id || "";
+      confirm.dataset.boothName = boothName;
+    }
+  }
+
+  function showAwardDone(data, booth, opts = {}) {
+    const form = document.getElementById("awardStampForm");
+    const ready = document.getElementById("awardStampReady");
+    const done = document.getElementById("awardStampDone");
+    if (form) form.hidden = true;
+    if (ready) ready.hidden = true;
+    if (done) done.hidden = false;
+    const boothName = data.boothName || booth?.name || "Booth";
+    const boothId = String(data.boothId || data.awarded || booth?.id || "");
+    document.getElementById("awardDoneBooth").textContent = boothName;
+    document.getElementById("awardDoneName").textContent = `${data.fullName || ""} · ${data.studentNumber || ""}`;
+    document.getElementById("awardDoneId").textContent = data.passId || `SP-FP-${data.studentNumber || ""}`;
+    const stamp = stampRecord(data.stamps, boothId);
+    const at = Number(stamp && stamp.at) || (opts.allowUndo ? Date.now() : 0);
+    const open = Number.isFinite(at) && at > 0 && Date.now() - at < 2 * 60 * 1000;
+    document.getElementById("awardDoneNote").textContent = open
+      ? `${boothName} is on this card. You can undo it for two minutes.`
+      : `${boothName} is already on this card.`;
+    const doneErr = document.getElementById("awardDoneError");
+    if (doneErr) {
+      doneErr.hidden = true;
+      doneErr.textContent = "";
+    }
+    const undo = document.getElementById("awardStampUndo");
+    if (undo) {
+      undo.hidden = !open;
+      undo.disabled = false;
+      undo.textContent = "Undo stamp";
+      undo.dataset.studentNumber = open ? data.studentNumber || "" : "";
+      undo.dataset.fullName = open ? data.fullName || "" : "";
+      undo.dataset.boothId = open ? boothId : "";
+      undo.dataset.boothName = open ? boothName : "";
+    }
+  }
+
   let awardSeq = 0;
   els.awardStampForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -3640,55 +3708,104 @@ async function handleAuthSubmit(event) {
       els.awardStampError.hidden = true;
       els.awardStampError.textContent = "";
     }
-    if (els.awardStampOk) {
-      els.awardStampOk.hidden = true;
-      els.awardStampOk.textContent = "";
-    }
-    const busy = document.getElementById("awardStampBusy");
     const submit = document.getElementById("awardStampSubmit") || els.awardStampForm.querySelector("button[type=submit]");
-    const label = submit ? submit.textContent : "Award stamp";
-    if (busy) {
-      busy.hidden = false;
-      busy.textContent = "Looking up…";
-    }
     if (submit) {
       submit.disabled = true;
       submit.textContent = "Looking up…";
       submit.setAttribute("aria-busy", "true");
     }
+    const booth = boothById(els.awardBooth.value);
     try {
-      const data = await awardStamp(
-        document.getElementById("awardStudentNumber").value,
-        els.awardBooth.value
-      );
+      const data = await lookupStudent(document.getElementById("awardStudentNumber").value);
       if (seq !== awardSeq) return;
-      if (els.awardStampOk) {
-        els.awardStampOk.hidden = false;
-        els.awardStampOk.textContent = data.local
-          ? `Awarded ${data.boothName} to ${data.studentNumber} on this device (demo).`
-          : `Awarded ${data.boothName} to ${data.fullName} (${data.studentNumber}).`;
+      if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
+      if (stampRecord(data.stamps, booth?.id)) showAwardDone(data, booth);
+      else showAwardReady(data, booth);
+    } catch (error) {
+      if (seq !== awardSeq) return;
+      pushStaffLog("Award lookup", error);
+      if (els.awardStampError) {
+        els.awardStampError.hidden = false;
+        els.awardStampError.textContent = staffDeskError(error);
       }
+    } finally {
+      if (seq === awardSeq && submit) {
+        submit.disabled = false;
+        submit.textContent = "Look up";
+        submit.removeAttribute("aria-busy");
+      }
+    }
+  });
+
+  document.getElementById("awardStampConfirm")?.addEventListener("click", async () => {
+    const btn = document.getElementById("awardStampConfirm");
+    const studentNumber = btn?.dataset.studentNumber;
+    const fullName = btn?.dataset.fullName || "";
+    const boothId = btn?.dataset.boothId;
+    if (!btn || !studentNumber || !boothId) return;
+    btn.disabled = true;
+    try {
+      const result = await awardStamp(studentNumber, boothId);
+      showAwardDone({ ...result, fullName: result.fullName || fullName, passId: `SP-FP-${result.studentNumber || studentNumber}` }, boothById(boothId), { allowUndo: true });
       noteStaffChange();
-      if (getStudentSession()?.payload.studentNumber === data.studentNumber) {
+      if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
         await renderStamps({ refresh: true });
       }
     } catch (error) {
-      if (seq !== awardSeq) return;
+      resetAwardView();
       pushStaffLog("Award stamp", error);
       if (els.awardStampError) {
         els.awardStampError.hidden = false;
         els.awardStampError.textContent = staffDeskError(error);
       }
     } finally {
-      if (seq === awardSeq) {
-        if (busy) busy.hidden = true;
-        if (submit) {
-          submit.disabled = false;
-          submit.textContent = label;
-          submit.removeAttribute("aria-busy");
-        }
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("awardStampUndo")?.addEventListener("click", async () => {
+    const undo = document.getElementById("awardStampUndo");
+    const err = document.getElementById("awardDoneError");
+    const studentNumber = undo?.dataset.studentNumber;
+    const fullName = undo?.dataset.fullName || "";
+    const boothId = undo?.dataset.boothId;
+    const boothName = undo?.dataset.boothName || "this booth";
+    if (!undo || !studentNumber || !boothId) return;
+    const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
+    if (!window.confirm(`Remove the ${boothName} stamp from ${who}?`)) return;
+    undo.disabled = true;
+    undo.textContent = "Undoing…";
+    try {
+      const result = await unawardStamp(studentNumber, boothId);
+      const lookup = await lookupStudent(studentNumber);
+      if (stampRecord(lookup.stamps, boothId)) {
+        throw new Error("Undo did not remove the stamp.");
+      }
+      showAwardReady({ ...lookup, fullName: result.fullName || lookup.fullName || fullName }, boothById(boothId));
+      noteStaffChange();
+      if (getStudentSession()?.payload.studentNumber === (result.studentNumber || studentNumber)) {
+        await renderStamps({ refresh: true });
+      }
+    } catch (error) {
+      undo.disabled = false;
+      undo.textContent = "Undo stamp";
+      pushStaffLog("Undo stamp", error);
+      if (err) {
+        err.hidden = false;
+        err.textContent = staffDeskError(error);
       }
     }
+  });
+
+  document.querySelectorAll("[data-award-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      resetAwardView();
+      const input = document.getElementById("awardStudentNumber");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+    });
   });
 
   els.feedbackKind?.addEventListener("change", () => fillFeedbackTargets());
@@ -3813,31 +3930,22 @@ function paintWaitBanner(sync) {
     : `Last known waits${ago ? ` · ${ago}` : ""}`;
 }
 
-function paintConnectionUi(mode, error) {
+function paintConnectionUi(mode) {
   const live = mode === "live" || Boolean(store?.getSync?.().liveOk);
   const accounts = Boolean(window.HALLOWEEN_CONFIG && window.HALLOWEEN_CONFIG.studentLogin);
-  const status = window.__CONFIG_STATUS || {};
   if (els.liveMode) {
-    els.liveMode.textContent = live ? (accounts ? "Live · Supabase" : "Live · waits only") : "Demo · local sync";
+    els.liveMode.textContent = live ? (accounts ? "Live" : "Live · waits only") : "Demo";
     els.liveMode.classList.toggle("is-live", live);
     paintLiveChip();
   }
   if (!els.dbBanner) return;
   els.dbBanner.hidden = false;
   els.dbBanner.classList.toggle("is-live", live);
-  const localHint = {
-    "no-api": " /api/config is missing. On Vercel, add SUPABASE_URL / supabaseUrl, the anon key, JWT_SECRET, then redeploy.",
-    "api-not-json": " /api/config did not return JSON, so Vercel is not running the API function. Redeploy with the api/ folder at the project root.",
-    "empty-keys": " /api/config loaded but SUPABASE_URL / SUPABASE_ANON_KEY are empty. Set them in .env (local) or Vercel env vars, then restart/redeploy.",
-    "api-404": " /api/config was not found.",
-    "api-500": " /api/config crashed.",
-    ok: "",
-  }[status.reason] || "";
   els.dbBanner.textContent = live
     ? (accounts
       ? "LIVE. Wait times and stamps write to the database."
-      : "LIVE waits. Student sign-up needs SUPABASE_SERVICE_ROLE_KEY on Vercel (or run supabase/schema.sql), then redeploy.")
-    : `DEMO MODE. Not writing to the database. Staff changes and new accounts stay on this device only.${error ? ` ${error}` : ""}${localHint} For the real night set JWT_SECRET, ADMIN_PASSCODE, and the Supabase service role on Vercel.`;
+      : "LIVE. Wait times are updating. Student sign-in is not available yet.")
+    : "DEMO MODE. Changes stay on this device.";
 }
 
 function onStoreChange(next, sync) {
@@ -3926,8 +4034,8 @@ async function init() {
   store = createStore(onStoreChange);
   const connected = store.connect();
   const connectWait = new Promise((resolve) => setTimeout(() => resolve({ mode: "local", error: "Connection timed out." }), 12000));
-  const { mode, error } = await Promise.race([connected, connectWait]);
-  paintConnectionUi(mode, error);
+  const { mode } = await Promise.race([connected, connectWait]);
+  paintConnectionUi(mode);
   const note = document.getElementById("siteLiveNote");
   if (note) paintWaitBanner(store.getSync ? store.getSync() : { liveOk: mode === "live", wasLive: mode === "live", lastLiveAt: mode === "live" ? new Date().toISOString() : null });
   connected.then((result) => {
