@@ -95,9 +95,10 @@ alter table public.students drop constraint if exists students_role_check;
 alter table public.students add constraint students_role_check
   check (role in ('student', 'admin', 'stamps', 'waits'));
 
--- Grant staff tools (then they still type ADMIN_PASSCODE on sign-in):
+-- Grant staff tools (they still type a staff password on sign-in):
 -- update public.students set role = 'admin' where student_number = 'P2512345';
--- Booth-only: role = 'stamps'. Wait-times only: role = 'waits'.
+-- Booth passwords: role = 'stamps'. All-house waits, or one house password: role = 'waits'.
+-- The password, not this role, chooses the scope (admin, waits, redeem, booth:id, house:id).
 
 create table if not exists public.stamp_cards (
   student_number text primary key references public.students (student_number) on delete cascade,
@@ -559,6 +560,89 @@ revoke all on table public.game_saves from anon, authenticated, public;
 revoke all on table public.game_scores from anon, authenticated, public;
 revoke all on table public.push_subscriptions from anon, authenticated, public;
 grant select on table public.scare_houses to anon, authenticated;
+
+-- Admin numbers are stored uppercase. The sign-in form accepts ^[Pp](22|23|24|25|26)\d{5}$
+-- (a P, cohort 22-26, then 5 digits, as in P2509460) and uppercases it before save.
+-- The check below is the stored form: ^P(22|23|24|25|26)[0-9]{5}$
+-- Run the ADD CONSTRAINT statements below first. They are NOT VALID, so existing rows
+-- stay in place and new inserts are checked. VALIDATE is a later step and fails with
+-- SQLSTATE 42704 if the ADD has not been run.
+-- After the audit query returns no rows for a table, validate that table only:
+--   alter table public.students validate constraint students_number_format;
+--   alter table public.stamp_cards validate constraint stamp_cards_number_format;
+--   alter table public.stamp_cards validate constraint stamp_cards_redeemed_by_format;
+--   alter table public.game_scores validate constraint game_scores_number_format;
+--   alter table public.game_saves validate constraint game_saves_number_format;
+--   alter table public.event_feedback validate constraint event_feedback_number_format;
+--   alter table public.push_subscriptions validate constraint push_subscriptions_number_format;
+-- Leave staff_audit NOT VALID while any staff_id is still outside the pattern
+-- (early testing wrote P1234567). New audit rows are still rejected if they do not match.
+--   alter table public.staff_audit validate constraint staff_audit_staff_id_format;
+--
+-- Audit (run before VALIDATE):
+-- select 'students' as src, student_number as value from public.students
+--   where student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'stamp_cards', student_number from public.stamp_cards
+--   where student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'stamp_cards.redeemed_by', redeemed_by from public.stamp_cards
+--   where redeemed_by is not null and redeemed_by !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'game_scores', student_number from public.game_scores
+--   where student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'game_saves', student_number from public.game_saves
+--   where student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'event_feedback', student_number from public.event_feedback
+--   where student_number is not null and student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'push_subscriptions', student_number from public.push_subscriptions
+--   where student_number is not null and student_number !~ '^P(22|23|24|25|26)[0-9]{5}$'
+-- union all
+-- select 'staff_audit', staff_id from public.staff_audit
+--   where staff_id !~ '^P(22|23|24|25|26)[0-9]{5}$';
+
+alter table public.students drop constraint if exists students_number_format;
+alter table public.students
+  add constraint students_number_format
+  check (student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.stamp_cards drop constraint if exists stamp_cards_number_format;
+alter table public.stamp_cards
+  add constraint stamp_cards_number_format
+  check (student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.stamp_cards drop constraint if exists stamp_cards_redeemed_by_format;
+alter table public.stamp_cards
+  add constraint stamp_cards_redeemed_by_format
+  check (redeemed_by is null or redeemed_by ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.game_scores drop constraint if exists game_scores_number_format;
+alter table public.game_scores
+  add constraint game_scores_number_format
+  check (student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.game_saves drop constraint if exists game_saves_number_format;
+alter table public.game_saves
+  add constraint game_saves_number_format
+  check (student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.event_feedback drop constraint if exists event_feedback_number_format;
+alter table public.event_feedback
+  add constraint event_feedback_number_format
+  check (student_number is null or student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.push_subscriptions drop constraint if exists push_subscriptions_number_format;
+alter table public.push_subscriptions
+  add constraint push_subscriptions_number_format
+  check (student_number is null or student_number ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
+
+alter table public.staff_audit drop constraint if exists staff_audit_staff_id_format;
+alter table public.staff_audit
+  add constraint staff_audit_staff_id_format
+  check (staff_id ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
 
 
 

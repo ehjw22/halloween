@@ -431,10 +431,12 @@ export async function fetchStamps() {
 export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
+  const num = normalizeAdminNumber(studentNumber);
+  if (!isAdminNumber(num)) throw new Error(ADMIN_NUMBER_HINT);
   const res = await apiFetch(apiUrl("lookup-student"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentNumber: normalizeAdminNumber(studentNumber) }),
+    body: JSON.stringify({ studentNumber: num }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw apiFail(data, res, "Could not look up that student.");

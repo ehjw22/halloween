@@ -30,7 +30,7 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=r12";
+} from "./session.js?v=r13";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -378,9 +378,14 @@ function staffBoothId() {
   return match ? match[1] : "";
 }
 
+function staffHouseId() {
+  const match = /^house:([a-z0-9-]+)$/.exec(staffScope());
+  return match ? match[1] : "";
+}
+
 function staffSeesTab(scope, need) {
   if (scope === "admin") return true;
-  if (need === "waits") return scope === "waits";
+  if (need === "waits") return scope === "waits" || /^house:[a-z0-9-]+$/.test(scope);
   if (need === "stamps") return /^booth:[0-9]+$/.test(scope);
   if (need === "redeem") return scope === "redeem";
   return false;
@@ -2753,8 +2758,19 @@ async function renderAdmin() {
   els.adminApp.hidden = false;
   updateNav();
 
+  const lockedHouse = staffHouseId();
+  const lockedMeta = lockedHouse ? houseMeta(lockedHouse) : null;
+  const waitTitle = document.querySelector('[data-staff-panel="waits"] h2');
+  const waitLock = document.getElementById("waitHouseLock");
+  if (waitTitle) waitTitle.textContent = lockedMeta ? lockedMeta.name : "Wait-Time Control";
+  if (waitLock) {
+    waitLock.hidden = !lockedMeta;
+    waitLock.textContent = lockedMeta ? `This login updates ${lockedMeta.name} only.` : "";
+  }
+  if (els.publishAll) els.publishAll.hidden = Boolean(lockedHouse);
+  const waitHouses = lockedHouse ? houses.filter((row) => row.id === lockedHouse) : houses;
   els.adminTable.innerHTML = CLUSTERS.map((cluster) => {
-    const members = houses.filter((row) => houseMeta(row.id)?.cluster === cluster.id);
+    const members = waitHouses.filter((row) => houseMeta(row.id)?.cluster === cluster.id);
     if (!members.length) return "";
     const head = `<tr class="admin-cluster"><td colspan="4">${escapeHtml(cluster.kicker)} · ${escapeHtml(cluster.name)}</td></tr>`;
     const body = members.map((row) => {
@@ -2881,6 +2897,12 @@ async function flushWaitSave(id, attempt = 0) {
 }
 
 async function persistHouse(id, patch) {
+  const lockedHouse = staffHouseId();
+  if (lockedHouse && id !== lockedHouse) {
+    const message = "This login can only update its own scare house.";
+    setWaitSaveStatus(message);
+    return { ok: false, error: message };
+  }
   if (!store) return { ok: false, error: "Wait times are still loading." };
   clearTimeout(waitSaveTimers.get(id));
   waitSaveTimers.delete(id);
@@ -3229,9 +3251,9 @@ function bindUi() {
     if (event.target.closest("[data-close-modal]")) closeModals({ restore: true });
   });
 
-  ["studentLoginId", "awardStudentNumber"].forEach((id) => {
+  ["studentLoginId", "awardStudentNumber", "redeemStudentNumber"].forEach((id) => {
     document.getElementById(id)?.addEventListener("blur", (event) => {
-      event.target.value = normalizeAdminNumber(event.target.value);
+      event.target.value = normalizeAdminNumber(event.target.value).slice(0, 8);
     });
   });
 
