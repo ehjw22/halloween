@@ -121,6 +121,15 @@ html.event-open main {
   border: 0;
 }
 
+@property --gate-glow {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+@keyframes gate-glow-sync {
+  0%, 18% { --gate-glow: 1; }
+  55%, 100% { --gate-glow: 0; }
+}
 .event-gate {
   position: fixed;
   inset: 0;
@@ -133,6 +142,8 @@ html.event-open main {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  animation: gate-glow-sync 6s ease-in-out infinite;
+  transition: background 0.35s ease;
   background:
     radial-gradient(70% 55% at 50% 38%, rgba(255, 122, 24, 0.28), transparent 62%),
     radial-gradient(80% 50% at 50% 100%, rgba(70, 18, 10, 0.9), transparent 55%),
@@ -358,9 +369,11 @@ html.event-open main {
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(2.8rem, 10vw, 5.2rem);
-  color: #e0893a;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
-  animation: gate-title-glow 6s ease-in-out infinite;
+  color: #ffe7b8;
+  color: color-mix(in srgb, #e0893a, #ffe7b8 calc(var(--gate-glow) * 100%));
+  text-shadow:
+    0 0 calc(14px + 22px * var(--gate-glow)) rgba(255, 122, 24, calc(0.28 + 0.67 * var(--gate-glow))),
+    0 0 calc(72px * var(--gate-glow)) rgba(180, 74, 255, calc(0.55 * var(--gate-glow)));
 }
 .event-gate__when{
   margin: 0;
@@ -390,6 +403,7 @@ html.event-open main {
   text-align: center;
   gap: 6px;
   min-width: 4.6rem;
+  max-width: 8rem;
   height: fit-content;
   padding: 12px 12px 11px;
   border: 1px solid var(--line);
@@ -398,24 +412,47 @@ html.event-open main {
   box-shadow: var(--shadow);
   overflow: hidden;
   transition:
-    opacity 0.7s ease,
-    transform 0.7s ease,
-    min-width 0.7s ease,
-    padding 0.7s ease,
-    margin 0.7s ease,
-    border-color 0.7s ease,
-    box-shadow 0.7s ease,
-    background-color 0.7s ease;
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    max-width 0.28s ease,
+    min-width 0.28s ease,
+    padding 0.28s ease,
+    margin 0.28s ease,
+    border-width 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+.event-gate__clock[data-span="hms"] .event-gate__unit--days,
+.event-gate__clock[data-span="ms"] .event-gate__unit--days,
+.event-gate__clock[data-span="ms"] .event-gate__unit--hours,
+.event-gate__clock[data-span="s"] .event-gate__unit:not(.event-gate__unit--seconds) {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
+  pointer-events: none;
 }
 .event-gate__unit span {
   display: block;
+  width: 2.4ch;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   font-size: clamp(1.85rem, 6.5vw, 2.65rem);
   font-weight: 700;
-  color: var(--orange-2);
+  color: #ffe7b8;
+  color: color-mix(in srgb, #e0893a, #ffe7b8 calc(var(--gate-glow) * 100%));
   line-height: 1;
-  animation: gate-title-glow 6s ease-in-out infinite;
-  transition: font-size 0.7s ease, color 0.45s ease, text-shadow 0.45s ease;
+  text-align: center;
+  text-shadow:
+    0 0 calc(14px + 22px * var(--gate-glow)) rgba(255, 122, 24, calc(0.28 + 0.67 * var(--gate-glow))),
+    0 0 calc(72px * var(--gate-glow)) rgba(180, 74, 255, calc(0.55 * var(--gate-glow)));
+  transition: font-size 0.28s ease;
 }
 .event-gate__unit small {
   display: block;
@@ -428,27 +465,7 @@ html.event-open main {
   transition: opacity 0.45s ease, margin 0.7s ease, max-height 0.7s ease;
 }
 
-.gate-analog {
-  width: min(42vw, 168px);
-  margin: 0 auto;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: scale(0.88);
-  pointer-events: none;
-  transition:
-    opacity 0.7s ease,
-    max-height 0.7s ease,
-    margin 0.7s ease,
-    transform 0.7s ease;
-}
-.event-gate[data-gate-clock="on"] .gate-analog {
-  max-height: 200px;
-  margin: 0 auto 4px;
-  opacity: 1;
-  overflow: visible;
-  transform: scale(1);
-}
+.gate-analog { display: none !important; }
 .event-gate[data-gate-phase="finale"] .gate-analog,
 .event-gate[data-gate-phase="sting"] .gate-analog {
   max-height: 0;
@@ -526,18 +543,7 @@ html.event-open main {
   stroke: #ff7a18;
   stroke-width: 0.7;
 }
-.event-gate[data-gate-clock="on"] .event-gate__unit:first-child {
-  flex: 0 0 0;
-  width: 0;
-  min-width: 0;
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-  border-width: 0;
-}
-
+.gate-analog { display: none !important; }
 .event-gate[data-gate-phase="tenmin"] .event-gate__wash {
   animation-duration: 4.2s;
   background: radial-gradient(ellipse at center, rgba(255, 150, 50, 0.5), rgba(180, 74, 255, 0.14) 42%, transparent 70%);
@@ -577,19 +583,26 @@ html.event-open main {
   box-shadow: none;
   pointer-events: none;
 }
-.event-gate[data-gate-phase="finalmin"] .event-gate__when,
-.event-gate[data-gate-phase="finalmin"] .event-gate__credits {
-  opacity: 0.4;
-  transition: opacity 0.7s ease;
+.event-gate[data-gate-phase="finalmin"] {
+  background:
+    radial-gradient(70% 55% at 50% 38%, rgba(255, 122, 24, 0.1), transparent 62%),
+    #070306;
 }
-
+.event-gate[data-gate-phase="finalmin"] .event-gate__wash,
+.event-gate[data-gate-phase="finalmin"] .event-gate__logo,
+.event-gate[data-gate-phase="finalmin"] .event-gate__title,
+.event-gate[data-gate-phase="finalmin"] .event-gate__when,
+.event-gate[data-gate-phase="finalmin"] .event-gate__kicker,
+.event-gate[data-gate-phase="finalmin"] .event-gate__credits {
+  opacity: 0.35;
+}
 .event-gate[data-gate-phase="finalmin"] .event-gate__unit--seconds {
   border-color: var(--orange);
-  transform: scale(1.12);
+  transform: scale(1.18);
   box-shadow: 0 0 22px rgba(255, 122, 24, 0.35);
 }
 .event-gate[data-gate-phase="finalmin"] .event-gate__unit--seconds span {
-  font-size: clamp(2.6rem, 14vw, 4.6rem);
+  font-size: clamp(3rem, 16vw, 5.4rem);
   color: #ffe7b8;
 }
 .event-gate__unit--seconds.is-handoff {
@@ -632,6 +645,31 @@ html.event-open main {
   margin-right: auto;
   text-align: center;
 }
+.event-gate[data-gate-phase="finale"] {
+  background: #000;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__fx,
+.event-gate[data-gate-phase="finale"] .event-gate__kicker,
+.event-gate[data-gate-phase="finale"] .event-gate__logo,
+.event-gate[data-gate-phase="finale"] .event-gate__title,
+.event-gate[data-gate-phase="finale"] .event-gate__when,
+.event-gate[data-gate-phase="finale"] .event-gate__credits {
+  opacity: 0;
+  visibility: hidden;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__core > :not(.event-gate__clock) {
+  display: none;
+}
+.event-gate[data-gate-phase="finale"] .event-gate__core {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
 .event-gate[data-gate-phase="finale"] .event-gate__unit--seconds {
   background: none;
   background-color: transparent;
@@ -641,17 +679,23 @@ html.event-open main {
   transform: none;
   padding: 0;
   overflow: visible;
-  transition: none;
+  max-width: none;
 }
 .event-gate[data-gate-phase="finale"] .event-gate__unit--seconds span {
-  font-family: "Creepster", cursive;
-  font-size: clamp(5.5rem, 32vw, 13rem);
-  font-weight: 400;
-  line-height: 0.9;
+  width: 2ch;
+  font-family: var(--font-body);
+  font-size: clamp(7rem, 34vw, 14rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  line-height: 1;
   color: #ffe7b8;
   text-shadow:
-    0 0 18px rgba(255, 122, 24, 0.55),
-    0 0 48px rgba(180, 74, 255, 0.28);
+    0 0 18px rgba(255, 122, 24, 0.7),
+    0 0 48px rgba(255, 122, 24, 0.45);
+}
+.event-gate__unit--seconds.is-tick span {
+  animation: gate-second-beat 0.42s ease;
 }
 .event-gate[data-gate-phase="finale"] .event-gate__unit--seconds small {
   opacity: 0;
@@ -666,13 +710,7 @@ html.event-open main {
   animation-duration: 2.2s;
 }
 .event-gate[data-gate-phase="finale"] .event-gate__wash {
-  animation-duration: 5s;
-}
-.event-gate.is-second-beat .event-gate__unit--seconds span {
-  animation: gate-second-beat 0.55s ease;
-}
-.event-gate.is-second-beat .event-gate__wash {
-  animation: gate-lantern-beat 0.7s ease;
+  opacity: 0;
 }
 
 .event-gate[data-gate-phase="sting"] .event-gate__clock {
@@ -6804,6 +6842,26 @@ body.is-board { background: #050308; }
   }
   .house-card:hover, .club-card:hover { transform: none; }
   .ghost, .lantern__flame, .lantern__motes i, .lantern__sparks i, .lantern__halo, .lantern__glass, .lantern__runes, .lantern__rune-glyph, .lantern__sigil-wrap, .lantern__sigil-aura, .lantern__sigil-seeker, .lantern__sigil-flow, .haunt-fx__ember, .haunt-fx__fly, .haunt-fx__mist, .haunt-fx__rays, .ghost-trail, .ghost-wisp { animation: none !important; }
+  .event-gate {
+    animation: none !important;
+    --gate-glow: 1;
+  }
+  .event-gate__unit--seconds.is-tick span,
+  .event-gate__unit.is-minute-flip,
+  .event-gate__unit.is-minute-flip span {
+    animation: none !important;
+  }
+  .event-gate,
+  .event-gate__wash,
+  .event-gate__logo,
+  .event-gate__title,
+  .event-gate__when,
+  .event-gate__kicker,
+  .event-gate__credits,
+  .event-gate__fx,
+  .event-gate__unit {
+    transition-duration: 0.35s !important;
+  }
 }
 
 .site-footer {

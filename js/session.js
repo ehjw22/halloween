@@ -246,6 +246,7 @@ export function isAdminNumber(value) {
 
 const ADMIN_NUMBER_HINT =
   "Enter your admin number as P followed by 7 digits, starting with 22, 23, 24, 25, or 26.";
+const STAFF_NUMBER_HINT = "Admin number should be P followed by 7 digits.";
 
 function toB64Url(obj) {
   const json = JSON.stringify(obj);
@@ -436,7 +437,7 @@ export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
   const num = normalizeAdminNumber(studentNumber);
-  if (!isAdminNumber(num)) throw new Error(ADMIN_NUMBER_HINT);
+  if (!isAdminNumber(num)) throw new Error(STAFF_NUMBER_HINT);
   const res = await apiFetch(apiUrl("lookup-student"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -486,7 +487,7 @@ export async function awardStamp(studentNumber, boothId) {
   if (!session) throw new Error("Staff session expired. Sign in again.");
   const num = normalizeAdminNumber(studentNumber);
   if (!isAdminNumber(num)) {
-    throw new Error(ADMIN_NUMBER_HINT);
+    throw new Error(STAFF_NUMBER_HINT);
   }
   const booth = boothById(boothId);
   if (!booth) throw new Error("Choose a valid booth.");
@@ -516,7 +517,7 @@ export async function unawardStamp(studentNumber, boothId) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired. Sign in again.");
   const num = normalizeAdminNumber(studentNumber);
-  if (!isAdminNumber(num)) throw new Error(ADMIN_NUMBER_HINT);
+  if (!isAdminNumber(num)) throw new Error(STAFF_NUMBER_HINT);
   const booth = boothById(boothId);
   if (!booth) throw new Error("Choose a valid booth.");
   if (session.payload.local) return unawardStampLocal(num, booth);

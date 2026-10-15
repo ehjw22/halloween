@@ -31,8 +31,8 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r155" />
-    <script src="js/boot.js?v=r10"></script>
+    <link rel="stylesheet" href="css/styles.css?v=r156" />
+    <script src="js/boot.js?v=r11"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -69,189 +69,25 @@
         <p class="event-gate__kicker">Singapore Polytechnic</p>
         <img class="event-gate__logo" src="img/marks/scream-fest.png?v=r1" alt="">
         <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
-        <p class="event-gate__when">
-          Opens 24 October 2026 · 6:00pm Singapore time
-        </p>
+        <p class="event-gate__when">24 October 2026 · 6:00 PM</p>
         <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
-        <div
-          class="event-gate__finale"
-          id="gateFinaleCount"
-          aria-hidden="true"
-        ></div>
-        <div class="gate-analog" id="gateAnalog" aria-hidden="true">
-          <svg class="gate-analog__svg" viewBox="0 0 120 134" focusable="false">
-            <defs>
-              <radialGradient id="watchFace" cx="42%" cy="34%" r="72%">
-                <stop offset="0%" stop-color="#2a1218"></stop>
-                <stop offset="55%" stop-color="#120814"></stop>
-                <stop offset="100%" stop-color="#050208"></stop>
-              </radialGradient>
-            </defs>
-            <rect
-              class="gate-analog__stem"
-              x="54"
-              y="4"
-              width="12"
-              height="12"
-              rx="2"
-            ></rect>
-            <rect
-              class="gate-analog__crown"
-              x="49"
-              y="0"
-              width="22"
-              height="7"
-              rx="2"
-            ></rect>
-            <circle class="gate-analog__case" cx="60" cy="74" r="58"></circle>
-            <circle class="gate-analog__rim" cx="60" cy="74" r="52"></circle>
-            <circle class="gate-analog__face" cx="60" cy="74" r="46"></circle>
-            <g class="gate-analog__ticks" aria-hidden="true">
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(0 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(6 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(12 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(18 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(24 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(30 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(60 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(90 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(120 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(150 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(180 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(210 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(240 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(270 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="34"
-                x2="60"
-                y2="38"
-                transform="rotate(300 60 74)"
-              ></line>
-              <line
-                x1="60"
-                y1="32"
-                x2="60"
-                y2="38"
-                transform="rotate(330 60 74)"
-              ></line>
-            </g>
-            <text class="gate-analog__num" x="60" y="48">XII</text>
-            <text class="gate-analog__num" x="90" y="79">III</text>
-            <text class="gate-analog__num" x="60" y="108">VI</text>
-            <text class="gate-analog__num" x="32" y="79">IX</text>
-            <text class="gate-analog__mark" x="60" y="62">SP</text>
-            <g id="gateHandHour">
-              <path d="M60 82 L56.5 54 L60 46 L63.5 54 Z"></path>
-            </g>
-            <g id="gateHandMinute">
-              <path d="M60 84 L57.4 44 L60 34 L62.6 44 Z"></path>
-            </g>
-            <g id="gateHandSecond">
-              <line x1="60" y1="88" x2="60" y2="36"></line>
-              <circle cx="60" cy="74" r="1.2"></circle>
-            </g>
-            <circle class="gate-analog__hub" cx="60" cy="74" r="3.2"></circle>
-          </svg>
-        </div>
-        <div class="event-gate__clock" aria-hidden="true">
-          <div class="event-gate__unit">
-            <span id="cdDays">0</span><small>Days</small>
+        <div class="event-gate__clock" data-span="dhms" aria-hidden="true">
+          <div class="event-gate__unit event-gate__unit--days">
+            <span id="cdDays"></span><small>Days</small>
           </div>
-          <div class="event-gate__unit">
-            <span id="cdHours">00</span><small>Hours</small>
+          <div class="event-gate__unit event-gate__unit--hours">
+            <span id="cdHours"></span><small>Hours</small>
           </div>
           <div class="event-gate__unit event-gate__unit--minutes">
-            <span id="cdMinutes">00</span><small>Minutes</small>
+            <span id="cdMinutes"></span><small>Minutes</small>
           </div>
           <div class="event-gate__unit event-gate__unit--seconds">
-            <span id="cdSeconds">00</span><small>Seconds</small>
+            <span id="cdSeconds"></span><small>Seconds</small>
           </div>
         </div>
+        <script>
+          if (window.__screamPaintGate) window.__screamPaintGate();
+        </script>
       </div>
       <div class="event-gate__credits">
         <p class="event-gate__by">Organised by Singapore Polytechnic student clubs</p>
@@ -1851,7 +1687,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r156"></script>
+      <script type="module" src="js/app.js?v=r157"></script>
     </div>
   </body>
 </html>

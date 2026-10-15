@@ -1,4 +1,4 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r11";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r12";
 import { CLUBS } from "./clubs.js?v=r6";
 import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r22";
 import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r39";
@@ -2832,8 +2832,11 @@ function readAdminRow(tr) {
   return { id, wait_minutes: wait, status };
 }
 
+let waitSaveStatusTimer = 0;
+
 function setWaitSaveStatus(message, isError = true) {
   if (!els.waitSaveStatus) return;
+  clearTimeout(waitSaveStatusTimer);
   if (!message) {
     els.waitSaveStatus.hidden = true;
     els.waitSaveStatus.textContent = "";
@@ -2841,10 +2844,21 @@ function setWaitSaveStatus(message, isError = true) {
     els.waitSaveStatus.classList.remove("muted");
     return;
   }
-  els.waitSaveStatus.hidden = false;
-  els.waitSaveStatus.textContent = message;
-  els.waitSaveStatus.classList.toggle("form-error", isError);
-  els.waitSaveStatus.classList.toggle("muted", !isError);
+  const show = () => {
+    els.waitSaveStatus.hidden = false;
+    els.waitSaveStatus.textContent = message;
+    els.waitSaveStatus.classList.toggle("form-error", isError);
+    els.waitSaveStatus.classList.toggle("muted", !isError);
+  };
+  if (!isError && !els.waitSaveStatus.hidden && els.waitSaveStatus.textContent === message) {
+    els.waitSaveStatus.hidden = true;
+    requestAnimationFrame(show);
+  } else {
+    show();
+  }
+  if (!isError) {
+    waitSaveStatusTimer = setTimeout(() => setWaitSaveStatus(""), 4000);
+  }
 }
 
 function scheduleWaitSave(id, patch) {

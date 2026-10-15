@@ -47,6 +47,7 @@ function rememberGatesOpened() {
 }
 
 export function isEventOpen() {
+  if (countdownQueryActive()) return Date.now() >= gateUntil();
   if (Date.now() >= GATES_AT) return true;
   if (gatesRemembered()) return true;
   return hasDevView();
@@ -62,8 +63,29 @@ function pad(n) {
   return String(Math.max(0, n)).padStart(2, "0");
 }
 
+function isLocalHost() {
+  const host = String(location.hostname || "").toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+}
+
+function countdownQueryActive() {
+  if (!isLocalHost()) return false;
+  if (window.__screamCountdownTest) return true;
+  try {
+    return /^(\d+)(s|m|h)$/i.test(new URLSearchParams(location.search).get("countdown") || "");
+  } catch {
+    return false;
+  }
+}
+
+function gateUntil() {
+  const shared = Number(window.__screamGateUntil);
+  if (Number.isFinite(shared) && shared > 0) return shared;
+  return GATES_AT;
+}
+
 function remainingParts() {
-  let ms = GATES_AT - Date.now();
+  let ms = gateUntil() - Date.now();
   if (ms < 0) ms = 0;
   const sec = Math.floor(ms / 1000);
   const days = Math.floor(sec / 86400);
@@ -73,11 +95,16 @@ function remainingParts() {
   return { ms, totalSec: sec, days, hours, minutes, seconds, done: ms <= 0 };
 }
 
+function spanFor(totalSec) {
+  if (totalSec >= 86400) return "dhms";
+  if (totalSec >= 3600) return "hms";
+  if (totalSec >= 60) return "ms";
+  return "s";
+}
+
 function phaseFor(parts) {
-  if (parts.done) return "sting";
   if (parts.totalSec <= 10) return "finale";
   if (parts.totalSec < 60) return "finalmin";
-  if (parts.totalSec <= 600) return "tenmin";
   return "calm";
 }
 
@@ -89,98 +116,54 @@ function pulse(el, className, holdMs = 900) {
   window.setTimeout(() => el.classList.remove(className), holdMs);
 }
 
-function setHand(id, deg) {
-  const hand = document.getElementById(id);
-  if (hand) hand.setAttribute("transform", `rotate(${deg} 60 74)`);
-}
-
-function singaporeClock() {
-  const bits = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Singapore",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hourCycle: "h23",
-  }).formatToParts(new Date());
-  const n = (type) => Number(bits.find((p) => p.type === type)?.value || 0);
-  return { hour: n("hour"), minute: n("minute"), second: n("second") };
-}
-
-function paintAnalog(parts) {
-  const gate = document.getElementById("eventGate");
-  const analog = document.getElementById("gateAnalog");
-  const show = !parts.done && parts.totalSec < 86400 && parts.totalSec > 10;
-  if (gate) gate.dataset.gateClock = show ? "on" : "off";
-  if (!show || !analog) return;
-  const { hour, minute, second } = singaporeClock();
-  setHand("gateHandSecond", second * 6);
-  setHand("gateHandMinute", minute * 6 + second * 0.1);
-  setHand("gateHandHour", (hour % 12) * 30 + minute * 0.5);
-}
-
 function applyGatePhase(parts) {
   const gate = document.getElementById("eventGate");
   if (!gate) return;
   const phase = phaseFor(parts);
   gate.dataset.gatePhase = phase;
+  const clock = document.querySelector(".event-gate__clock");
+  if (clock) clock.dataset.span = spanFor(parts.totalSec);
   if (phase === "finale") gate.dataset.gateSecond = String(parts.seconds);
   else gate.removeAttribute("data-gate-second");
 
   const overlay = document.getElementById("gateFinaleCount");
-  if (overlay)
-    overlay.textContent =
-      phase === "finale" && parts.seconds > 0 ? String(parts.seconds) : "";
+  if (overlay) overlay.textContent = "";
 
-  const minutesEl = document.getElementById("cdMinutes")?.parentElement;
   const secondsEl = document.getElementById("cdSeconds")?.parentElement;
-  if (
-    !prefersReducedMotion() &&
-    phase === "tenmin" &&
-    lastMinuteShown != null &&
-    parts.minutes !== lastMinuteShown
-  ) {
-    pulse(minutesEl, "is-minute-flip", 900);
-    pulse(gate, "is-minute-flip", 900);
-  }
-  lastMinuteShown = parts.minutes;
-
-  if (
-    lastPhase &&
-    lastPhase !== phase &&
-    !prefersReducedMotion() &&
-    phase === "finalmin"
-  ) {
-    pulse(secondsEl, "is-handoff", 800);
-    pulse(gate, "is-minute-flip", 800);
-  }
-  lastPhase = phase;
-
   if (
     !prefersReducedMotion() &&
     phase === "finale" &&
     lastSecondShown !== parts.seconds
   ) {
-    pulse(gate, "is-second-beat", 700);
+    pulse(secondsEl, "is-tick", 450);
   }
   lastSecondShown = parts.seconds;
+  lastPhase = phase;
 }
 
 function paintLive(parts) {
   const live = document.getElementById("eventGateLive");
   if (!live) return;
-  if (parts.done) {
-    live.textContent = "Gates are open.";
-    lastLiveSecond = 0;
-    return;
-  }
-  if (lastLiveSecond === parts.totalSec) return;
+  if (lastLiveSecond === parts.totalSec && !parts.done) return;
   lastLiveSecond = parts.totalSec;
   const phase = phaseFor(parts);
-  if (phase === "finale") {
-    live.textContent = `${parts.seconds}`;
+  if (parts.done || phase === "finale") {
+    live.textContent = String(parts.seconds);
     return;
   }
   if (phase === "finalmin" || parts.seconds === 0) {
+    if (parts.totalSec < 60) {
+      live.textContent = `${parts.seconds} seconds`;
+      return;
+    }
+    if (parts.totalSec < 3600) {
+      live.textContent = `${parts.minutes} minutes, ${pad(parts.seconds)} seconds`;
+      return;
+    }
+    if (parts.totalSec < 86400) {
+      live.textContent = `${parts.hours} hours, ${pad(parts.minutes)} minutes, ${pad(parts.seconds)} seconds`;
+      return;
+    }
     live.textContent = `${parts.days} days, ${pad(parts.hours)} hours, ${pad(parts.minutes)} minutes, ${pad(parts.seconds)} seconds`;
   }
 }
@@ -191,17 +174,14 @@ function paintClock() {
   const set = (id, value) => {
     const node = document.getElementById(id);
     if (!node) return;
-    if (id === "cdDays") node.textContent = String(parts.days);
-    else if (id === "cdSeconds" && phase === "finale")
-      node.textContent = String(value);
-    else node.textContent = pad(value);
+    const next = id === "cdDays" ? String(Math.max(0, parts.days)) : id === "cdSeconds" && phase === "finale" ? String(Math.max(0, value)) : pad(value);
+    if (node.textContent !== next) node.textContent = next;
   };
   set("cdDays", parts.days);
   set("cdHours", parts.hours);
   set("cdMinutes", parts.minutes);
   set("cdSeconds", parts.seconds);
   applyGatePhase(parts);
-  paintAnalog(parts);
   paintLive(parts);
   return parts.done;
 }
@@ -233,7 +213,7 @@ function finishUnlock() {
 function beginSting() {
   if (stingStarted) return;
   stingStarted = true;
-  rememberGatesOpened();
+  if (Date.now() >= GATES_AT) rememberGatesOpened();
   stopClock();
   paintClock();
   if (prefersReducedMotion()) {
@@ -298,7 +278,8 @@ export function openEventGate() {
     gate.removeAttribute("data-gate-phase");
     gate.removeAttribute("data-gate-second");
     gate.removeAttribute("data-gate-clock");
-    gate.classList.remove("is-second-beat");
+    document.getElementById("cdSeconds")?.parentElement?.classList.remove("is-tick");
+    gate.classList.remove("is-tick");
   }
   document.querySelectorAll("[data-event-app]").forEach((node) => {
     node.removeAttribute("inert");
@@ -327,7 +308,11 @@ export function lockEventGate() {
 
 export function initEventGate() {
   rememberDevView();
-  if (Date.now() >= GATES_AT) rememberGatesOpened();
+  if (!countdownQueryActive() && Date.now() >= GATES_AT) rememberGatesOpened();
+  if (countdownQueryActive() && Date.now() < gateUntil()) {
+    lockEventGate();
+    return;
+  }
   if (isEventOpen()) {
     openEventGate();
     return;
@@ -335,6 +320,7 @@ export function initEventGate() {
 
   lockEventGate();
   window.addEventListener("pageshow", () => {
+    if (countdownQueryActive() && Date.now() < gateUntil()) return;
     if (Date.now() < GATES_AT && !gatesRemembered()) return;
     if (Date.now() >= GATES_AT) rememberGatesOpened();
     if (!document.documentElement.classList.contains("event-open")) openEventGate();
