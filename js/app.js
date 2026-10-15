@@ -2744,8 +2744,6 @@ async function renderAdmin() {
     queueMicrotask(() => document.getElementById("staffUnlockPassword")?.focus());
     return;
   }
-  const signedIn = document.getElementById("staffSignedIn");
-  if (signedIn) signedIn.hidden = false;
   els.adminGate.hidden = true;
   els.adminApp.hidden = false;
   updateNav();
@@ -2753,12 +2751,7 @@ async function renderAdmin() {
   const lockedHouse = staffHouseId();
   const lockedMeta = lockedHouse ? houseMeta(lockedHouse) : null;
   const waitTitle = document.querySelector('[data-staff-panel="waits"] h2');
-  const waitLock = document.getElementById("waitHouseLock");
   if (waitTitle) waitTitle.textContent = lockedMeta ? lockedMeta.name : "Wait-Time Control";
-  if (waitLock) {
-    waitLock.hidden = !lockedMeta;
-    waitLock.textContent = lockedMeta ? `This login updates ${lockedMeta.name} only.` : "";
-  }
   if (els.publishAll) els.publishAll.hidden = Boolean(lockedHouse);
   const waitHouses = lockedHouse ? houses.filter((row) => row.id === lockedHouse) : houses;
   els.adminTable.innerHTML = CLUSTERS.map((cluster) => {
@@ -2778,9 +2771,10 @@ async function renderAdmin() {
           </td>
           <td>
             <div class="wait-editor">
+              <span class="wait-editor__label">Minutes</span>
               <button type="button" data-adjust="-5" aria-label="Decrease wait by 5 minutes">−5</button>
               <button type="button" data-adjust="-1" aria-label="Decrease wait by 1 minute">−1</button>
-              <input type="number" min="0" max="${WAIT_MAX}" step="1" value="${minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
+              <input type="number" inputmode="numeric" min="0" max="${WAIT_MAX}" step="1" value="${minutes ?? ""}" data-wait-input aria-label="Wait minutes for ${escapeHtml(row.name)}">
               <button type="button" data-adjust="1" aria-label="Increase wait by 1 minute">+1</button>
               <button type="button" data-adjust="5" aria-label="Increase wait by 5 minutes">+5</button>
             </div>
@@ -2811,6 +2805,8 @@ async function renderAdmin() {
   if (!allowed.some((btn) => btn.dataset.staffTab === staffTab)) {
     staffTab = allowed[0]?.dataset.staffTab || "waits";
   }
+  const staffTabs = document.querySelector(".staff-tabs");
+  if (staffTabs) staffTabs.hidden = allowed.length < 2;
   document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
     btn.classList.toggle("is-active", btn.dataset.staffTab === staffTab);
   });
@@ -3588,7 +3584,7 @@ async function handleAuthSubmit(event) {
       })
     );
     const failed = results.find((r) => r && r.ok === false);
-    if (!failed) setWaitSaveStatus("All wait times saved to the live database.", false);
+    if (failed) setWaitSaveStatus(failed.error || "Could not save wait times to the database.");
   });
 
   document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
@@ -3939,13 +3935,14 @@ function paintConnectionUi(mode) {
     paintLiveChip();
   }
   if (!els.dbBanner) return;
+  if (live) {
+    els.dbBanner.hidden = true;
+    els.dbBanner.textContent = "";
+    return;
+  }
   els.dbBanner.hidden = false;
-  els.dbBanner.classList.toggle("is-live", live);
-  els.dbBanner.textContent = live
-    ? (accounts
-      ? "LIVE. Wait times and stamps write to the database."
-      : "LIVE. Wait times are updating. Student sign-in is not available yet.")
-    : "DEMO MODE. Changes stay on this device.";
+  els.dbBanner.classList.remove("is-live");
+  els.dbBanner.textContent = "DEMO MODE. Changes stay on this device.";
 }
 
 function onStoreChange(next, sync) {

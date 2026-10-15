@@ -31,7 +31,7 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r153" />
+    <link rel="stylesheet" href="css/styles.css?v=r155" />
     <script src="js/boot.js?v=r10"></script>
   </head>
   <body>
@@ -1409,7 +1409,6 @@
           </div>
 
           <div id="adminApp" hidden>
-            <p class="muted" id="staffSignedIn" hidden>You are signed in.</p>
             <p class="db-banner" id="dbBanner" hidden></p>
             <details class="staff-log" id="staffErrorLogWrap">
               <summary>Error log</summary>
@@ -1480,7 +1479,6 @@
                     Sign out
                   </button>
                 </div>
-                <p class="field-hint" id="waitHouseLock" hidden></p>
                 <p class="form-error" id="waitSaveStatus" hidden></p>
               </div>
               <div class="table-wrap">
@@ -1509,8 +1507,13 @@
                     Admin number
                     <input
                       id="awardStudentNumber"
+                      class="staff-id"
                       type="text"
+                      inputmode="text"
                       autocomplete="off"
+                      autocapitalize="characters"
+                      autocorrect="off"
+                      enterkeyhint="search"
                       maxlength="8"
                       placeholder="P2512345"
                       spellcheck="false"
@@ -1560,8 +1563,13 @@
                   Admin number
                   <input
                     id="redeemStudentNumber"
+                    class="staff-id"
                     type="text"
+                    inputmode="text"
                     autocomplete="off"
+                    autocapitalize="characters"
+                    autocorrect="off"
+                    enterkeyhint="search"
                     maxlength="8"
                     placeholder="P2512345"
                     spellcheck="false"
@@ -1843,7 +1851,7 @@
 
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r153"></script>
+      <script type="module" src="js/app.js?v=r156"></script>
     </div>
   </body>
 </html>
