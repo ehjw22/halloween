@@ -1,0 +1,454 @@
+/* ==========================================================================
+   Poster art: a hand-made, slightly wonky Halloween poster layer.
+   Every rule is scoped to html[data-art="poster"]. With ?theme=classic (or
+   ART_DEFAULT = "classic" in js/boot.js) none of this applies and the original
+   artwork in styles.css shows exactly as before.
+   ========================================================================== */
+
+html[data-art="poster"] {
+  --poster-ink: #1a0f0c;
+  --poster-paper: #efe1c4;
+  --poster-paper-2: #e4d1ab;
+  --poster-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Paper grain over the whole page: one static tile, no blend modes, so it stays cheap on phones. */
+html[data-art="poster"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  pointer-events: none;
+  background-image: var(--poster-grain);
+  background-size: 160px 160px;
+  opacity: 0.07;
+}
+
+/* Art switch plumbing: both sets ship, the attribute picks one. */
+html[data-art="poster"] .art-classic,
+html[data-art="classic"] .art-poster { display: none !important; }
+
+/* ---------- Cluster headlines: hand-lettered poster type ---------- */
+
+html[data-art="poster"] .cluster-group__head h3 {
+  font-family: "Creepster", var(--font-body);
+  font-weight: 400;
+  font-size: clamp(1.45rem, 6vw, 1.9rem);
+  letter-spacing: 0.04em;
+  color: var(--poster-hi, #f2d27a);
+  text-shadow: 2px 2px 0 var(--poster-ink), 0 0 14px rgba(0, 0, 0, 0.6);
+  transform: rotate(-1deg);
+  transform-origin: left center;
+}
+html[data-art="poster"] .cluster-group__kicker {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--poster-paper);
+  color: var(--poster-ink);
+  font-weight: 700;
+  transform: rotate(0.8deg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Per-cluster limited palettes (two inks each, over the existing tints) ---------- */
+
+html[data-art="poster"] .cluster-group:has(.house-card[data-cluster="carnival"]) { --poster-hi: #c4b0ff; --poster-lo: #6d4ec4; }
+html[data-art="poster"] .cluster-group:has(.house-card[data-cluster="phobias"]) { --poster-hi: #7ee0dc; --poster-lo: #2a8f96; }
+html[data-art="poster"] .cluster-group:has(.house-card[data-cluster="slender"]) { --poster-hi: #f0a8dc; --poster-lo: #a04a90; }
+html[data-art="poster"] .cluster-group:has(.house-card[data-cluster="asylum"]) { --poster-hi: #a8b8f0; --poster-lo: #4a62b0; }
+html[data-art="poster"] #houseGrid .house-card[data-cluster="carnival"] { --poster-hi: #c4b0ff; --poster-lo: #6d4ec4; }
+html[data-art="poster"] #houseGrid .house-card[data-cluster="phobias"] { --poster-hi: #7ee0dc; --poster-lo: #2a8f96; }
+html[data-art="poster"] #houseGrid .house-card[data-cluster="slender"] { --poster-hi: #f0a8dc; --poster-lo: #a04a90; }
+html[data-art="poster"] #houseGrid .house-card[data-cluster="asylum"] { --poster-hi: #a8b8f0; --poster-lo: #4a62b0; }
+
+/* ---------- House cards: printed flyers pinned slightly askew ---------- */
+
+html[data-art="poster"] #houseGrid .house-card {
+  --house-border: 1px;
+  --house-radius: 14px;
+  container-type: inline-size;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  transform: rotate(-0.35deg);
+  transition: transform var(--ease);
+}
+html[data-art="poster"] #houseGrid .house-card__face {
+  background-color: #14101a;
+  border: var(--house-border) solid color-mix(in srgb, var(--poster-hi, #c4b0ff) 46%, #14101a);
+  border-radius: var(--house-radius);
+  background-clip: padding-box;
+  overflow: hidden;
+  background-image:
+    var(--poster-grain),
+    linear-gradient(145deg, color-mix(in srgb, var(--poster-hi, #c4b0ff) 16%, transparent), transparent 62%);
+  background-size: 160px 160px, auto;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset -1px -2px 0 rgba(0, 0, 0, 0.4),
+    0 6px 0 -2px color-mix(in srgb, var(--poster-hi, #c4b0ff) 38%, #07060c),
+    0 10px 18px rgba(0, 0, 0, 0.45);
+}
+html[data-art="poster"] #houseGrid .cluster-group__grid > :nth-child(even) .house-card,
+html[data-art="poster"] #houseGrid .cluster-group__grid > .house-card:nth-child(even) {
+  transform: rotate(0.4deg);
+}
+html[data-art="poster"] #houseGrid .house-card__name {
+  color: var(--poster-hi, #e8dcc8);
+  text-shadow: none;
+}
+html[data-art="poster"] #houseGrid .house-card__short {
+  display: inline-block;
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--poster-hi, #c4b0ff) 18%, #14101a);
+  color: var(--poster-hi, #f4efe6);
+  border: 1px solid color-mix(in srgb, var(--poster-hi, #c4b0ff) 42%, #14101a);
+  font-weight: 800;
+  transform: rotate(-2deg);
+}
+html[data-art="poster"] #houseGrid .house-card__meta,
+html[data-art="poster"] #houseGrid .house-card__watch {
+  color: #f4efe6;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  html[data-art="poster"] #houseGrid .house-card:hover {
+    transform: rotate(0deg) translateY(-2px);
+  }
+}
+/* Very narrow cards: drop the tilt so text stays crisp and nothing pokes out. */
+@container (max-width: 150px) {
+  html[data-art="poster"] .house-card__short { transform: none; }
+}
+
+/* ---------- Station map: big hand-drawn stamps, ghosted until collected ---------- */
+
+html[data-art="poster"] .station-map { container-type: inline-size; }
+html[data-art="poster"] .station-map__pin {
+  --st-size: 56px;
+  width: var(--st-size);
+  height: var(--st-size);
+  min-width: var(--st-size);
+  max-width: var(--st-size);
+  min-height: var(--st-size);
+}
+html[data-art="poster"] .station-map__icon {
+  width: var(--st-size);
+  height: var(--st-size);
+  padding: 3px;
+  background: var(--poster-paper);
+  border: 2px dashed rgba(26, 15, 12, 0.55);
+  box-shadow: 0 0 0 3px rgba(7, 3, 8, 0.55);
+  filter: none;
+}
+html[data-art="poster"] .station-art,
+html[data-art="poster"] .station-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Ghosted: a faint pencil outline of the stamp still to come. */
+html[data-art="poster"] .station-map__pin:not(.is-lit) .station-art svg,
+html[data-art="poster"] .stamp-pad:not(.is-lit) .station-art svg {
+  filter: grayscale(1) contrast(0.7);
+  opacity: 0.38;
+}
+/* Collected: full ink, solid border, a little rubber-stamp wonk. */
+html[data-art="poster"] .station-map__pin.is-lit .station-map__icon {
+  border-style: solid;
+  border-color: var(--poster-ink);
+  background: #fff4dc;
+  transform: rotate(-6deg);
+  box-shadow: 0 0 0 3px rgba(255, 196, 80, 0.55), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+html[data-art="poster"] .station-map__pin.is-lit:nth-child(even) .station-map__icon { transform: rotate(5deg); }
+html[data-art="poster"] .station-map__pin.is-new .station-map__icon {
+  animation: poster-stamp 0.95s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+html[data-art="poster"] .station-map__pin.is-new .station-map__icon::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 3px solid #ffb347;
+  opacity: 0;
+  animation: poster-splat 0.9s ease-out 0.15s both;
+  pointer-events: none;
+}
+html[data-art="poster"] .station-map__icon { position: relative; }
+@keyframes poster-stamp {
+  0% { transform: translateY(-18px) scale(1.5) rotate(-18deg); opacity: 0; }
+  55% { transform: translateY(0) scale(0.9) rotate(-4deg); opacity: 1; }
+  100% { transform: rotate(-6deg); }
+}
+@keyframes poster-splat {
+  0% { opacity: 0.9; transform: scale(0.6); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+html[data-art="poster"] .station-map__pin.is-lit .st-needle {
+  transform-box: view-box;
+  transform-origin: 32px 44px;
+  animation: poster-needle 2.4s ease-in-out infinite;
+}
+html[data-art="poster"] .station-map__pin.is-lit .st-roll {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: poster-roll 3.2s ease-in-out infinite;
+}
+@keyframes poster-needle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-14deg); }
+}
+@keyframes poster-roll {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(18deg); }
+}
+
+/* Bottom-row labels sit beside their stamps so they never collide with the top row. */
+html[data-art="poster"] .station-map__pin[data-stamp="4"] .station-map__name,
+html[data-art="poster"] .station-map__pin[data-stamp="7"] .station-map__name {
+  left: calc(100% + 6px);
+  right: auto;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  text-align: left;
+}
+html[data-art="poster"] .station-map__name {
+  color: #fff4dc;
+  text-shadow: 0 1px 0 #000, 0 0 6px #000;
+}
+
+@container (min-width: 420px) {
+  html[data-art="poster"] .station-map__pin { --st-size: 64px; }
+}
+@container (min-width: 600px) {
+  html[data-art="poster"] .station-map__pin { --st-size: 72px; }
+}
+
+/* Stamp-pad grid (compact card view) shares the same art. */
+html[data-art="poster"] .stamp-pad__ink .station-art {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+}
+
+/* ---------- The ticket: "Caged spirit" as a torn admission stub ---------- */
+
+html[data-art="poster"] .fast-pass {
+  --notch: var(--surface-1);
+  color: var(--poster-ink);
+  border: 2px solid var(--poster-ink);
+  border-radius: 10px;
+  background-color: var(--poster-paper);
+  background-image:
+    var(--poster-grain),
+    radial-gradient(120% 70% at 50% 30%, hsl(var(--ghost-h) 70% 70% / 0.35), transparent 65%),
+    linear-gradient(180deg, var(--poster-paper), var(--poster-paper-2));
+  background-size: 160px 160px, auto, auto;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  transform: rotate(-0.6deg);
+}
+/* Punched notches either side of the tear line (the stub's dashed top edge). */
+html[data-art="poster"] .fast-pass .pass-plate { overflow: visible; }
+html[data-art="poster"] .fast-pass .pass-plate::before,
+html[data-art="poster"] .fast-pass .pass-plate::after {
+  content: "";
+  position: absolute;
+  top: -15px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--notch);
+  border: 2px solid var(--poster-ink);
+  pointer-events: none;
+}
+html[data-art="poster"] .fast-pass .pass-plate::before { left: calc(-1 * var(--s6) - 15px); clip-path: inset(0 0 0 50%); }
+html[data-art="poster"] .fast-pass .pass-plate::after { right: calc(-1 * var(--s6) - 15px); clip-path: inset(0 50% 0 0); }
+html[data-art="poster"] .fast-pass .haunt-fx { opacity: 0.35; mix-blend-mode: multiply; }
+html[data-art="poster"] .fast-pass__kicker {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 2px solid #b8231b;
+  border-radius: 4px;
+  color: #b8231b;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  transform: rotate(-3deg);
+}
+html[data-art="poster"] .fast-pass h3 { color: var(--poster-ink); }
+html[data-art="poster"] .lantern__spirit {
+  color: hsl(var(--ghost-h) 75% 24%);
+  text-shadow: 2px 2px 0 rgba(26, 15, 12, 0.18);
+}
+html[data-art="poster"] .lantern__hint { color: #4a2e22; font-weight: 600; }
+html[data-art="poster"] .pass-plate {
+  margin-top: 26px;
+  border: 0;
+  border-top: 3px dashed rgba(26, 15, 12, 0.6);
+  border-radius: 0;
+  background: transparent;
+}
+html[data-art="poster"] .pass-plate__name { color: var(--poster-ink); }
+html[data-art="poster"] .pass-plate__admin,
+html[data-art="poster"] .fast-pass__id { color: #8a2a12; }
+html[data-art="poster"] .fast-pass__id.is-locked { color: #3f271c; font-weight: 600; }
+html[data-art="poster"] .lantern__rune-glyph .station-art,
+html[data-art="poster"] .lantern__rune-glyph .station-art svg { display: block; width: 100%; height: 100%; }
+html[data-art="poster"] .lantern__rune:not(.is-lit) .lantern__rune-glyph { opacity: 0.4; filter: grayscale(1); }
+html[data-art="poster"] .fast-pass.is-complete {
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5), 0 0 0 4px hsl(var(--ghost-h) 80% 55% / 0.55);
+}
+html[data-art="poster"] .fast-pass.is-redeemed { transform: rotate(1.2deg); }
+html[data-art="poster"] #fastPassCard.is-redeemed { transform: none; }
+html[data-art="poster"] .fast-pass #redeemedNote { color: #4a2e22; }
+
+/* Redeemed keepsake: the poster ticket tears along the perforation. Classic keeps the stamp. */
+.fast-pass__sheet,
+.fast-pass__stub { display: contents; }
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__used { display: none !important; }
+html[data-art="poster"] #fastPassCard.is-redeemed {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 6px 4px 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__sheet,
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__stub {
+  display: block;
+  position: relative;
+  border: 2px solid var(--poster-ink);
+  background-color: var(--poster-paper);
+  background-image:
+    var(--poster-grain),
+    linear-gradient(180deg, var(--poster-paper), var(--poster-paper-2));
+  background-size: 160px 160px, auto;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.28);
+}
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__sheet {
+  padding: 16px 12px 18px;
+  filter: saturate(0.5) brightness(0.92);
+  clip-path: polygon(
+    0 0, 100% 0,
+    100% calc(100% - 5px),
+    96% calc(100% - 14px),
+    91% calc(100% - 3px),
+    84% calc(100% - 16px),
+    78% calc(100% - 6px),
+    71% calc(100% - 2px),
+    64% calc(100% - 13px),
+    57% calc(100% - 4px),
+    49% calc(100% - 15px),
+    42% calc(100% - 5px),
+    35% calc(100% - 11px),
+    28% calc(100% - 2px),
+    21% calc(100% - 14px),
+    14% calc(100% - 6px),
+    8% calc(100% - 12px),
+    3% calc(100% - 3px),
+    0 calc(100% - 9px)
+  );
+  transform: rotate(-1.1deg);
+}
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__stub {
+  padding: 14px 8px 6px;
+  clip-path: polygon(
+    0 9px,
+    3% 3px,
+    8% 12px,
+    14% 6px,
+    21% 14px,
+    28% 2px,
+    35% 11px,
+    42% 5px,
+    49% 15px,
+    57% 4px,
+    64% 13px,
+    71% 2px,
+    78% 6px,
+    84% 16px,
+    91% 3px,
+    96% 14px,
+    100% 5px,
+    100% 100%,
+    0 100%
+  );
+  transform: rotate(1.25deg) translateX(4px);
+}
+html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate::before,
+html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate::after { display: none; }
+html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate__name { color: #1a0f0c; }
+html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate__admin,
+html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__id { color: #6e2414; }
+html[data-art="poster"] #fastPassCard.is-redeemed #redeemedNote {
+  margin: 8px 0 4px;
+  color: #3d2418;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+html[data-art="poster"] #fastPassCard.is-redeemed #redeemedNote::before {
+  content: "Redeemed";
+  display: block;
+  margin-bottom: 2px;
+  color: #7a3018;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__sheet {
+  animation: ticket-tear-top 0.55s ease-out both;
+}
+html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__stub {
+  animation: ticket-tear-stub 0.55s ease-out both;
+}
+@keyframes ticket-tear-top {
+  from { transform: translateY(16px) rotate(0deg); }
+  to { transform: rotate(-1.1deg); }
+}
+@keyframes ticket-tear-stub {
+  from { transform: translateY(-14px) rotate(0deg); }
+  to { transform: rotate(1.25deg) translateX(4px); }
+}
+@media (max-width: 430px) {
+  html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__sheet { padding: 12px 8px 16px; }
+  html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__stub {
+    transform: rotate(0.8deg);
+    padding: 12px 4px 4px;
+  }
+  html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__stub {
+    animation-name: ticket-tear-stub-narrow;
+  }
+  html[data-art="poster"] #fastPassCard.is-redeemed .lantern { width: 100%; }
+}
+@keyframes ticket-tear-stub-narrow {
+  from { transform: translateY(-14px) rotate(0deg); }
+  to { transform: rotate(0.8deg); }
+}
+
+/* Staff previews reuse the ticket; keep them flat so the desk UI stays tidy. */
+html[data-art="poster"] .staff-pass-preview,
+html[data-art="poster"] .staff-pass-used { transform: none; }
+
+/* ---------- Motion safety ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-art="poster"] #houseGrid .house-card,
+  html[data-art="poster"] .fast-pass { transition: none; }
+  html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__sheet,
+  html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__stub { animation: none; }
+  html[data-art="poster"] .station-map__pin.is-new .station-map__icon,
+  html[data-art="poster"] .station-map__pin.is-new .station-map__icon::after,
+  html[data-art="poster"] .station-map__pin.is-lit .st-needle,
+  html[data-art="poster"] .station-map__pin.is-lit .st-roll { animation: none; }
+}

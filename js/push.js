@@ -1,10 +1,14 @@
-import { apiUrl, apiFetch } from "./session.js?v=r11";
+import { apiUrl, apiFetch } from "./session.js?v=r40";
 
 const WANT_KEY = "scream-push-wanted";
 
 function isIos() {
   const ua = navigator.userAgent || "";
   return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent || "");
 }
 
 function isStandalone() {
@@ -50,20 +54,31 @@ async function vapidKey() {
 export async function registerPushWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/sw.js?v=r10", { scope: "/" });
+    return await navigator.serviceWorker.register("/sw.js?v=r40", { scope: "/" });
   } catch {
     return null;
   }
 }
 
-function authHeaders() {
+function jsonHeaders() {
   return { "Content-Type": "application/json" };
 }
 
 async function currentSubscription() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  if (!reg) return null;
   return reg.pushManager.getSubscription();
+}
+
+/** True only when this browser holds a live push subscription and permission is granted. */
+export async function pushIsLive() {
+  try {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
+    return Boolean(await currentSubscription());
+  } catch {
+    return false;
+  }
 }
 
 const HINT_DISMISS_KEY = "scream-push-hint-dismiss";
@@ -99,7 +114,7 @@ export async function syncPushWatch(watchIds) {
   try {
     const res = await apiFetch(apiUrl("push"), {
       method: "PATCH",
-      headers: authHeaders(),
+      headers: jsonHeaders(),
       asRole: "student",
       body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
     });
@@ -110,58 +125,68 @@ export async function syncPushWatch(watchIds) {
   }
 }
 
+/** Device-aware wording: desktop browsers, Android, and iPhone/iPad all fix this differently. */
 export function describePushBlock(reason) {
   const ios = isIos();
-  const phone = ios || /Android|Mobile/i.test(navigator.userAgent || "");
-  const home = " On iPhone and iPad, notifications only work after you add this site to the Home Screen: tap Share, then Add to Home Screen, and open it from that icon.";
-  if (reason === "ios-install") {
-    return "Notifications on iPhone and iPad only work after you add this site to the Home Screen. Tap Share, choose Add to Home Screen, then open Scream Fest from that icon.";
+  const android = isAndroid();
+  if (reason === "signin") {
+    return "Sign in first, so we know whose phone to haunt. Then tap Notify again.";
+  }
+  if (reason === "ios-install" || (ios && reason === "unsupported" && !isStandalone())) {
+    return "On iPhone and iPad, add this site to your Home Screen first: tap Share, then Add to Home Screen. Open Scream Fest from that icon, tap Notify, and choose Allow.";
   }
   if (reason === "denied") {
-    if (ios) return `Notifications are blocked. Allow them in your iPhone or iPad settings.${home}`;
-    if (phone) return "Notifications are blocked. Allow them for this site in your phone or browser settings, then try again.";
-    return "Notifications are blocked. Allow them for this site in the browser's site settings (the lock icon in the address bar), then try again.";
+    if (ios) return "Notifications are off for Scream Fest. Open Settings, then Notifications, then Scream Fest, and turn on Allow Notifications.";
+    if (android) return "Notifications are blocked. Allow them for this site in your browser (tap the icon next to the address, then Permissions) or in your phone's Settings, then tap Notify again.";
+    return "Notifications are blocked for this site. Click the icon next to the address bar, open Site settings, set Notifications to Allow, then click Notify again.";
   }
-  return "The walk-in alert could not be turned on. This house was not marked as watching.";
+  if (reason === "unsupported") {
+    return "This browser can't do push alerts. Try Chrome, Edge, Firefox or Safari, or just keep this page open.";
+  }
+  return "The alert didn't stick. Nothing is being watched. Check your connection and try again.";
 }
 
 export async function enablePushNotifications(watchIds = []) {
-  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-    return { ok: false, reason: "unsupported" };
-  }
   if (isIos() && !isStandalone()) {
     setWantsPush(true);
     paintPushHint();
     return { ok: false, reason: "ios-install" };
   }
-  if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return { ok: false, reason: "unsupported" };
+  }
+  if (Notification.permission === "denied") {
     return { ok: false, reason: "denied" };
   }
-  const key = await vapidKey();
-  if (!key) return { ok: false, reason: "no-vapid" };
-  const reg = await registerPushWorker();
-  if (!reg) return { ok: false, reason: "no-worker" };
-  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-  if (permission !== "granted") return { ok: false, reason: "denied" };
-  await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(key),
+  try {
+    const key = await vapidKey();
+    if (!key) return { ok: false, reason: "no-vapid" };
+    const reg = await registerPushWorker();
+    if (!reg) return { ok: false, reason: "no-worker" };
+    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (permission !== "granted") return { ok: false, reason: "denied" };
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      });
+    }
+    const res = await apiFetch(apiUrl("push"), {
+      method: "POST",
+      headers: jsonHeaders(),
+      asRole: "student",
+      body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
     });
+    if (res.status === 401) return { ok: false, reason: "signin" };
+    if (!res.ok) return { ok: false, reason: "save-failed" };
+    setWantsPush(true);
+    paintPushHint();
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "save-failed" };
   }
-  const res = await apiFetch(apiUrl("push"), {
-    method: "POST",
-    headers: authHeaders(),
-    asRole: "student",
-    body: JSON.stringify({ subscription: sub.toJSON(), watch: watchIds }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { ok: false, reason: "save-failed" };
-  setWantsPush(true);
-  paintPushHint();
-  return { ok: true };
 }
 
 export async function disablePushNotifications() {
@@ -172,7 +197,7 @@ export async function disablePushNotifications() {
     if (sub) {
       await apiFetch(apiUrl("push"), {
         method: "DELETE",
-        headers: authHeaders(),
+        headers: jsonHeaders(),
         asRole: "student",
         body: JSON.stringify({ subscription: sub.toJSON() }),
       }).catch(() => {});

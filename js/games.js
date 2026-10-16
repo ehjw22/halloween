@@ -1,6 +1,6 @@
-import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=r11";
-import { setupCatchArcade } from "./catch-arcade.js?v=r7";
-import { markImg } from "./marks.js?v=r6";
+import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=r40";
+import { setupCatchArcade } from "./catch-arcade.js?v=r40";
+import { markImg } from "./marks.js?v=r40";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["pumpkin", "bat", "ghost", "web", "candy", "crypt", "moon", "flask", "owl", "fang", "key", "lantern"];
@@ -79,7 +79,7 @@ function renderBoard(listEl, top, mine, signedIn) {
   const hint = signedIn
     ? `Your saved best: ${mine ?? 0}`
     : "Sign in to save a campus best.";
-  listEl.innerHTML = rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>Play a round to open the board.</p></li>";
+  listEl.innerHTML = rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>The board is empty. Haunt it first.</p></li>";
   let hintEl = listEl.nextElementSibling;
   if (!hintEl || !hintEl.classList.contains("scoreboard-hint")) {
     hintEl = document.createElement("p");

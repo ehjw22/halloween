@@ -1,4 +1,4 @@
-import { markUrl } from "./marks.js?v=r6";
+import { markUrl } from "./marks.js?v=r40";
 
 export function setupCatchArcade({ formatTime, recordScore, REDUCE_MOTION, setCatchApi }) {
   const canvas = document.getElementById("catchCanvas");

@@ -4,9 +4,18 @@
   "engines": {
     "node": ">=18"
   },
+  "scripts": {
+    "dev": "node server.js",
+    "dev:local": "node scripts/dev-stack.mjs",
+    "test:api": "node scripts/api-smoke.mjs",
+    "hash-passcode": "node scripts/hash-passcode.mjs"
+  },
   "dependencies": {
     "bcryptjs": "2.4.3",
     "dotenv": "^18.0.0",
     "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10"
   }
 }

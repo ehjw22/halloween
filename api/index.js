@@ -17,9 +17,10 @@ const {
   handleStamps,
   handleStudentAuth,
   handleWaitTimes,
+  jsonRequest,
   sameOrigin,
   studentLoginReady,
-} = require("../lib/server-auth");
+} = require("./_lib/server-auth");
 
 function handleConfig(req, res) {
   const env = getEnv();
@@ -27,7 +28,7 @@ function handleConfig(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   let vapidPublicKey = process.env.VAPID_PUBLIC_KEY || "";
   try {
-    vapidPublicKey = require("../lib/push").getPublicVapidKey() || vapidPublicKey;
+    vapidPublicKey = require("./_lib/push").getPublicVapidKey() || vapidPublicKey;
   } catch {
     /* push extras must not block live Supabase config */
   }
@@ -101,6 +102,7 @@ module.exports = async function handler(req, res) {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Vary", "Origin, Cookie");
   try {
     if (req.method === "OPTIONS") {
       res.status(204).end();
@@ -111,6 +113,10 @@ module.exports = async function handler(req, res) {
       res.status(403).json({ error: "Request origin is not allowed." });
       return;
     }
+    if (mutating && !jsonRequest(req)) {
+      res.status(415).json({ error: "Send JSON." });
+      return;
+    }
     const name = routeName(req);
     if (name === "config") {
       if (req.method !== "GET" && req.method !== "HEAD") {
@@ -119,14 +125,14 @@ module.exports = async function handler(req, res) {
       }
       return handleConfig(req, res);
     }
-    const fn = HANDLERS[name];
+    const fn = Object.prototype.hasOwnProperty.call(HANDLERS, name) ? HANDLERS[name] : null;
     if (!fn) {
       res.status(404).json({ error: "Unknown API route.", code: "unknown-route" });
       return;
     }
     return await fn(req, res);
   } catch (error) {
-    console.error("[api]", error);
+    console.error("[api]", error && error.message ? error.message : error);
     if (!res.headersSent) {
       res.status(500).json({
         error: "Something went wrong. Try again.",

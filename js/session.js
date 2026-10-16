@@ -1,4 +1,4 @@
-import { boothById } from "./booths.js";
+import { boothById } from "./booths.js?v=r40";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
@@ -40,6 +40,7 @@ function apiFail(data, res, fallback) {
   const err = new Error(userFacingError((data && data.error) || fallback, fallback || "Something went wrong. Try again."));
   err.code = (data && data.code) || "";
   err.status = status || 0;
+  if (data && data.stampCount !== undefined) err.stampCount = data.stampCount;
   return err;
 }
 
@@ -109,7 +110,7 @@ function readSession(storageKey, metaKey, role) {
 export function getStudentSession() {
   const session = readSession(STUDENT_KEY, STUDENT_META, "student");
   if (!session || session.payload.role !== "student") return null;
-  if (session.payload.local && !isBrowserLocal()) {
+  if (session.payload.local) {
     localStorage.removeItem(STUDENT_KEY);
     localStorage.removeItem(STUDENT_META);
     return null;
@@ -128,7 +129,7 @@ export function getStudentSession() {
 export function getAdminSession() {
   const session = readSession(ADMIN_KEY, ADMIN_META, "admin");
   if (!session || session.payload.role !== "admin") return null;
-  if (session.payload.local && !isBrowserLocal()) {
+  if (session.payload.local) {
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(ADMIN_META);
     return null;
@@ -152,29 +153,34 @@ export function canUseStaffUi() {
 export async function verifyAdminSession() {
   const session = getAdminSession();
   if (!session) return null;
-  if (session.payload.local && isBrowserLocal()) return session;
   try {
     const res = await apiFetch(apiUrl("admin-auth"), { asRole: "admin" });
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
-      if (data.staff) {
-        const prev = readMeta(ADMIN_META, "admin") || { ...session.payload, role: "admin" };
-        writeMeta(ADMIN_META, {
-          ...prev,
-          role: "admin",
-          staffId: data.staff.staffId || prev.staffId,
-          name: data.staff.fullName || prev.name,
-          staffScope: data.staff.staffScope || prev.staffScope || "admin",
-          exp: prev.exp || session.payload.exp,
-        });
+      if (!data.staff) {
+        forgetAdminSession();
+        return null;
       }
+      const prev = readMeta(ADMIN_META, "admin") || { ...session.payload, role: "admin" };
+      const exp = data.staff.expiresAt ? Math.floor(new Date(data.staff.expiresAt).getTime() / 1000) : prev.exp || session.payload.exp;
+      writeMeta(ADMIN_META, {
+        ...prev,
+        role: "admin",
+        staffId: data.staff.staffId || prev.staffId,
+        name: data.staff.fullName || prev.name,
+        staffScope: data.staff.staffScope || prev.staffScope || "admin",
+        exp,
+      });
       return getAdminSession();
     }
+    if (res.status === 401 || res.status === 403) {
+      forgetAdminSession();
+      return null;
+    }
   } catch {
-    /* treat as signed out */
+    /* offline: keep the local copy, the server still checks every action */
   }
-  clearAdminSession();
-  return null;
+  return getAdminSession();
 }
 
 export function setStudentToken(token) {
@@ -185,25 +191,37 @@ export function setAdminToken(token) {
   localStorage.setItem(ADMIN_KEY, token);
 }
 
-function logoutRemote(role) {
-  apiFetch(apiUrl("logout"), {
+async function logoutRemote(role) {
+  const timeout = new Promise((resolve) => setTimeout(resolve, 4000));
+  const call = apiFetch(apiUrl("logout"), {
     method: "POST",
     skipAuth: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ role }),
-  }).catch(() => {});
+  }).catch(() => null);
+  await Promise.race([call, timeout]);
 }
 
-export function clearStudentSession() {
+function forgetStudentSession() {
   localStorage.removeItem(STUDENT_KEY);
   localStorage.removeItem(STUDENT_META);
-  logoutRemote("student");
 }
 
-export function clearAdminSession() {
+function forgetAdminSession() {
   localStorage.removeItem(ADMIN_KEY);
   localStorage.removeItem(ADMIN_META);
-  logoutRemote("admin");
+}
+
+/** Signs out of both the student card and any staff unlock (the server clears both cookies). */
+export async function clearStudentSession() {
+  forgetStudentSession();
+  forgetAdminSession();
+  await logoutRemote("student");
+}
+
+export async function clearAdminSession() {
+  forgetAdminSession();
+  await logoutRemote("admin");
 }
 
 export function apiFetch(url, options = {}) {
@@ -248,39 +266,6 @@ const ADMIN_NUMBER_HINT =
   "Enter your admin number as P followed by 7 digits, starting with 22, 23, 24, 25, or 26.";
 const STAFF_NUMBER_HINT = "Admin number should be P followed by 7 digits.";
 
-function toB64Url(obj) {
-  const json = JSON.stringify(obj);
-  const bytes = new TextEncoder().encode(json);
-  let bin = "";
-  bytes.forEach((b) => {
-    bin += String.fromCharCode(b);
-  });
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function mintLocalJwt(payload) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = toB64Url({ alg: "none", typ: "JWT" });
-  const mid = toB64Url({ ...payload, iat: now, exp: now + 3600, local: true });
-  return `${header}.${mid}.local`;
-}
-
-function stampsKey(studentNumber) {
-  return `sp-stamps-${studentNumber}`;
-}
-
-function readLocalCard(studentNumber) {
-  try {
-    return JSON.parse(localStorage.getItem(stampsKey(studentNumber)) || "null");
-  } catch {
-    return null;
-  }
-}
-
-function writeLocalCard(studentNumber, card) {
-  localStorage.setItem(stampsKey(studentNumber), JSON.stringify(card));
-}
-
 export function applyStaffFlags(data) {
   if (!data) return;
   const challenge = Boolean(data.staffChallenge) || isStaffRoleName(data.accountRole);
@@ -300,8 +285,8 @@ export function applyStaffFlags(data) {
 }
 
 function applyRemoteSession(data) {
-  const exp = Math.floor(Date.now() / 1000) + Number(data.expiresIn || 8 * 60 * 60);
-  if (data.student) {
+  const exp = Math.floor(Date.now() / 1000) + Number(data.expiresIn || 6 * 60 * 60);
+  if (data.student && !data.staff) {
     localStorage.removeItem(STUDENT_KEY);
     writeMeta(STUDENT_META, {
       role: "student",
@@ -312,7 +297,7 @@ function applyRemoteSession(data) {
       exp,
     });
     if (data.studentToken) setStudentToken(data.studentToken);
-    else if (data.token && !data.staff) setStudentToken(data.token);
+    else if (data.token) setStudentToken(data.token);
   }
   if (data.staff) {
     localStorage.removeItem(ADMIN_KEY);
@@ -328,109 +313,60 @@ function applyRemoteSession(data) {
   }
 }
 
-function localSignIn({ id, fullName, password }) {
-  if (!isLoopback()) {
-    throw new Error("Sign-in is unavailable. Try again in a moment.");
-  }
-  const pass = String(password || "");
-  const studentToken = mintLocalJwt({
-    role: "student",
-    studentNumber: id,
-    name: fullName,
-    staffChallenge: Boolean(pass),
-  });
-  setStudentToken(studentToken);
-  if (!readLocalCard(id)) {
-    writeLocalCard(id, {
-      stamps: {},
-      redeemedAt: null,
-      redeemedBy: null,
-      fullName,
-      studentNumber: id,
-      passId: `SP-FP-${id}`,
-    });
-  }
-  if (pass) {
-    if (pass !== "SP2026") {
-      throw new Error("Staff password is incorrect.");
-    }
-    const token = mintLocalJwt({ role: "admin", staffId: id, name: fullName, staffScope: "admin" });
-    setAdminToken(token);
-    return { staff: { staffId: id, fullName, staffScope: "admin" }, student: { studentNumber: id, fullName }, token, local: true };
-  }
-  return {
-    staff: false,
-    student: { studentNumber: id, fullName },
-    token: studentToken,
-    staffChallenge: false,
-    local: true,
-  };
+function offline(error) {
+  return !error || /failed to fetch|networkerror|load failed|network request failed/i.test(String(error.message || ""));
 }
 
-function emptyCard(session) {
-  return {
-    stamps: {},
-    redeemedAt: null,
-    redeemedBy: null,
-    fullName: session.payload.name,
-    studentNumber: session.payload.studentNumber,
-    passId: `SP-FP-${session.payload.studentNumber}`,
-  };
-}
-
-export async function signIn({ adminNumber, fullName, password }) {
-  const id = normalizeAdminNumber(adminNumber);
-  if (!isAdminNumber(id)) {
-    throw new Error(ADMIN_NUMBER_HINT);
-  }
-  const name = String(fullName || "").trim();
-  if (name.length < 2) {
-    throw new Error("Enter your full name.");
-  }
+async function postLogin(body, fallback) {
+  let res;
   try {
-    const res = await apiFetch(apiUrl("login"), {
+    res = await apiFetch(apiUrl("login"), {
       method: "POST",
       skipAuth: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminNumber: id, fullName: name, password: password || "" }),
+      body: JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && (data.token || data.student || data.staff || data.staffChallenge)) {
-      applyRemoteSession(data);
-      return data;
-    }
-    if (res.ok) {
-      throw new Error("Sign-in did not return a session. Try again.");
-    }
-    const apiError = userFacingError(data.error, "");
-    throw new Error(apiError || "Sign-in failed. Check your admin number and name, then try again.");
   } catch (error) {
-    if (error && error.message && !/failed to fetch|networkerror|load failed/i.test(error.message)) {
-      throw error;
-    }
-    if (isLoopback()) {
-      return localSignIn({ id, fullName: name, password });
-    }
-    throw new Error("Sign-in is unavailable. Try again in a moment.");
+    if (offline(error)) throw new Error("Can't reach the server. Check your connection and try again.");
+    throw error;
   }
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && (data.student || data.staff)) {
+    applyRemoteSession(data);
+    return data;
+  }
+  if (res.ok) throw new Error("Sign-in did not return a session. Try again.");
+  throw apiFail(data, res, fallback);
+}
+
+/** Student sign-in. A new admin number and name creates the card. */
+export async function signIn({ adminNumber, fullName }) {
+  const id = normalizeAdminNumber(adminNumber);
+  if (!isAdminNumber(id)) throw new Error(ADMIN_NUMBER_HINT);
+  const name = String(fullName || "").trim();
+  if (name.length < 2) throw new Error("Enter your full name.");
+  return postLogin({ adminNumber: id, fullName: name }, "Sign-in failed. Check your admin number and name.");
+}
+
+/** Staff unlock on top of the signed-in student card. The password picks the post. */
+export async function unlockStaff(password) {
+  if (!getStudentSession()) throw new Error("Sign in with your admin number and full name first.");
+  const pass = String(password || "").trim();
+  if (!pass) throw new Error("Enter the staff password.");
+  return postLogin({ password: pass }, "Staff sign-in failed. Check the password for your post.");
 }
 
 export async function fetchStamps() {
   const session = getStudentSession();
   if (!session) throw new Error("Sign in to open your stamp card.");
-  const local = readLocalCard(session.payload.studentNumber) || emptyCard(session);
-  if (session.payload.local) return local;
-  try {
-    const res = await apiFetch(apiUrl("stamps"));
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      applyStaffFlags(data);
-      return data;
-    }
-  } catch {
-    /* use local card */
+  const res = await apiFetch(apiUrl("stamps"), { asRole: "student" });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    applyStaffFlags(data);
+    return data;
   }
-  return local;
+  if (res.status === 401) forgetStudentSession();
+  throw apiFail(data, res, "Could not load your stamp card.");
 }
 
 export async function lookupStudent(studentNumber) {
@@ -492,12 +428,9 @@ export async function awardStamp(studentNumber, boothId) {
   const booth = boothById(boothId);
   if (!booth) throw new Error("Choose a valid booth.");
 
-  if (session.payload.local) {
-    return awardStampLocal(session, num, booth);
-  }
-
   const res = await apiFetch(apiUrl("award-stamp"), {
     method: "POST",
+    asRole: "admin",
     headers: {
       "Content-Type": "application/json",
     },
@@ -520,65 +453,15 @@ export async function unawardStamp(studentNumber, boothId) {
   if (!isAdminNumber(num)) throw new Error(STAFF_NUMBER_HINT);
   const booth = boothById(boothId);
   if (!booth) throw new Error("Choose a valid booth.");
-  if (session.payload.local) return unawardStampLocal(num, booth);
   const res = await apiFetch(apiUrl("unaward-stamp"), {
     method: "POST",
+    asRole: "admin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ studentNumber: num, boothId: booth.id }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw apiFail(data, res, "Could not undo that stamp.");
   return data;
-}
-
-function awardStampLocal(session, num, booth) {
-  const card = readLocalCard(num) || {
-    stamps: {},
-    redeemedAt: null,
-    redeemedBy: null,
-    fullName: "",
-    studentNumber: num,
-    passId: `SP-FP-${num}`,
-  };
-  const stamps = { ...(card.stamps || {}) };
-  if (stamps[booth.id] || stamps[Number(booth.id)]) {
-    throw new Error("This student already has that booth stamp.");
-  }
-  stamps[booth.id] = { by: session.payload.staffId || session.payload.name || "staff", at: Date.now(), boothId: booth.id };
-  const next = { ...card, stamps, studentNumber: num };
-  writeLocalCard(num, next);
-  return {
-    studentNumber: num,
-    fullName: card.fullName || "",
-    stamps,
-    awarded: booth.id,
-    boothName: booth.name,
-    local: true,
-  };
-}
-
-function unawardStampLocal(num, booth) {
-  const card = readLocalCard(num);
-  const stamps = { ...(card?.stamps || {}) };
-  const stamp = stamps[booth.id] || stamps[String(booth.id)] || stamps[Number(booth.id)];
-  if (!stamp) throw new Error("This student does not have that stamp.");
-  const at = Number(stamp.at);
-  if (!Number.isFinite(at) || Date.now() - at > 2 * 60 * 1000) {
-    throw new Error("The undo window has closed.");
-  }
-  delete stamps[booth.id];
-  delete stamps[String(booth.id)];
-  delete stamps[Number(booth.id)];
-  const next = { ...(card || {}), stamps, studentNumber: num };
-  writeLocalCard(num, next);
-  return {
-    studentNumber: num,
-    fullName: card.fullName || "",
-    stamps,
-    boothId: String(booth.id),
-    boothName: booth.name,
-    local: true,
-  };
 }
 
 export async function submitFeedback(kind, targetId, message, rating) {
@@ -639,9 +522,9 @@ export async function postAnnouncement(message, extra = {}) {
   try {
     const res = await apiFetch(apiUrl("announcements"), {
       method: "POST",
+      asRole: "admin",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.token}`,
       },
       body: JSON.stringify({
         message,
@@ -680,9 +563,9 @@ export async function setAnnouncementActive(id, active) {
   try {
     const res = await apiFetch(apiUrl("announcements"), {
       method: "PATCH",
+      asRole: "admin",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.token}`,
       },
       body: JSON.stringify({ id, active }),
     });

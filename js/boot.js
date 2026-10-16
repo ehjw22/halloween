@@ -1,5 +1,24 @@
 (function () {
   var GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
+  // Artwork switch. "poster" is the hand-made redesign; "classic" brings back every original
+  // illustration, stamp and ticket. Visitors can also flip it with ?theme=classic / ?theme=poster.
+  var ART_DEFAULT = "poster";
+  var ART_THEMES = { poster: 1, classic: 1 };
+
+  (function pickArt() {
+    var art = ART_DEFAULT;
+    try {
+      var asked = String(new URLSearchParams(location.search).get("theme") || "").toLowerCase();
+      if (ART_THEMES[asked]) {
+        art = asked;
+        localStorage.setItem("scream-art", asked);
+      } else {
+        var saved = localStorage.getItem("scream-art");
+        if (ART_THEMES[saved]) art = saved;
+      }
+    } catch (e) {}
+    document.documentElement.setAttribute("data-art", art);
+  })();
 
   function localHost() {
     var host = String(location.hostname || "").toLowerCase();

@@ -644,7 +644,584 @@ alter table public.staff_audit
   add constraint staff_audit_staff_id_format
   check (staff_id ~ '^P(22|23|24|25|26)[0-9]{5}$') not valid;
 
+-- ---------------------------------------------------------------------------
+-- Service-role functions. Idempotent. Sign-in is admin number + full name.
+-- There is no student PIN. Wait status follows the minutes (60 or more is closed).
+-- ---------------------------------------------------------------------------
 
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
+create or replace function public.scream_norm_number(p_number text)
+returns text
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+  n text;
+begin
+  n := upper(regexp_replace(coalesce(p_number, ''), '[^A-Za-z0-9]', '', 'g'));
+  if n ~ '^[0-9]{7}$' then
+    n := 'P' || n;
+  end if;
+  if n !~ '^P(22|23|24|25|26)[0-9]{5}$' then
+    return null;
+  end if;
+  return n;
+end;
+$$;
 
+create or replace function public.scream_fold_name(p_name text)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select regexp_replace(lower(coalesce(p_name, '')), '[[:space:][:punct:]]+', '', 'g');
+$$;
+
+-- p_closed is accepted and ignored so older callers keep working.
+create or replace function public.scream_wait_status(p_wait integer, p_closed boolean default false)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+    when coalesce(p_wait, 0) >= 60 then 'closed'
+    when coalesce(p_wait, 0) >= 40 then 'long'
+    when coalesce(p_wait, 0) >= 21 then 'busy'
+    when coalesce(p_wait, 0) >= 6 then 'open'
+    else 'gonow'
+  end;
+$$;
+
+create or replace function public.scream_stamp_booths()
+returns text[]
+language sql
+immutable
+set search_path = public
+as $$
+  select array['1', '2', '8', '4', '7']::text[];
+$$;
+
+create or replace function public.scream_set_wait(
+  p_id text,
+  p_wait integer,
+  p_closed boolean default null,
+  p_staff text default '',
+  p_scope text default ''
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  prev public.scare_houses%rowtype;
+  saved public.scare_houses%rowtype;
+  wait_val integer;
+begin
+  if p_id is null or p_id !~ '^[a-z0-9-]{2,40}$' then
+    return jsonb_build_object('ok', false, 'error', 'bad_id');
+  end if;
+  select * into prev from public.scare_houses where id = p_id for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_house');
+  end if;
+  wait_val := greatest(0, least(240, coalesce(p_wait, prev.wait_minutes, 0)));
+  update public.scare_houses
+    set wait_minutes = wait_val,
+        status = public.scream_wait_status(wait_val, false),
+        updated_at = now()
+  where id = p_id
+  returning * into saved;
+  if prev.wait_minutes is distinct from wait_val then
+    insert into public.staff_audit (staff_id, action, target, detail)
+    values (
+      left(coalesce(p_staff, ''), 16),
+      'wait_update',
+      p_id,
+      jsonb_build_object(
+        'wait_minutes', wait_val,
+        'previous_wait', prev.wait_minutes,
+        'scope', left(coalesce(p_scope, ''), 40)
+      )
+    );
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'house', to_jsonb(saved),
+    'previous_wait', prev.wait_minutes
+  );
+end;
+$$;
+
+drop function if exists public.scream_student_sign_in(text, text, text, integer, integer);
+drop function if exists public.scream_reset_pin(text, text);
+
+alter table public.students drop column if exists pin_hash;
+alter table public.students drop column if exists pin_set_at;
+alter table public.students drop column if exists pin_failures;
+alter table public.students drop column if exists pin_locked_until;
+
+alter table public.scare_houses drop column if exists closed;
+
+create or replace function public.scream_student_sign_in(p_number text, p_name text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  nm text;
+  s public.students%rowtype;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  nm := left(trim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g')), 80);
+  if char_length(nm) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'bad_name');
+  end if;
+  select * into s from public.students where student_number = n for update;
+  if not found then
+    insert into public.students (student_number, full_name)
+    values (n, nm);
+    insert into public.stamp_cards (student_number, stamps)
+    values (n, '{}'::jsonb)
+    on conflict (student_number) do nothing;
+    return jsonb_build_object('ok', true, 'created', true, 'student_number', n, 'full_name', nm, 'role', 'student');
+  end if;
+  if public.scream_fold_name(s.full_name) is distinct from public.scream_fold_name(nm) then
+    return jsonb_build_object('ok', false, 'error', 'name_mismatch');
+  end if;
+  insert into public.stamp_cards (student_number, stamps)
+  values (n, '{}'::jsonb)
+  on conflict (student_number) do nothing;
+  return jsonb_build_object(
+    'ok', true,
+    'created', false,
+    'student_number', n,
+    'full_name', s.full_name,
+    'role', coalesce(s.role, 'student')
+  );
+end;
+$$;
+
+-- Stamp card reads
+-- ---------------------------------------------------------------------------
+
+create or replace function public.scream_lookup_student(p_number text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  s public.students%rowtype;
+  c public.stamp_cards%rowtype;
+  stamp_count integer;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  select * into s from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+  insert into public.stamp_cards (student_number, stamps)
+  values (n, '{}'::jsonb)
+  on conflict (student_number) do nothing;
+  select * into c from public.stamp_cards where student_number = n;
+  select count(*) into stamp_count
+  from jsonb_object_keys(coalesce(c.stamps, '{}'::jsonb)) k
+  where k = any (public.scream_stamp_booths());
+  return jsonb_build_object(
+    'ok', true,
+    'student_number', s.student_number,
+    'full_name', s.full_name,
+    'role', coalesce(s.role, 'student'),
+    'stamps', coalesce(c.stamps, '{}'::jsonb),
+    'stamp_count', stamp_count,
+    'redeemed_at', c.redeemed_at,
+    'redeemed_by', c.redeemed_by,
+    'updated_at', c.updated_at
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Stamps and wheel ticket: atomic, idempotent, and logged in the same transaction
+-- ---------------------------------------------------------------------------
+
+create or replace function public.scream_award_stamp(p_number text, p_booth text, p_staff text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  booth text;
+  s public.students%rowtype;
+  c public.stamp_cards%rowtype;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
+  if not (booth = any (public.scream_stamp_booths())) then
+    return jsonb_build_object('ok', false, 'error', 'bad_booth');
+  end if;
+  select * into s from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+  insert into public.stamp_cards (student_number, stamps)
+  values (n, '{}'::jsonb)
+  on conflict (student_number) do nothing;
+  select * into c from public.stamp_cards where student_number = n for update;
+  if coalesce(c.stamps, '{}'::jsonb) ? booth then
+    return jsonb_build_object(
+      'ok', true, 'already', true,
+      'student_number', n, 'full_name', s.full_name, 'stamps', c.stamps
+    );
+  end if;
+  update public.stamp_cards
+    set stamps = coalesce(stamps, '{}'::jsonb) || jsonb_build_object(
+          booth,
+          jsonb_build_object(
+            'by', left(coalesce(p_staff, 'staff'), 16),
+            'at', (extract(epoch from clock_timestamp()) * 1000)::bigint,
+            'boothId', booth
+          )
+        ),
+        updated_at = now()
+  where student_number = n
+  returning * into c;
+  insert into public.staff_audit (staff_id, action, target, detail)
+  values (left(coalesce(p_staff, ''), 16), 'award_stamp', n, jsonb_build_object('boothId', booth));
+  return jsonb_build_object(
+    'ok', true, 'already', false,
+    'student_number', n, 'full_name', s.full_name, 'stamps', c.stamps
+  );
+end;
+$$;
+
+create or replace function public.scream_unaward_stamp(
+  p_number text,
+  p_booth text,
+  p_staff text,
+  p_window_seconds integer default 120
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  booth text;
+  s public.students%rowtype;
+  c public.stamp_cards%rowtype;
+  at_ms bigint;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  booth := regexp_replace(coalesce(p_booth, ''), '[^0-9]', '', 'g');
+  if not (booth = any (public.scream_stamp_booths())) then
+    return jsonb_build_object('ok', false, 'error', 'bad_booth');
+  end if;
+  select * into s from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+  select * into c from public.stamp_cards where student_number = n for update;
+  if not found or not (coalesce(c.stamps, '{}'::jsonb) ? booth) then
+    return jsonb_build_object('ok', false, 'error', 'not_stamped');
+  end if;
+  if c.redeemed_at is not null then
+    return jsonb_build_object('ok', false, 'error', 'redeemed');
+  end if;
+  at_ms := nullif(c.stamps -> booth ->> 'at', '')::bigint;
+  if at_ms is null or (extract(epoch from clock_timestamp()) * 1000)::bigint - at_ms > greatest(1, p_window_seconds) * 1000 then
+    return jsonb_build_object('ok', false, 'error', 'window_closed');
+  end if;
+  update public.stamp_cards
+    set stamps = stamps - booth, updated_at = now()
+  where student_number = n
+  returning * into c;
+  insert into public.staff_audit (staff_id, action, target, detail)
+  values (left(coalesce(p_staff, ''), 16), 'unaward_stamp', n, jsonb_build_object('boothId', booth));
+  return jsonb_build_object('ok', true, 'student_number', n, 'full_name', s.full_name, 'stamps', c.stamps);
+end;
+$$;
+
+create or replace function public.scream_redeem_pass(p_number text, p_staff text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  s public.students%rowtype;
+  c public.stamp_cards%rowtype;
+  filled integer;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  select * into s from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+  select * into c from public.stamp_cards where student_number = n for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'needs_stamps', 'stamp_count', 0);
+  end if;
+  select count(*) into filled
+  from jsonb_object_keys(coalesce(c.stamps, '{}'::jsonb)) k
+  where k = any (public.scream_stamp_booths());
+  if c.redeemed_at is not null then
+    return jsonb_build_object(
+      'ok', true, 'already', true, 'student_number', n, 'full_name', s.full_name,
+      'redeemed_at', c.redeemed_at, 'redeemed_by', c.redeemed_by, 'stamp_count', filled
+    );
+  end if;
+  if filled < cardinality(public.scream_stamp_booths()) then
+    return jsonb_build_object('ok', false, 'error', 'needs_stamps', 'stamp_count', filled);
+  end if;
+  update public.stamp_cards
+    set redeemed_at = now(), redeemed_by = left(coalesce(p_staff, ''), 16), updated_at = now()
+  where student_number = n
+  returning * into c;
+  insert into public.staff_audit (staff_id, action, target, detail)
+  values (left(coalesce(p_staff, ''), 16), 'redeem_pass', n, jsonb_build_object('passId', 'SP-FP-' || n));
+  return jsonb_build_object(
+    'ok', true, 'already', false, 'student_number', n, 'full_name', s.full_name,
+    'redeemed_at', c.redeemed_at, 'redeemed_by', c.redeemed_by, 'stamp_count', filled
+  );
+end;
+$$;
+
+create or replace function public.scream_unredeem_pass(
+  p_number text,
+  p_staff text,
+  p_window_seconds integer default 120
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n text;
+  s public.students%rowtype;
+  c public.stamp_cards%rowtype;
+begin
+  n := public.scream_norm_number(p_number);
+  if n is null then
+    return jsonb_build_object('ok', false, 'error', 'bad_number');
+  end if;
+  select * into s from public.students where student_number = n;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_student');
+  end if;
+  select * into c from public.stamp_cards where student_number = n for update;
+  if not found or c.redeemed_at is null then
+    return jsonb_build_object('ok', false, 'error', 'not_redeemed');
+  end if;
+  if now() - c.redeemed_at > make_interval(secs => greatest(1, p_window_seconds)) then
+    return jsonb_build_object('ok', false, 'error', 'window_closed');
+  end if;
+  update public.stamp_cards
+    set redeemed_at = null, redeemed_by = null, updated_at = now()
+  where student_number = n
+  returning * into c;
+  insert into public.staff_audit (staff_id, action, target, detail)
+  values (left(coalesce(p_staff, ''), 16), 'unredeem_pass', n, jsonb_build_object('passId', 'SP-FP-' || n));
+  return jsonb_build_object('ok', true, 'student_number', n, 'full_name', s.full_name, 'redeemed_at', null);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Command post counts, computed in SQL so they are not capped by REST row limits
+-- ---------------------------------------------------------------------------
+
+create or replace function public.scream_ops_summary(p_audit_limit integer default 30)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  per_booth jsonb;
+begin
+  select coalesce(jsonb_object_agg(b, (select count(*) from public.stamp_cards c where coalesce(c.stamps, '{}'::jsonb) ? b)), '{}'::jsonb)
+  into per_booth
+  from unnest(public.scream_stamp_booths()) as b;
+  return jsonb_build_object(
+    'students', (select count(*) from public.students),
+    'stamps_per_booth', per_booth,
+    'fast_pass_unlocked', (select count(*) from public.stamp_cards c where coalesce(c.stamps, '{}'::jsonb) ?& public.scream_stamp_booths()),
+    'redeemed', (select count(*) from public.stamp_cards c where c.redeemed_at is not null),
+    'houses_busy', (select count(*) from public.scare_houses h where h.status = 'busy'),
+    'houses_long', (select count(*) from public.scare_houses h where h.status = 'long'),
+    'houses_closed', (select count(*) from public.scare_houses h where h.status = 'closed'),
+    'recent_feedback', (select count(*) from public.event_feedback f where f.created_at > now() - interval '6 hours'),
+    'audit', coalesce((
+      select jsonb_agg(to_jsonb(a) order by a.at desc)
+      from (
+        select id, at, staff_id, action, target, detail
+        from public.staff_audit
+        order by at desc
+        limit greatest(1, least(100, p_audit_limit))
+      ) a
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Rate limits shared across every serverless instance
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.scream_rate_limits (
+  bucket text primary key,
+  hits integer not null default 0,
+  window_start timestamptz not null default now()
+);
+
+alter table public.scream_rate_limits enable row level security;
+revoke all on table public.scream_rate_limits from anon, authenticated, public;
+
+create or replace function public.scream_rate_hit(p_bucket text, p_max integer, p_window_seconds integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r public.scream_rate_limits%rowtype;
+  win interval := make_interval(secs => greatest(1, p_window_seconds));
+begin
+  if p_bucket is null or length(p_bucket) < 3 or length(p_bucket) > 200 then
+    return jsonb_build_object('ok', false, 'retry_after', 60);
+  end if;
+  insert into public.scream_rate_limits as t (bucket, hits, window_start)
+  values (p_bucket, 1, now())
+  on conflict (bucket) do update set
+    hits = case when t.window_start < now() - win then 1 else t.hits + 1 end,
+    window_start = case when t.window_start < now() - win then now() else t.window_start end
+  returning * into r;
+  if random() < 0.01 then
+    delete from public.scream_rate_limits where window_start < now() - interval '1 day';
+  end if;
+  return jsonb_build_object(
+    'ok', r.hits <= greatest(1, p_max),
+    'hits', r.hits,
+    'retry_after', greatest(0, ceil(extract(epoch from (r.window_start + win - now())))::int)
+  );
+end;
+$$;
+
+create or replace function public.scream_rate_peek(p_bucket text, p_max integer, p_window_seconds integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r public.scream_rate_limits%rowtype;
+  win interval := make_interval(secs => greatest(1, p_window_seconds));
+begin
+  select * into r from public.scream_rate_limits where bucket = p_bucket;
+  if not found or r.window_start < now() - win then
+    return jsonb_build_object('ok', true, 'hits', 0, 'retry_after', 0);
+  end if;
+  return jsonb_build_object(
+    'ok', r.hits < greatest(1, p_max),
+    'hits', r.hits,
+    'retry_after', greatest(0, ceil(extract(epoch from (r.window_start + win - now())))::int)
+  );
+end;
+$$;
+
+create or replace function public.scream_rate_reset(p_bucket text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.scream_rate_limits where bucket = p_bucket;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Least privilege: nothing new is reachable with the public anon key
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  fn text;
+begin
+  foreach fn in array array[
+    'public.scream_norm_number(text)',
+    'public.scream_fold_name(text)',
+    'public.scream_wait_status(integer, boolean)',
+    'public.scream_stamp_booths()',
+    'public.scream_set_wait(text, integer, boolean, text, text)',
+    'public.scream_student_sign_in(text, text)',
+    'public.scream_lookup_student(text)',
+    'public.scream_award_stamp(text, text, text)',
+    'public.scream_unaward_stamp(text, text, text, integer)',
+    'public.scream_redeem_pass(text, text)',
+    'public.scream_unredeem_pass(text, text, integer)',
+    'public.scream_ops_summary(integer)',
+    'public.scream_rate_hit(text, integer, integer)',
+    'public.scream_rate_peek(text, integer, integer)',
+    'public.scream_rate_reset(text)'
+  ] loop
+    execute format('revoke all on function %s from public, anon, authenticated', fn);
+    execute format('grant execute on function %s to service_role', fn);
+  end loop;
+end $$;
+
+-- The older helper RPCs stay service-role only as well (re-asserted in case they were re-created).
+do $$
+declare
+  fn text;
+begin
+  foreach fn in array array[
+    'public.register_scream_student(text, text)',
+    'public.get_scream_card(text)',
+    'public.set_scare_house_wait(text, integer, text)',
+    'public.award_scream_stamp(text, text, text)',
+    'public.lookup_scream_student(text)',
+    'public.upsert_push_subscription(text, text, text, text, jsonb)',
+    'public.list_push_watchers(text)',
+    'public.delete_push_subscription(text)'
+  ] loop
+    begin
+      execute format('revoke all on function %s from public, anon, authenticated', fn);
+      execute format('grant execute on function %s to service_role', fn);
+    exception when undefined_function then null;
+    end;
+  end loop;
+end $$;
+
+revoke all on table public.students from anon, authenticated, public;
+revoke all on table public.stamp_cards from anon, authenticated, public;
+revoke all on table public.event_feedback from anon, authenticated, public;
+revoke all on table public.staff_audit from anon, authenticated, public;
+revoke all on table public.game_saves from anon, authenticated, public;
+revoke all on table public.game_scores from anon, authenticated, public;
+revoke all on table public.push_subscriptions from anon, authenticated, public;
 

@@ -9,7 +9,7 @@ function safeClientUrl(url) {
   }
 }
 
-const STATIC_CACHE = "scream-static-v3";
+const STATIC_CACHE = "scream-static-v5";
 
 function isCacheable(url) {
   if (url.origin !== self.location.origin) return false;

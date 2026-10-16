@@ -1,11 +1,13 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r12";
-import { CLUBS } from "./clubs.js?v=r6";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r22";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r39";
-import { SPONSORS } from "./sponsors.js?v=r21";
-import { applyGhostPass } from "./ghost-pass.js?v=r6";
-import { markImg } from "./marks.js?v=r6";
-import { createStore } from "./store.js?v=r9";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r40";
+import { CLUBS } from "./clubs.js?v=r40";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r40";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r40";
+import { SPONSORS } from "./sponsors.js?v=r40";
+import { applyGhostPass } from "./ghost-pass.js?v=r40";
+import { markImg } from "./marks.js?v=r40";
+import { stationSvg } from "./station-art.js?v=r40";
+import { createStore } from "./store.js?v=r41";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=r40";
 import {
   apiFetch,
   apiUrl,
@@ -27,11 +29,12 @@ import {
   unredeemPass,
   setAnnouncementActive,
   signIn,
+  unlockStaff,
   submitFeedback,
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=r15";
+} from "./session.js?v=r42";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -42,13 +45,15 @@ import {
   setWantsPush,
   syncPushWatch,
   dismissPushHint,
-} from "./push.js?v=r8";
+  pushIsLive,
+} from "./push.js?v=r40";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
 let applyGameAccount = () => {};
 
 const STATUS_LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
+const WAIT_MAX = 120;
 
 const els = {
   views: [...document.querySelectorAll(".view")],
@@ -108,28 +113,8 @@ const els = {
   adminAnnounceList: document.getElementById("adminAnnounceList"),
 };
 
-const WAIT_OPEN = 6;
-const WAIT_BUSY = 21;
-const WAIT_LONG = 40;
-const WAIT_CLOSED = 60;
-
-function statusFromWait(minutes) {
-  if (minutes === null || minutes === undefined || minutes === "") return "open";
-  const wait = Math.max(0, Number(minutes) || 0);
-  if (wait >= WAIT_CLOSED) return "closed";
-  if (wait >= WAIT_LONG) return "long";
-  if (wait >= WAIT_BUSY) return "busy";
-  if (wait >= WAIT_OPEN) return "open";
-  return "gonow";
-}
-
-function statusChipLabel(id) {
-  if (id === "gonow") return `Go now (<${WAIT_OPEN} min)`;
-  if (id === "open") return `Open (${WAIT_OPEN}–${WAIT_BUSY - 1} min)`;
-  if (id === "busy") return `Busy (${WAIT_BUSY}–${WAIT_LONG - 1} min)`;
-  if (id === "long") return `Long (${WAIT_LONG}–${WAIT_CLOSED - 1} min)`;
-  if (id === "closed") return "Closed";
-  return STATUS_LABEL[id] || id;
+function statusFromWait(minutes, closed = false) {
+  return statusFor(minutes, closed);
 }
 
 function hasPublishedWait(row) {
@@ -141,10 +126,12 @@ function normalizeHouseRow(row) {
   const raw = row.wait_minutes ?? row.wait;
   const published = raw !== null && raw !== undefined && raw !== "";
   const wait = published ? Math.max(0, Number(raw) || 0) : null;
+  const closed = row.closed === true || (row.closed === undefined && row.status === "closed");
   return {
     ...row,
     wait_minutes: wait,
-    status: published ? statusFromWait(wait) : "open",
+    closed,
+    status: closed ? "closed" : published ? statusFromWait(wait) : "open",
   };
 }
 
@@ -165,7 +152,6 @@ const drafts = new Map();
 const waitSaveTimers = new Map();
 const waitSaveFlight = new Set();
 const WAIT_SAVE_MS = 800;
-const WAIT_MAX = 60;
 const houseFilter = { q: "", status: "", tag: "" };
 
 const mapState = {
@@ -183,28 +169,44 @@ function houseMeta(id) {
   return HOUSES.find((h) => h.id === id);
 }
 
+function admissionNumberProblem(id) {
+  if (!id) return "Enter your admin number, e.g. P2XXXXXX.";
+  if (!/^P\d{7}$/.test(id)) return "That's a P and then 7 digits, e.g. P2XXXXXX.";
+  if (!isAdminNumber(id)) return "The digits after the P start with 22, 23, 24, 25 or 26.";
+  return "";
+}
+
+function roomLabel(rooms) {
+  const text = String(rooms || "").trim();
+  return /^T\d{2}[A-Z]?\d{2,3}$/.test(text) ? `Room ${text}` : text;
+}
+
+function rowStatus(row) {
+  if (!row) return "open";
+  return statusFromWait(row.wait_minutes, Boolean(row.closed));
+}
+
 function waitLabel(minutes, status) {
+  if (status === "closed") return "Closed";
   if (minutes === null || minutes === undefined || minutes === "") return "Not published";
-  if (status === "closed" || statusFromWait(minutes) === "closed") return "Closed";
   if ((Number(minutes) || 0) === 0) return "No queue";
   return `${Number(minutes) || 0} min`;
 }
 
 function statusPillLabel(row) {
-  return STATUS_LABEL[statusFromWait(row.wait_minutes)] || row.status;
+  return STATUS_LABEL[rowStatus(row)] || row.status;
 }
 
 function waitMetric(row) {
+  if (row?.closed) return { value: "Closed", unit: "Not running", kind: "closed" };
   if (!hasPublishedWait(row)) return { value: "-", unit: "Not published", kind: "queue" };
   const minutes = Number(row.wait_minutes) || 0;
-  const status = statusFromWait(minutes);
-  if (status === "closed") return { value: "Closed", unit: "Not running", kind: "closed" };
   if (minutes === 0) return { value: "No queue", unit: "", kind: "clear" };
   return { value: String(minutes), unit: "min wait", kind: "queue" };
 }
 
 function waitRank(row) {
-  const status = statusFromWait(row.wait_minutes);
+  const status = rowStatus(row);
   const band = { gonow: 0, open: 1, busy: 2, long: 3, closed: 4 }[status] ?? 1;
   return band * 1000 + (Number(row.wait_minutes) || 0);
 }
@@ -222,9 +224,9 @@ function houseSearchHay(row) {
 function houseMatchesFilter(row) {
   const q = houseFilter.q.trim().toLowerCase();
   if (q && !houseSearchHay(row).includes(q)) return false;
-  const status = statusFromWait(row.wait_minutes);
+  const status = rowStatus(row);
   if (houseFilter.status) {
-    if (!hasPublishedWait(row) || status !== houseFilter.status) return false;
+    if ((!hasPublishedWait(row) && !row.closed) || status !== houseFilter.status) return false;
   }
   if (houseFilter.tag) {
     const tags = houseMeta(row.id)?.tags || [];
@@ -304,7 +306,7 @@ function houseMarkHtml(meta) {
   if (!svg) return "";
   const tilt = ["-1.5deg", "1.2deg", "-1deg", "1.6deg"][(meta.id || "").length % 4];
   const delay = `${((meta.id || "").length % 7) * 0.35}s`;
-  return `<span class="house-art"><span class="booth-mark" style="--tilt:${tilt};--idle-delay:${delay}" aria-hidden="true">${svg}</span></span>`;
+  return `<span class="house-art"><span class="booth-mark" data-tilt="${tilt}" data-idle-delay="${delay}" aria-hidden="true">${svg}</span></span>`;
 }
 
 function attractionLabel(meta) {
@@ -342,7 +344,7 @@ function cardCharm(id) {
     candle: `<svg viewBox="0 0 36 56"><g class="flame"><path d="M18 1c4 6 8 10 8 15 0 5-3.4 8.5-8 8.5S10 21 10 16C10 11 14 7 18 1z" fill="#ffe7a0" stroke="${ink}" stroke-width="1.5"/><path d="M18 10c1.6 2.4 2.8 4 2.8 6.2 0 2-1.2 3.4-2.8 3.4s-2.8-1.4-2.8-3.4c0-2.2 1.2-3.8 2.8-6.2z" fill="#e07a18"/></g><path d="M11 24h14l-2 28H13z" fill="#fff6e8" stroke="${ink}" stroke-width="1.8"/><path d="M13 30c2 4 1 7-1.2 9 3.2-.6 5.4 1.4 4.2 5" fill="#c2454c" stroke="${ink}" stroke-width="1.1"/><path d="M23 36c1.2 2.4.4 5-.2 7" fill="none" stroke="#c2454c" stroke-width="1.7" stroke-linecap="round"/></svg>`,
     ears: `<svg viewBox="0 0 96 44"><g class="ears"><path d="M4 42 26 3l20 39z" fill="#2a1c24" stroke="#f3e6d8" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 42 26 16l10 26z" fill="#6a3040"/><path d="M50 42 76 6l20 36z" fill="#2a1c24" stroke="#f3e6d8" stroke-width="2.2" stroke-linejoin="round"/><path d="M64 42 76 18l10 24z" fill="#6a3040"/></g></svg>`,
     crow: `<svg viewBox="0 0 48 36"><g class="crow"><path d="M24 2v8" fill="none" stroke="#f3e6d8" stroke-width="1.4"/><path d="M8 22c2-8 10-12 16-10 4 1 8 6 14 4-2 6-6 8-10 8 2 4-2 8-8 7-8 1-14-2-16-8 2-1 3-1 4-1z" fill="#241820" stroke="#f3e6d8" stroke-width="1.7"/><circle cx="30" cy="18" r="1.6" fill="#f6e7b0"/><path d="M36 18l8 2-8 3z" fill="#e2b34a" stroke="#1a1218" stroke-width="1"/></g></svg>`,
-    spider: `<svg viewBox="0 0 28 56"><path d="M14 0v24" fill="none" stroke="#d9d0c6" stroke-width="1.2"/><g class="spider"><ellipse cx="14" cy="32" rx="5" ry="5.5" fill="#1a1218"/><circle cx="14" cy="26.5" r="2.3" fill="#1a1218"/><path d="M9 30c-7-2-8 5-5 7M19 30c7-2 8 5 5 7M9 36c-6 2-5 7-1 7M19 36c6 2 5 7 1 7" fill="none" stroke="#1a1218" stroke-width="1.3" stroke-linecap="round"/></g></svg>`,
+    spider: `<svg viewBox="0 0 36 64"><path d="M18 0v18" fill="none" stroke="#f4efe6" stroke-width="1.4" stroke-linecap="round"/><g class="spider"><path d="M14 30c-9-2-12 5-8 9M22 30c9-2 12 5 8 9M13 38c-8 2-8 9-2 10M23 38c8 2 8 9 2 10M12 34c-7 0-9 4-6 7M24 34c7 0 9 4 6 7" fill="none" stroke="#f7f3ec" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="18" cy="38" rx="6.2" ry="7" fill="#f7f3ec" stroke="#2a211c" stroke-width="1.15"/><circle cx="18" cy="29.2" r="4" fill="#f7f3ec" stroke="#2a211c" stroke-width="1.15"/><circle cx="16.3" cy="28.4" r="0.85" fill="#2a211c"/><circle cx="19.7" cy="28.4" r="0.85" fill="#2a211c"/><path d="M16.2 31.2c.7.9 2.8.9 3.6 0" fill="none" stroke="#2a211c" stroke-width="0.8" stroke-linecap="round"/></g></svg>`,
   };
   return kinds.map((kind) => (
     `<span class="card-charm card-charm--${kind}" aria-hidden="true">${svg[kind]}</span>`
@@ -351,7 +353,7 @@ function cardCharm(id) {
 
 function houseCardOpenInner(row, meta) {
   const tags = tagChips(meta);
-  const status = statusFromWait(row.wait_minutes);
+  const status = rowStatus(row);
   return `
     <span class="house-card__rail" aria-hidden="true"></span>
     ${kindBadge(meta)}
@@ -360,10 +362,10 @@ function houseCardOpenInner(row, meta) {
     </span>
     <strong class="house-card__name">${escapeHtml(row.name)}</strong>
     <span class="house-card__metric">
-      <span class="status-pill">${escapeHtml(waitLabel(row.wait_minutes, status))}</span>
+      <span class="status-pill">${escapeHtml(waitLabel(row.wait_minutes, status))}${hasPublishedWait(row) && status !== "closed" ? `<span class="status-pill__band"> · ${escapeHtml(statusName(status))}</span>` : ""}</span>
     </span>
     <span class="house-card__meta">
-      ${meta?.rooms ? `<span class="fresh">${escapeHtml(meta.rooms)}</span>` : ""}
+      ${meta?.rooms ? `<span class="fresh">${escapeHtml(roomLabel(meta.rooms))}</span>` : ""}
       <span class="fresh">${escapeHtml(freshnessLabel(row.updated_at))}</span>
       ${tags ? `<span class="house-tags">${tags}</span>` : ""}
     </span>
@@ -521,6 +523,13 @@ function setView(name, extra) {
     hashName = "map";
     navName = "map";
   }
+  const routable = ["house", "booths", "booth", "pin", "cluster"].includes(name);
+  if (!routable && !document.querySelector(`.view[data-view="${CSS.escape(name)}"]`)) {
+    name = "map";
+    hashName = "map";
+    navName = "map";
+    writeHash("#map", "replace");
+  }
   if (name === "admin" && !canSeeStaffTab()) name = student ? "stamps" : "login";
   if (name === "login" && admin) name = "admin";
   else if (name === "login" && student) name = "stamps";
@@ -612,8 +621,19 @@ function paintWatchedHouse(id) {
   if (openClusterKey && els.clusterModal && !els.clusterModal.hidden) paintClusterModal(openClusterKey);
 }
 
+const watchInFlight = new Set();
+
+function setWatchButtonsBusy(id, busy) {
+  document.querySelectorAll(`[data-watch-house="${CSS.escape(id)}"], #modalWatch[data-house-id="${CSS.escape(id)}"]`).forEach((btn) => {
+    btn.disabled = busy;
+    btn.classList.toggle("is-busy", busy);
+    if (busy) btn.setAttribute("aria-busy", "true");
+    else btn.removeAttribute("aria-busy");
+  });
+}
+
 function toggleWatchHouse(id) {
-  if (!id) return;
+  if (!id || watchInFlight.has(id)) return;
   const night = readNight();
   const watching = night.watch.includes(id);
   if (watching) {
@@ -621,10 +641,16 @@ function toggleWatchHouse(id) {
     writeNight(night);
     paintWatchedHouse(id);
     syncPushWatch(pushWatchList(night.watch));
-    showWaitToast("Alert off", "This house will no longer ping you.", false);
+    showWaitToast("Alert off", "This house will stop pinging you. It's a little hurt, but it'll cope.", false);
+    return;
+  }
+  if (!getStudentSession()) {
+    showWaitToast("Sign in first", describePushBlock("signin"), false);
     return;
   }
   const nextWatch = pushWatchList([...night.watch, id]);
+  watchInFlight.add(id);
+  setWatchButtonsBusy(id, true);
   enablePushNotifications(nextWatch).then((result) => {
     paintPushHint();
     if (!result?.ok) {
@@ -641,19 +667,35 @@ function toggleWatchHouse(id) {
     writeNight(latest);
     paintWatchedHouse(id);
     const when = alertChoiceLabel();
-    showWaitToast("Alerts on", when ? `We’ll ping this phone at ${when}.` : "Pick at least one wait on the sign-in page.", false);
+    showWaitToast("Alerts on", when ? `We'll ping this device at ${when}.` : "Pick at least one wait on the sign-in page.", false);
   }).catch(() => {
     paintPushHint();
     showWaitToast("Alert not on", describePushBlock("save-failed"), false);
+  }).finally(() => {
+    watchInFlight.delete(id);
+    setWatchButtonsBusy(id, false);
+    paintWatchedHouse(id);
   });
+}
+
+/** On load, drop "Watching" marks this browser can no longer deliver (permission revoked, subscription gone). */
+async function reconcileWatchState() {
+  const night = readNight();
+  if (!night.watch.length) return;
+  if (await pushIsLive()) return;
+  const stale = night.watch.slice();
+  night.watch = [];
+  writeNight(night);
+  stale.forEach((id) => paintWatchedHouse(id));
 }
 
 function houseCardHtml(row, watching) {
   const meta = houseMeta(row.id);
   const on = watching.has(row.id);
-  const status = statusFromWait(row.wait_minutes);
+  const status = rowStatus(row);
   return `<article class="house-card status-${status}" data-cluster="${escapeHtml(meta?.cluster || "")}">
     ${cardCharm(row.id)}
+    <div class="house-card__face">
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
       ${houseCardOpenInner(row, meta)}
     </button>
@@ -664,6 +706,7 @@ function houseCardHtml(row, watching) {
       </svg>
       ${on ? "Watching" : "Notify"}
     </button>
+    </div>
   </article>`;
 }
 
@@ -779,7 +822,7 @@ function boothDirectoryCard(booth) {
   const stamped = ticket && boothIsStamped(booth.id);
   const theme = boothTheme(booth);
   const logo = food && booth.logo
-    ? `<img class="house-card__logo" src="${escapeHtml(booth.logo)}" alt="">`
+    ? `<img class="house-card__logo" src="${escapeHtml(booth.logo)}" alt=""${logoDims(booth.logo)}>`
     : "";
   const pill = food ? "Food" : "Booth";
   const art = boothArt(theme);
@@ -792,7 +835,7 @@ function boothDirectoryCard(booth) {
         <span class="house-card__marks">${ticket ? `<span class="map-badge map-badge--wheel">Wheel</span>` : ""}${stamped ? `<span class="map-badge map-badge--done">✓ Done</span>` : ""}<span class="status-pill">${pill}</span></span>
       </span>
       <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>
-      <span class="booth-art">${art ? `<span class="booth-mark" style="--tilt:${tilt};--idle-delay:${BOOTH_IDLE_DELAY[theme] || "0s"}" aria-hidden="true">${art}</span>` : ""}</span>
+      <span class="booth-art">${art ? `<span class="booth-mark" data-tilt="${escapeHtml(tilt)}" data-idle-delay="${escapeHtml(BOOTH_IDLE_DELAY[theme] || "0s")}" aria-hidden="true">${art}</span>` : ""}</span>
       ${ticket ? `<span class="visually-hidden">Needed to spin the wheel.</span>` : ""}
       ${stamped ? `<span class="visually-hidden">Done</span>` : ""}
     </button>
@@ -811,7 +854,7 @@ function watchBoothMotion() {
   if (boothMotionObserver) boothMotionObserver.disconnect();
   if (!("IntersectionObserver" in window)) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const nodes = document.querySelectorAll("#boothDirectory .booth-mark, #houseGrid .booth-mark");
+  const nodes = document.querySelectorAll("#boothDirectory .booth-mark:not(.is-peek), #houseGrid .booth-mark:not(.is-peek)");
   if (!nodes.length) return;
   boothMotionObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -825,7 +868,11 @@ function watchBoothMotion() {
 
 function paintBoothDirectory() {
   const booths = document.getElementById("boothDirectory");
-  if (booths) booths.innerHTML = boothsInDirectoryOrder().map(boothDirectoryCard).join("");
+  const html = boothsInDirectoryOrder().map(boothDirectoryCard).join("");
+  if (booths && booths.screamHtml !== html) {
+    booths.screamHtml = html;
+    booths.innerHTML = html;
+  }
   watchBoothMotion();
 }
 
@@ -839,7 +886,8 @@ function renderDashboard() {
     members: clusterMembers(cluster.id).filter(listingMatches).sort(compareClusterMembers),
   })).filter((group) => group.members.length);
   if (!groups.length) {
-    els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">Nothing is left with these filters.</p><button class="btn" type="button" data-clear-filters>Clear filters</button></div>`;
+    els.houseGrid.screamHtml = "";
+    els.houseGrid.innerHTML = `<div class="empty-state house-filters__empty"><p class="empty-state__title">No houses match</p><p class="empty-state__hint">These filters scared everything off.</p><button class="btn" type="button" data-clear-filters>Clear filters</button></div>`;
     paintMapJump([]);
     return;
   }
@@ -859,7 +907,11 @@ function renderDashboard() {
       <div class="cluster-group__grid">${cards}</div>
     </section>`;
   }).join("");
-  els.houseGrid.innerHTML = clusterBlock;
+  // Polls repaint every few seconds; identical markup is skipped so focus, hover and smooth scrolls survive.
+  if (els.houseGrid.screamHtml !== clusterBlock) {
+    els.houseGrid.screamHtml = clusterBlock;
+    els.houseGrid.innerHTML = clusterBlock;
+  }
   paintMapJump(groups.map(({ cluster }) => cluster.id));
   watchBoothMotion();
   syncCardsSky();
@@ -880,6 +932,7 @@ function compareClusterMembers(a, b) {
 function placeCardHtml(meta, pill, label) {
   return `<article class="house-card${meta.kind === "scarezone" ? " house-card--zone" : ""}" data-cluster="${escapeHtml(meta.cluster || "")}">
     ${cardCharm(meta.id)}
+    <div class="house-card__face">
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(meta.id)}">
       <span class="house-card__rail" aria-hidden="true"></span>
       ${kindBadge(meta)}
@@ -888,25 +941,61 @@ function placeCardHtml(meta, pill, label) {
       </span>
       <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
       <span class="house-card__metric">
-        <span class="house-card__wait is-venue">${escapeHtml(meta.rooms || "")}</span>
+        <span class="house-card__wait is-venue">${escapeHtml(roomLabel(meta.rooms))}</span>
       </span>
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(label)}</span>
       </span>
       ${houseMarkHtml(meta)}
     </button>
+    </div>
   </article>`;
 }
 
 let mapJumpObserver = null;
 let jumpLockId = "";
 let jumpLockTimer = 0;
+let jumpRest = null;
 
-function releaseJumpLock() {
+/** Where the window should sit so a section lands just under the sticky chip bar. */
+function jumpTargetTop(id) {
+  const target = document.getElementById(id);
+  if (!target) return window.scrollY;
+  const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  return Math.max(0, Math.min(max, window.scrollY + target.getBoundingClientRect().top - margin));
+}
+
+function releaseJumpLock(event) {
+  if (event && event.target !== document && event.target !== window) return;
   window.clearTimeout(jumpLockTimer);
   window.removeEventListener("scrollend", releaseJumpLock);
+  if (jumpLockId) {
+    // Snap the last few pixels if a repaint interrupted the glide.
+    const top = jumpTargetTop(jumpLockId);
+    if (Math.abs(top - window.scrollY) > 8) window.scrollTo({ top, behavior: "auto" });
+    jumpRest = { id: jumpLockId, y: window.scrollY };
+  }
   jumpLockId = "";
   syncMapJump();
+}
+
+/** Sticky chip bar bottom edge, so sections land just under it instead of behind it. */
+function measureJumpClear() {
+  const bar = document.getElementById("mapJump");
+  if (!bar || !bar.offsetParent) return;
+  const top = parseFloat(getComputedStyle(bar).top) || 0;
+  const clear = Math.round(top + bar.getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--jump-clear", `${clear}px`);
+}
+
+function syncJumpHint() {
+  const track = document.getElementById("mapJumpTrack");
+  const bar = document.getElementById("mapJump");
+  if (!track || !bar) return;
+  const more = track.scrollWidth - track.clientWidth - track.scrollLeft > 6;
+  bar.classList.toggle("has-more", more);
+  bar.classList.toggle("has-less", track.scrollLeft > 6);
 }
 
 function jumpSections() {
@@ -919,18 +1008,22 @@ function sectionUnderJumpBar(sections) {
   const list = sections || jumpSections();
   if (!list.length) return null;
   const bar = document.getElementById("mapJump");
-  const line = (bar ? bar.getBoundingClientRect().bottom : 64) + 8;
+  const line = (bar ? bar.getBoundingClientRect().bottom : 64) + 24;
   let current = list[0];
   list.forEach((section) => {
     if (section.getBoundingClientRect().top <= line) current = section;
   });
+  const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+  if (atBottom) {
+    const last = list[list.length - 1];
+    if (last.getBoundingClientRect().top < window.innerHeight) current = last;
+  }
   return current;
 }
 
-function markJumpChip(id) {
+function markJumpChip(id, { scrollTrack = true } = {}) {
   const track = document.getElementById("mapJumpTrack");
   if (!track || !id) return;
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   track.querySelectorAll("[data-jump]").forEach((btn) => {
     const on = btn.dataset.jump === id;
     btn.classList.toggle("is-on", on);
@@ -939,15 +1032,18 @@ function markJumpChip(id) {
       return;
     }
     btn.setAttribute("aria-current", "true");
+    // A second smooth scroll on another scroller cancels the page's in-flight one in Chrome.
+    if (!scrollTrack || jumpLockId) return;
     const edge = 28;
     const left = btn.offsetLeft;
     const right = left + btn.offsetWidth;
     const viewLeft = track.scrollLeft;
     const viewRight = viewLeft + track.clientWidth;
+    // Instant on purpose: a smooth strip scroll leaves Chrome ignoring the next smooth page jump.
     if (left < viewLeft + edge) {
-      track.scrollTo({ left: Math.max(0, left - edge), behavior: reduce ? "auto" : "smooth" });
+      track.scrollLeft = Math.max(0, left - edge);
     } else if (right > viewRight - edge) {
-      track.scrollTo({ left: right - track.clientWidth + edge, behavior: reduce ? "auto" : "smooth" });
+      track.scrollLeft = right - track.clientWidth + edge;
     }
   });
 }
@@ -956,6 +1052,14 @@ function syncMapJump() {
   if (jumpLockId) return;
   const map = document.querySelector('.view[data-view="map"]');
   if (!map || map.hidden || !map.classList.contains("is-active")) return;
+  // A tapped chip stays lit until the reader actually scrolls away (short last sections can't reach the bar).
+  if (jumpRest) {
+    if (Math.abs(window.scrollY - jumpRest.y) < 48) {
+      markJumpChip(jumpRest.id);
+      return;
+    }
+    jumpRest = null;
+  }
   const current = sectionUnderJumpBar();
   if (current) markJumpChip(current.id);
 }
@@ -967,7 +1071,24 @@ function paintMapJump(visibleIds) {
     `<button type="button" class="map-jump__chip" data-jump="cluster-${escapeHtml(cluster.id)}">${escapeHtml(cluster.name)}</button>`
   ));
   chips.push(`<button type="button" class="map-jump__chip" data-jump="map-booths">Booths</button>`);
-  track.innerHTML = chips.join("");
+  const html = chips.join("");
+  // Wait-time polls repaint the house list; rebuilding identical chips would drop the lit chip and the strip's scroll.
+  if (track.dataset.sig !== html) {
+    track.dataset.sig = html;
+    track.innerHTML = html;
+  }
+  if (!track.dataset.hintBound) {
+    track.dataset.hintBound = "1";
+    track.addEventListener("scroll", syncJumpHint, { passive: true });
+    window.addEventListener("resize", () => {
+      measureJumpClear();
+      syncJumpHint();
+    });
+  }
+  requestAnimationFrame(() => {
+    measureJumpClear();
+    syncJumpHint();
+  });
   if (mapJumpObserver) mapJumpObserver.disconnect();
   const sections = jumpSections();
   if (!sections.length || !("IntersectionObserver" in window)) return;
@@ -977,7 +1098,7 @@ function paintMapJump(visibleIds) {
     syncMapJump();
   }, { rootMargin: `-${topInset}px 0px -45% 0px`, threshold: [0, 0.01, 0.2, 0.6, 1] });
   sections.forEach((section) => mapJumpObserver.observe(section));
-  if (jumpLockId) markJumpChip(jumpLockId);
+  if (jumpLockId) markJumpChip(jumpLockId, { scrollTrack: false });
   else syncMapJump();
 }
 
@@ -1080,7 +1201,7 @@ function paintGuideHouses() {
 
 function paintClubs() {
   const links = CLUBS.map((club) =>
-    `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(encodeURI(club.logo))}" alt="${escapeHtml(club.name)}" width="64" height="64"></a>`
+    `<a href="${escapeHtml(club.instagram)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(encodeURI(club.logo))}" alt="${escapeHtml(club.name)}"${logoDims(club.logo)}></a>`
   ).join("");
   const credits = document.getElementById("clubCredits");
   if (credits) credits.innerHTML = links;
@@ -1103,7 +1224,7 @@ function paintSponsors() {
   if (!SPONSORS_ENABLED) return;
   const html = SPONSORS.map((sponsor) => {
     const logo = sponsor.logo
-      ? `<img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt="">`
+      ? `<img class="site-sponsors__logo" src="${escapeHtml(sponsor.logo)}" alt=""${logoDims(sponsor.logo, [160, 72])} loading="lazy" decoding="async">`
       : "";
     const inner = `<span class="site-sponsors__slot">${logo}</span><span>${escapeHtml(sponsor.name)}</span>`;
     const body = sponsor.url
@@ -1136,7 +1257,7 @@ async function startBoard() {
         const data = await res.json().catch(() => ({}));
         const title = id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats";
         const rows = (data.top || []).map((row, i) => `<li><span>${i + 1}. ${escapeHtml(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
-        return `<article class="board-card"><h3>${title}</h3><ol>${rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>Play a round to open the board.</p></li>"}</ol></article>`;
+        return `<article class="board-card"><h3>${title}</h3><ol>${rows || "<li class='empty-state'><p class='empty-state__title'>No scores yet</p><p class='empty-state__hint'>The board is empty. Haunt it first.</p></li>"}</ol></article>`;
       } catch {
         return `<article class="board-card"><h3>${id === "clicker" ? "Pumpkin clicker" : id === "memory" ? "Memory match" : "Catch the treats"}</h3><div class="empty-state"><p class="empty-state__title">Scores unavailable</p><p class="empty-state__hint">Try again when the board is back online.</p></div></article>`;
       }
@@ -1167,7 +1288,7 @@ function renderPins() {
     const ranked = rows.filter(hasPublishedWait).sort((a, b) => waitRank(a) - waitRank(b));
     const lead = ranked[0];
     const onlyZone = !timed.length && atPin.some((house) => house.kind === "scarezone");
-    const status = lead ? statusFromWait(lead.wait_minutes) : onlyZone ? "zone" : "open";
+    const status = lead ? rowStatus(lead) : onlyZone ? "zone" : "open";
     const names = atPin.map((house) => house.name).join(", ");
     return `<div class="map-pin status-${status}${dim ? " map-pin--dim" : ""}" data-pin="${escapeHtml(pin.id)}">
       <div class="map-pin__gfx">
@@ -1184,7 +1305,7 @@ function renderPins() {
     : "";
   const boothPin = `<div class="map-pin map-pin--booths${stampedBooths.length ? " is-stamped" : ""}${stampedBooths.length === STAMP_BOOTHS.length ? " is-stamped-all" : ""}" data-pin="booths">
     <div class="map-pin__gfx">
-      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven squared${boothStampNote}">
+      <button class="map-pin__hit" type="button" data-open-booths aria-label="Booths, Eleven Square${boothStampNote}">
         <span class="map-pin__label">Booths</span>
         <span class="map-pin__mark"></span>
         ${stampedBooths.length ? `<span class="map-pin__seal" aria-hidden="true"></span>` : ""}
@@ -1197,7 +1318,7 @@ function renderPins() {
 function boothListButton(booth) {
   const stamped = !booth.food && booth.stamp !== false && boothIsStamped(booth.id);
   const mark = booth.logo
-    ? `<img class="booths-list__logo" data-brand="${escapeHtml(booth.theme || "")}" src="${escapeHtml(booth.logo)}" alt="">`
+    ? `<img class="booths-list__logo" data-brand="${escapeHtml(booth.theme || "")}" src="${escapeHtml(booth.logo)}" alt=""${logoDims(booth.logo)}>`
     : markImg(booth.icon, "mark mark--booth");
   const label = booth.food ? escapeHtml(booth.short) : "";
   return `<button type="button" class="booths-list__btn${stamped ? " is-stamped" : ""}" data-open-booth="${escapeHtml(booth.id)}">
@@ -1268,12 +1389,45 @@ function bindSheetSwipe(modal) {
   });
 }
 
+let scrollLock = null;
+
+/** Freeze the page under a sheet without the jump that overflow:hidden causes on mobile. */
+function lockPageScroll() {
+  if (scrollLock) return;
+  const body = document.body;
+  const y = window.scrollY;
+  const gap = window.innerWidth - document.documentElement.clientWidth;
+  const keep = ["position", "top", "left", "right", "width", "paddingRight"];
+  scrollLock = { y, prev: Object.fromEntries(keep.map((k) => [k, body.style[k]])) };
+  body.style.position = "fixed";
+  body.style.top = `-${y}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  if (gap > 0) body.style.paddingRight = `${gap}px`;
+  document.documentElement.classList.add("is-scroll-locked");
+}
+
+function unlockPageScroll() {
+  if (!scrollLock) return;
+  const { y, prev } = scrollLock;
+  scrollLock = null;
+  Object.assign(document.body.style, prev);
+  document.documentElement.classList.remove("is-scroll-locked");
+  const html = document.documentElement;
+  const behavior = html.style.scrollBehavior;
+  html.style.scrollBehavior = "auto";
+  window.scrollTo(0, y);
+  html.style.scrollBehavior = behavior;
+}
+
 function showSheet(modal, hash, fromHash) {
   if (!modal) return;
   document.querySelectorAll(".modal").forEach((other) => {
     if (other !== modal) other.hidden = true;
   });
   if (!modalOpener) modalOpener = document.activeElement;
+  lockPageScroll();
   modal.hidden = false;
   bindSheetSwipe(modal);
   const panel = modal.querySelector(".modal__panel");
@@ -1360,14 +1514,18 @@ function fitMap() {
   });
   let scale = fitAll;
   if (pins.length && maxX > minX && maxY > minY) {
-    const screenPad = 64;
-    let mapPad = 48;
-    for (let pass = 0; pass < 4; pass += 1) {
-      const boxW = Math.max(maxX - minX + mapPad * 2, 1);
-      const boxH = Math.max(maxY - minY + mapPad * 2, 1);
-      scale = Math.min(vp.width / boxW, vp.height / boxH);
-      mapPad = screenPad / Math.max(scale, 0.05);
-    }
+    // Fit the haunt area with room for the neighbouring blocks (T18 sits just past T17),
+    // and never open zoomed in past 100%.
+    const spanX = maxX - minX;
+    const spanY = maxY - minY;
+    const mapPadX = Math.max(spanX * 0.18, 90);
+    const mapPadY = Math.max(spanY * 0.25, 60);
+    const screenPad = 24;
+    scale = Math.min(
+      (vp.width - screenPad * 2) / (spanX + mapPadX * 2),
+      (vp.height - screenPad * 2) / (spanY + mapPadY * 2),
+      1
+    );
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
     mapState.scale = Math.min(mapState.max, Math.max(mapState.min, scale));
@@ -1408,7 +1566,7 @@ function openHouse(id, opts = {}) {
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
   const zone = meta.kind === "scarezone";
   const screening = meta.kind === "screening";
-  const status = row && !zone ? statusFromWait(row.wait_minutes) : "open";
+  const status = row && !zone ? rowStatus(row) : "open";
   const panel = els.modal.querySelector(".modal__panel");
   if (panel) {
     panel.dataset.cluster = meta.cluster || "";
@@ -1436,7 +1594,7 @@ function openHouse(id, opts = {}) {
     storyEl.hidden = false;
     storyEl.textContent = meta.blurb || "";
   }
-  els.modal.querySelector("[data-modal-code]").textContent = meta.rooms || meta.short;
+  els.modal.querySelector("[data-modal-code]").textContent = roomLabel(meta.rooms) || meta.short;
   const tagsEl = els.modal.querySelector("[data-modal-tags]");
   if (tagsEl) tagsEl.innerHTML = tagChips(meta) || "";
   const upd = els.modal.querySelector("[data-modal-updated]");
@@ -1445,7 +1603,11 @@ function openHouse(id, opts = {}) {
   const watchBtn = document.getElementById("modalWatch");
   if (watchBtn) {
     watchBtn.hidden = isWalkthrough(meta);
+    watchBtn.dataset.houseId = id;
     if (row) watchBtn.textContent = night.watch.includes(id) ? "Stop walk-in alert" : "Alert when walk-in";
+    const busy = watchInFlight.has(id);
+    watchBtn.disabled = busy;
+    watchBtn.classList.toggle("is-busy", busy);
   }
   showSheet(els.modal, meta.kind === "screening" ? "" : `#house/${id}`, opts.fromHash);
 }
@@ -1453,7 +1615,7 @@ function openHouse(id, opts = {}) {
 function clusterHouseHtml(meta, watching) {
   const row = houses.find((h) => h.id === meta.id);
   const zone = meta.kind === "scarezone";
-  const wait = meta.kind === "screening" ? "Movie" : zone ? "Scare Zone" : row ? waitLabel(row.wait_minutes, statusFromWait(row.wait_minutes)) : "";
+  const wait = meta.kind === "screening" ? "Movie" : zone ? "Scare Zone" : row ? waitLabel(row.wait_minutes, rowStatus(row)) : "";
   const on = watching.has(meta.id);
   const alert = isWalkthrough(meta)
     ? ""
@@ -1461,7 +1623,7 @@ function clusterHouseHtml(meta, watching) {
   return `<li class="cluster-house">
     <div>
       <h4>${escapeHtml(meta.name)}</h4>
-      <p class="cluster-house__where">${escapeHtml(meta.rooms || meta.short)} · ${escapeHtml(wait)}</p>
+      <p class="cluster-house__where">${escapeHtml(roomLabel(meta.rooms) || meta.short)} · ${escapeHtml(wait)}</p>
       ${meta.films?.length ? screeningFilmsHtml(meta.films) : `<p>${escapeHtml(meta.blurb || "")}</p>`}
     </div>
     ${alert}
@@ -1618,6 +1780,7 @@ function closeModals(opts = {}) {
   modalReturnHash = "";
   const opener = modalOpener;
   modalOpener = null;
+  unlockPageScroll();
   if (wasOpen) {
     blockPageClick = true;
     window.setTimeout(() => {
@@ -1946,14 +2109,28 @@ function layoutStampLock() {
   crosses.forEach((el) => svg.appendChild(el));
 }
 
+let cardSeq = 0;
+let justLit = new Set();
+
+function litStampIds(stamps) {
+  return STAMP_BOOTHS.filter((booth) => stamps && (stamps[booth.id] || stamps[Number(booth.id)])).map((booth) => booth.id);
+}
+
+function cardSignature(card) {
+  return `${card.studentNumber}|${litStampIds(card.stamps).join(",")}|${card.redeemedAt || ""}`;
+}
+
+/** Returns true when the card changed. Responses that arrive after a newer request are dropped. */
 async function loadCardFromServer() {
   const session = getStudentSession();
   if (!session) {
     cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
-    return;
+    return true;
   }
+  const seq = ++cardSeq;
   const data = await fetchStamps();
-  cardState = {
+  if (seq !== cardSeq) return false;
+  const next = {
     stamps: data.stamps || {},
     redeemedAt: data.redeemedAt || null,
     redeemedBy: data.redeemedBy || null,
@@ -1961,6 +2138,13 @@ async function loadCardFromServer() {
     studentNumber: data.studentNumber || session.payload.studentNumber,
     passId: data.passId || `SP-FP-${session.payload.studentNumber}`,
   };
+  const changed = cardSignature(next) !== cardSignature(cardState);
+  if (changed && cardState.studentNumber && cardState.studentNumber === next.studentNumber) {
+    const before = new Set(litStampIds(cardState.stamps));
+    justLit = new Set(litStampIds(next.stamps).filter((id) => !before.has(id)));
+  }
+  cardState = next;
+  return changed;
 }
 
 let spiritRaised = false;
@@ -2203,7 +2387,18 @@ function boothNameLines(name) {
     "Drawn Alive": ["Drawn", "Alive"],
     Screamometer: ["Scream-", "ometer"],
   }[name] || [name];
-  return lines.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
+  if (lines.length === 1) return `<span>${escapeHtml(name)}</span>`;
+  const visual = lines
+    .map((line, i) => `<span${i && lines[i - 1].endsWith("-") ? ' class="is-joined"' : ""}>${escapeHtml(line)}</span>`)
+    .join("");
+  return `<span class="name-lines" aria-hidden="true">${visual}</span><span class="visually-hidden">${escapeHtml(name)}</span>`;
+}
+
+/** Both art sets ship; html[data-art] decides which one shows, so the switch needs no re-render. */
+function stationMark(booth) {
+  const poster = stationSvg(booth.id);
+  if (!poster) return markImg(booth.icon);
+  return `<span class="art-classic">${markImg(booth.icon)}</span><span class="art-poster station-art">${poster}</span>`;
 }
 
 function stampBoardHtml({ lit, interactive } = {}) {
@@ -2212,7 +2407,7 @@ function stampBoardHtml({ lit, interactive } = {}) {
     const side = booth.map.side || "s";
     const cls = `station-map__pin is-${side}${stamped ? " is-lit" : ""}`;
     const inner = `
-        <span class="station-map__icon" aria-hidden="true">${markImg(booth.icon)}</span>
+        <span class="station-map__icon" aria-hidden="true">${stationMark(booth)}</span>
         <span class="station-map__name">${boothNameLines(booth.name)}</span>`;
     if (!interactive) {
       return `<span class="${cls}" data-x="${booth.map.x}" data-y="${booth.map.y}">${inner}</span>`;
@@ -2279,7 +2474,7 @@ function paintStampUi() {
       const cls = ["stamp-pad", stamped ? "is-lit" : "", ...joins].filter(Boolean).join(" ");
       return `
         <button class="${cls}" type="button" data-stamp="${booth.id}" aria-label="${escapeHtml(booth.name)} · ${escapeHtml(booth.place)}${stamped ? " · stamped" : " · empty"}">
-          <span class="stamp-pad__ink" aria-hidden="true">${markImg(booth.icon)}</span>
+          <span class="stamp-pad__ink" aria-hidden="true">${stationMark(booth)}</span>
           <span class="stamp-pad__meta">
             <strong>${escapeHtml(booth.name)}</strong>
             <small>${escapeHtml(booth.short)}</small>
@@ -2329,11 +2524,11 @@ function paintStampUi() {
     if (runeRing.dataset.booths !== signature) {
       runeRing.dataset.booths = signature;
       runeRing.innerHTML = STAMP_BOOTHS.map((booth, index) => `
-      <div class="lantern__rune-slot" style="--rune: ${index}">
+      <div class="lantern__rune-slot" data-rune="${index}">
         <button class="lantern__rune" type="button" data-stamp="${escapeHtml(booth.id)}" aria-label="${escapeHtml(booth.name)}">
           <span class="lantern__rune-glow"></span>
           <span class="lantern__rune-stone"></span>
-          <span class="lantern__rune-glyph" aria-hidden="true">${markImg(booth.icon)}</span>
+          <span class="lantern__rune-glyph" aria-hidden="true">${stationMark(booth)}</span>
         </button>
       </div>`).join("");
       const orbit = runeRing.getAnimations().find((anim) => anim.animationName === "rune-orbit");
@@ -2390,6 +2585,16 @@ function paintStampUi() {
     }
   }
   if (els.passUsedMark) els.passUsedMark.hidden = !redeemed;
+  if (els.fastPassCard) {
+    const tear = redeemed && (document.documentElement.dataset.art || "poster") !== "classic";
+    if (!redeemed) delete els.fastPassCard.dataset.tearPlayed;
+    if (tear && !els.fastPassCard.dataset.tearPlayed) {
+      els.fastPassCard.dataset.tearPlayed = "1";
+      els.fastPassCard.classList.add("is-tearing");
+      window.setTimeout(() => els.fastPassCard.classList.remove("is-tearing"), 700);
+    }
+    if (!tear) els.fastPassCard.classList.remove("is-tearing");
+  }
   if (els.redeemedNote) {
     els.redeemedNote.hidden = !redeemed;
     if (redeemed) {
@@ -2401,21 +2606,47 @@ function paintStampUi() {
   syncBoothStampsOnMap();
 }
 
-async function renderStamps({ refresh = false } = {}) {
+function celebrateStamps() {
+  const ids = [...justLit];
+  justLit = new Set();
+  ids.forEach((id) => {
+    document.querySelectorAll(`[data-stamp="${CSS.escape(id)}"]`).forEach((el) => {
+      el.classList.remove("is-new");
+      void el.offsetWidth;
+      el.classList.add("is-new");
+      window.setTimeout(() => el.classList.remove("is-new"), 1800);
+    });
+  });
+  const names = ids.map((id) => boothById(id)?.name).filter(Boolean);
+  if (!names.length) return;
+  const left = STAMP_BOOTHS.length - litStampIds(cardState.stamps).length;
+  const tail = left > 0 ? `${left} to go.` : "That's all five. Your wheel ticket just woke up!";
+  showWaitToast("Stamp collected!", `${names.join(" & ")} is on your card. ${tail}`, false);
+}
+
+async function renderStamps({ refresh = false, quiet = false } = {}) {
   const session = getStudentSession();
   if (!session) {
     paintStampUi();
     return;
   }
 
-  paintStampUi();
+  if (!quiet) paintStampUi();
 
   if (!refresh && cardState.studentNumber) return;
 
   try {
-    await loadCardFromServer();
-    paintStampUi();
+    const changed = await loadCardFromServer();
+    if (changed || !quiet) paintStampUi();
+    if (changed && justLit.size) celebrateStamps();
   } catch (error) {
+    if (!getStudentSession()) {
+      cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
+      paintStampUi();
+      updateNav();
+      return;
+    }
+    if (quiet) return;
     if (!cardState.studentNumber && session) {
       cardState = {
         stamps: {},
@@ -2458,6 +2689,77 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/** CSP bans style="" attributes, so per-element CSS variables ride on data-* and are set through CSSOM. */
+const STYLE_VARS = { tilt: "--tilt", idleDelay: "--idle-delay", rune: "--rune" };
+const STYLE_VAR_SELECTOR = "[data-tilt], [data-idle-delay], [data-rune]";
+
+function applyStyleVars(root) {
+  if (!root || root.nodeType !== 1) return;
+  const nodes = root.matches(STYLE_VAR_SELECTOR) ? [root] : [];
+  nodes.push(...root.querySelectorAll(STYLE_VAR_SELECTOR));
+  nodes.forEach((node) => {
+    Object.entries(STYLE_VARS).forEach(([key, prop]) => {
+      if (node.dataset[key] !== undefined) node.style.setProperty(prop, node.dataset[key]);
+    });
+  });
+}
+
+function watchStyleVars() {
+  applyStyleVars(document.body);
+  new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach(applyStyleVars));
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+/** Intrinsic logo sizes so the layout doesn't jump while images load. */
+const LOGO_SIZES = {
+  "img/food/beamori.png": [162, 197],
+  "img/food/kwazy.png": [240, 128],
+  "img/food/matcha-hour.png": [756, 408],
+  "img/food/pasta-lab.png": [634, 633],
+  "img/sponsors/aeroflow.png": [814, 144],
+  "img/sponsors/boulder-planet.png": [1616, 139],
+  "img/sponsors/charms-n-links.png": [394, 432],
+  "img/sponsors/double-chin.png": [726, 708],
+  "img/clubLogos/clean/abec.png": [640, 210],
+  "img/clubLogos/clean/clsc.png": [426, 426],
+  "img/clubLogos/clean/cscc.png": [900, 888],
+  "img/clubLogos/clean/eeec.png": [640, 397],
+  "img/clubLogos/clean/madc.png": [640, 640],
+  "img/clubLogos/clean/maec.png": [640, 640],
+  "img/clubLogos/clean/sbc.png": [640, 635],
+  "img/clubLogos/clean/smac.png": [557, 591],
+  "img/clubLogos/clean/socc.png": [559, 640],
+  "img/clubLogos/clean/spssc.png": [423, 423],
+  "img/clubLogos/clean/spsu.png": [290, 333],
+};
+
+function logoDims(src, fallback = [64, 64]) {
+  const [w, h] = LOGO_SIZES[String(src || "").split("?")[0]] || fallback;
+  return ` width="${w}" height="${h}"`;
+}
+
+/** Spinner + disabled + aria-busy on a button; restores the original label afterwards. */
+function setBusy(btn, busy, label) {
+  if (!btn) return;
+  if (busy) {
+    if (btn.dataset.idleLabel === undefined) btn.dataset.idleLabel = btn.textContent.trim();
+    btn.disabled = true;
+    btn.classList.add("is-busy");
+    btn.setAttribute("aria-busy", "true");
+    const text = label || btn.dataset.busyLabel;
+    if (text) btn.textContent = text;
+  } else {
+    btn.disabled = false;
+    btn.classList.remove("is-busy");
+    btn.removeAttribute("aria-busy");
+    if (btn.dataset.idleLabel !== undefined) {
+      btn.textContent = btn.dataset.idleLabel;
+      delete btn.dataset.idleLabel;
+    }
+  }
 }
 
 function feedbackLabel(row) {
@@ -2557,7 +2859,7 @@ function announceItemHtml(row) {
 async function loadPublicAnnouncements() {
   const rows = await fetchAnnouncements().catch(() => []);
   noteNewAnnouncements(rows);
-  const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No announcements yet.</p></li>`;
+  const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No announcements yet. All quiet in the crypt.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
@@ -2613,8 +2915,53 @@ async function loadAdminAnnouncements() {
 let opsSeq = 0;
 let opsTimer = 0;
 
+const SGT_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Singapore",
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+/** "16 Oct, 5:05 PM" in Singapore time, whatever the device clock zone is. */
+function formatSgt(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = Object.fromEntries(SGT_PARTS.formatToParts(date).map((p) => [p.type, p.value]));
+  return `${parts.day} ${parts.month}, ${parts.hour}:${parts.minute} ${String(parts.dayPeriod || "").toUpperCase()}`.trim();
+}
+
+const AUDIT_ACTIONS = {
+  award_stamp: "Stamp awarded",
+  unaward_stamp: "Stamp undone",
+  redeem_pass: "Wheel ticket redeemed",
+  unredeem_pass: "Redeem undone",
+  wait_update: "Wait updated",
+  announce_post: "Announcement posted",
+  announce_on: "Announcement shown",
+  announce_off: "Announcement taken down",
+};
+
+function auditLine(row) {
+  const action = AUDIT_ACTIONS[row.action] || String(row.action || "").replace(/_/g, " ");
+  const detail = row.detail && typeof row.detail === "object" ? row.detail : {};
+  const bits = [];
+  const booth = detail.boothId ? boothById(String(detail.boothId)) : null;
+  const house = houseMeta(row.target);
+  if (booth) bits.push(booth.name);
+  if (house) bits.push(house.name);
+  else if (row.target) bits.push(row.target);
+  if (row.action === "wait_update" && detail.wait_minutes != null) bits.push(`${detail.wait_minutes} min`);
+  return { action, target: bits.join(" · ") };
+}
+
+function stopStaffPolls() {
+  stopOpsRefresh();
+}
+
 function noteStaffChange() {
-  loadOps();
+  if (staffScope() === "admin") loadOps();
 }
 
 function startOpsRefresh() {
@@ -2643,19 +2990,24 @@ async function loadOps() {
       const n = counts[b.id] ?? counts[String(b.id)] ?? 0;
       return `<div class="ops-card"><span>${escapeHtml(b.name)}</span><strong>${n}</strong></div>`;
     }).join("");
+    const n = (value) => Number(value) || 0;
     grid.innerHTML = `
-      <div class="ops-card"><span>Students</span><strong>${data.students || 0}</strong></div>
-      <div class="ops-card"><span>Wheel tickets unlocked</span><strong>${data.fastPassUnlocked || 0}</strong></div>
-      <div class="ops-card"><span>Houses busy</span><strong>${data.housesBusy || 0}</strong></div>
-      <div class="ops-card"><span>Houses long</span><strong>${data.housesLong || 0}</strong></div>
-      <div class="ops-card"><span>Houses closed</span><strong>${data.housesClosed || 0}</strong></div>
-      <div class="ops-card"><span>Feedback (6h)</span><strong>${data.recentFeedback || 0}</strong></div>
+      <div class="ops-card"><span>Students</span><strong>${n(data.students)}</strong></div>
+      <div class="ops-card"><span>Wheel tickets unlocked (5/5)</span><strong>${n(data.fastPassUnlocked)}</strong></div>
+      <div class="ops-card"><span>Wheel tickets redeemed</span><strong>${n(data.redeemed)}</strong></div>
+      <div class="ops-card"><span>Houses busy</span><strong>${n(data.housesBusy)}</strong></div>
+      <div class="ops-card"><span>Houses long</span><strong>${n(data.housesLong)}</strong></div>
+      <div class="ops-card"><span>Houses closed</span><strong>${n(data.housesClosed)}</strong></div>
+      <div class="ops-card"><span>Feedback (6h)</span><strong>${n(data.recentFeedback)}</strong></div>
       ${boothBits}`;
     if (audit) {
       const rows = data.audit || [];
       audit.innerHTML = rows.length
-        ? rows.map((row) => `<li class="feedback-item"><p>${escapeHtml(row.action)} · ${escapeHtml(row.target || "")}</p><p class="muted">${escapeHtml(row.staff_id)} · ${escapeHtml(row.at || "")}</p></li>`).join("")
-        : "<li class='empty-state'><p class='empty-state__title'>No audit rows yet</p><p class='empty-state__hint'>Staff actions will appear here.</p></li>";
+        ? rows.map((row) => {
+          const line = auditLine(row);
+          return `<li class="feedback-item"><p><strong>${escapeHtml(line.action)}</strong>${line.target ? ` · ${escapeHtml(line.target)}` : ""}</p><p class="muted">${escapeHtml(row.staff_id || "Staff")} · ${escapeHtml(formatSgt(row.at))}</p></li>`;
+        }).join("")
+        : "<li class='empty-state'><p class='empty-state__title'>No staff actions yet</p><p class='empty-state__hint'>Stamps, redeems and wait changes show up here.</p></li>";
     }
   } catch (error) {
     if (seq !== opsSeq) return;
@@ -2706,19 +3058,27 @@ function paintStaffLog() {
   if (!list) return;
   const rows = readStaffLog();
   list.innerHTML = rows.length
-    ? rows.map((row) => `<li><strong>${escapeHtml(row.at)} · ${escapeHtml(row.action)}</strong>${escapeHtml(row.message)}</li>`).join("")
-    : "<li class='empty-state'><p class='empty-state__title'>No errors yet</p><p class='empty-state__hint'>Failed staff actions will be listed here.</p></li>";
+    ? rows.map((row) => `<li class="${row.ok ? "is-ok" : "is-error"}"><strong>${escapeHtml(row.at)} · ${escapeHtml(row.action)}</strong>${escapeHtml(row.message)}</li>`).join("")
+    : "<li class='empty-state'><p class='empty-state__title'>Nothing yet</p><p class='empty-state__hint'>What you do on this device (and anything that fails) is listed here.</p></li>";
+}
+
+function writeStaffLog(entry) {
+  const rows = readStaffLog();
+  rows.unshift({ at: formatSgt(new Date()), ...entry });
+  try {
+    sessionStorage.setItem("scream-staff-log", JSON.stringify(rows.slice(0, 40)));
+  } catch {
+    /* private mode */
+  }
+  paintStaffLog();
 }
 
 function pushStaffLog(action, error) {
-  const rows = readStaffLog();
-  rows.unshift({
-    at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    action,
-    message: userFacingError(error, "Something went wrong. Try again."),
-  });
-  sessionStorage.setItem("scream-staff-log", JSON.stringify(rows.slice(0, 40)));
-  paintStaffLog();
+  writeStaffLog({ action, ok: false, message: userFacingError(error, "Something went wrong. Try again.") });
+}
+
+function logStaffAction(action, message) {
+  writeStaffLog({ action, ok: true, message });
 }
 
 async function renderAdmin() {
@@ -2767,7 +3127,7 @@ async function renderAdmin() {
         <tr data-admin-row="${row.id}">
           <td>
             <strong>${escapeHtml(row.name)}</strong>
-            <div class="muted">${escapeHtml(meta?.rooms || meta?.short || "")}</div>
+            <div class="muted">${escapeHtml(roomLabel(meta?.rooms) || meta?.short || "")}</div>
           </td>
           <td>
             <div class="wait-editor">
@@ -2795,7 +3155,8 @@ async function renderAdmin() {
   }
   const scope = staffScope();
   const errorLog = document.getElementById("staffErrorLogWrap");
-  if (errorLog) errorLog.hidden = scope !== "admin";
+  if (errorLog) errorLog.hidden = false;
+  paintStaffLog();
   const allowed = [...document.querySelectorAll("[data-staff-tab]")].filter((btn) => {
     const need = btn.dataset.staffScope || "admin";
     const ok = staffSeesTab(scope, need);
@@ -2820,7 +3181,6 @@ async function renderAdmin() {
 function readAdminRow(tr) {
   const id = tr.dataset.adminRow;
   const wait = Math.max(0, Math.min(WAIT_MAX, Math.round(Number(tr.querySelector("[data-wait-input]").value) || 0)));
-  const status = statusFromWait(wait);
   const row = houses.find((house) => house.id === id);
   const published = hasPublishedWait(row) && Number(row.wait_minutes) === wait;
   const label = tr.querySelector("[data-publish-state]");
@@ -2828,8 +3188,8 @@ function readAdminRow(tr) {
     label.textContent = published ? "Published" : "Not published yet";
     label.dataset.publishState = published ? "saved" : "dirty";
   }
-  drafts.set(id, { wait_minutes: wait, status });
-  return { id, wait_minutes: wait, status };
+  drafts.set(id, { wait_minutes: wait });
+  return { id, wait_minutes: wait };
 }
 
 let waitSaveStatusTimer = 0;
@@ -2909,14 +3269,19 @@ async function persistHouse(id, patch) {
   clearTimeout(waitSaveTimers.get(id));
   waitSaveTimers.delete(id);
   const result = await store.publish(id, patch, { persist: true });
+  const name = houseMeta(id)?.name || "Scare house";
   if (result?.ok) {
     const current = drafts.get(id);
-    if (!current || Number(current.wait_minutes) === Number(patch.wait_minutes)) drafts.delete(id);
+    if (patch.wait_minutes !== undefined && (!current || Number(current.wait_minutes) === Number(patch.wait_minutes))) drafts.delete(id);
+    const saved = result.house || {};
+    const minutes = saved.wait_minutes ?? patch.wait_minutes;
     setWaitSaveStatus("Saved to the live database.", false);
+    logStaffAction("Wait updated", `${name}: ${minutes} min`);
+    noteStaffChange();
     return result;
   }
   const latest = drafts.get(id);
-  if (latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
+  if (patch.wait_minutes !== undefined && latest && Number(latest.wait_minutes) !== Number(patch.wait_minutes)) {
     scheduleWaitSave(id, latest);
     return result;
   }
@@ -3090,16 +3455,25 @@ function bindUi() {
     if (!target) return;
     window.removeEventListener("scrollend", releaseJumpLock);
     window.clearTimeout(jumpLockTimer);
+    measureJumpClear();
+    jumpRest = null;
     jumpLockId = target.id;
-    markJumpChip(target.id);
+    markJumpChip(target.id, { scrollTrack: false });
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    const startY = window.scrollY;
+    window.scrollTo({ top: jumpTargetTop(target.id), behavior: reduce ? "auto" : "smooth" });
     if (reduce) {
       releaseJumpLock();
       return;
     }
     window.addEventListener("scrollend", releaseJumpLock);
-    jumpLockTimer = window.setTimeout(releaseJumpLock, 900);
+    jumpLockTimer = window.setTimeout(releaseJumpLock, "onscrollend" in window ? 2500 : 1100);
+    // Live repaints can swallow a smooth scroll before it starts; nudge once if nothing moved.
+    window.setTimeout(() => {
+      if (jumpLockId !== target.id || Math.abs(window.scrollY - startY) > 1) return;
+      const top = jumpTargetTop(target.id);
+      if (Math.abs(top - startY) > 4) window.scrollTo({ top, behavior: "smooth" });
+    }, 180);
   });
   const houseSearch = document.getElementById("houseSearch");
   houseSearch?.addEventListener("input", () => {
@@ -3222,28 +3596,8 @@ function bindUi() {
     }
 
     const logout = event.target.closest("[data-logout]");
-    if (logout) {
-      if (logout.dataset.logout === "student") {
-        flushGameProgress();
-        disablePushNotifications();
-        clearStudentSession();
-        clearAdminSession();
-        applyGameAccount();
-        cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
-        spiritRaised = false;
-        stopGhostRoam();
-        updateNav();
-        renderStamps();
-        if (document.querySelector(".view.is-active")?.dataset.view === "admin") setView("login");
-      } else {
-        flushGameProgress();
-        clearAdminSession();
-        applyGameAccount();
-        updateNav();
-        const onStaff = document.querySelector(".view.is-active")?.dataset.view === "admin";
-        if (onStaff) setView(getStudentSession() ? "stamps" : "login");
-        else renderAdmin();
-      }
+    if (logout && !logout.classList.contains("is-busy")) {
+      handleLogout(logout);
     }
 
     if (event.target.closest("[data-clear-filters]")) {
@@ -3275,7 +3629,45 @@ function bindUi() {
   return false;
 }
 
-async function handleAuthSubmit(event) {
+  async function handleLogout(btn) {
+    const student = btn.dataset.logout === "student";
+    setBusy(btn, true, student ? "Vanishing…" : "Locking up…");
+    flushGameProgress();
+    try {
+      if (student) {
+        const night = readNight();
+        night.watch = [];
+        writeNight(night);
+        await Promise.all([disablePushNotifications().catch(() => {}), clearStudentSession()]);
+        cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
+        cardSeq += 1;
+        spiritRaised = false;
+        stopGhostRoam();
+        stopStaffPolls();
+      } else {
+        await clearAdminSession();
+        stopStaffPolls();
+      }
+    } finally {
+      setBusy(btn, false);
+    }
+    applyGameAccount();
+    updateNav();
+    const view = document.querySelector(".view.is-active")?.dataset.view;
+    if (student) {
+      renderStamps();
+      renderDashboard();
+      renderPins();
+      if (view === "admin" || view === "stamps") setView("login");
+      showWaitToast("Signed out", "Your card is safe in the crypt until next time.", false);
+    } else {
+      if (view === "admin") setView(getStudentSession() ? "stamps" : "login");
+      else renderAdmin();
+      showWaitToast("Staff locked", "Staff tools are closed on this device.", false);
+    }
+  }
+
+  async function handleAuthSubmit(event) {
     event.preventDefault();
     const err = document.getElementById("studentLoginError");
     const submit = event.currentTarget.querySelector('button[type="submit"]');
@@ -3284,13 +3676,13 @@ async function handleAuthSubmit(event) {
     if (err) err.hidden = true;
     const idValue = normalizeAdminNumber(idInput?.value || "");
     if (idInput) idInput.value = idValue;
-    const idBad = setFieldError(idInput, "studentLoginIdError", isAdminNumber(idValue) ? "" : "Enter an admin number like P2512345. The digits start with 22, 23, 24, 25, or 26.");
-    const nameBad = setFieldError(nameInput, "studentLoginNameError", nameInput?.value.trim() ? "" : "Enter your full name.");
+    const idBad = setFieldError(idInput, "studentLoginIdError", admissionNumberProblem(idValue));
+    const nameBad = setFieldError(nameInput, "studentLoginNameError", nameInput?.value.trim().length >= 2 ? "" : "Enter your full name, like it's on your student card.");
     if (idBad || nameBad) {
       (idBad ? idInput : nameInput)?.focus();
       return;
     }
-    if (submit) submit.disabled = true;
+    setBusy(submit, true);
     try {
       flushGameProgress();
       const data = await signIn({
@@ -3300,6 +3692,9 @@ async function handleAuthSubmit(event) {
       applyGameAccount();
       updateNav();
       setView("stamps");
+      if (data.created) {
+        showWaitToast("Card created", "Use this same admin number and name to sign in on another device.", false);
+      }
       if (data.student) {
         cardState.studentNumber = "";
         renderStamps({ refresh: true }).catch(() => paintStampUi());
@@ -3315,10 +3710,10 @@ async function handleAuthSubmit(event) {
     } catch (error) {
       if (err) {
         err.hidden = false;
-        err.textContent = userFacingError(error, "Sign-in failed. Check your admin number and name, then try again.");
+        err.textContent = userFacingError(error, "Sign-in failed. Check your admin number and name.");
       }
     } finally {
-      if (submit) submit.disabled = false;
+      setBusy(submit, false);
     }
   }
 
@@ -3328,17 +3723,11 @@ async function handleAuthSubmit(event) {
     event.preventDefault();
     const err = document.getElementById("staffUnlockError");
     const submit = event.currentTarget.querySelector('button[type="submit"]');
-    const student = getStudentSession();
+    const pass = document.getElementById("staffUnlockPassword");
     if (err) err.hidden = true;
-    if (submit) submit.disabled = true;
+    setBusy(submit, true, "Checking…");
     try {
-      if (!student) throw new Error("Sign in with your admin number first.");
-      await signIn({
-        adminNumber: student.payload.studentNumber,
-        fullName: student.payload.name,
-        password: document.getElementById("staffUnlockPassword").value,
-      });
-      const pass = document.getElementById("staffUnlockPassword");
+      await unlockStaff(pass?.value || "");
       if (pass) pass.value = "";
       applyGameAccount();
       updateNav();
@@ -3346,10 +3735,10 @@ async function handleAuthSubmit(event) {
     } catch (error) {
       if (err) {
         err.hidden = false;
-        err.textContent = userFacingError(error, "Staff password is incorrect.");
+        err.textContent = userFacingError(error, "Staff sign-in failed. Check the password for your post.");
       }
     } finally {
-      if (submit) submit.disabled = false;
+      setBusy(submit, false);
     }
   });
 
@@ -3375,8 +3764,44 @@ async function handleAuthSubmit(event) {
 
   function formatRedeemedLine(at, by) {
     if (!at) return "This ticket is marked used.";
-    const when = new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return `Ticket used at ${when}${by ? ` by ${by}` : ""}.`;
+    return `Ticket used ${formatSgt(at)}${by ? ` by ${by}` : ""}.`;
+  }
+
+  /** Lookup result for the wheel desk. Under 5/5 the button stays visible but disabled. */
+  function showStaffRedeemReady(data, filled) {
+    const form = document.getElementById("staffRedeemLookupForm");
+    const ready = document.getElementById("staffRedeemReady");
+    const used = document.getElementById("staffRedeemUsed");
+    if (form) form.hidden = true;
+    if (used) used.hidden = true;
+    if (ready) ready.hidden = false;
+    const readyErr = document.getElementById("staffRedeemReadyError");
+    if (readyErr) {
+      readyErr.hidden = true;
+      readyErr.textContent = "";
+    }
+    const goal = STAMP_BOOTHS.length;
+    const enough = filled >= goal;
+    const passId = data.passId || `SP-FP-${data.studentNumber}`;
+    document.getElementById("staffRedeemName").textContent = `${data.fullName || ""} · ${data.studentNumber || ""}`;
+    document.getElementById("staffRedeemId").textContent = passId;
+    document.getElementById("staffRedeemStamps").textContent = enough
+      ? `${filled} / ${goal} stamps · ready to spin the wheel`
+      : `${filled} / ${goal} stamps · ${goal - filled} more to go`;
+    const confirm = document.getElementById("staffRedeemConfirm");
+    const need = document.getElementById("staffRedeemNeed");
+    if (confirm) {
+      confirm.disabled = !enough;
+      confirm.setAttribute("aria-disabled", String(!enough));
+      confirm.dataset.studentNumber = enough ? data.studentNumber : "";
+      confirm.dataset.fullName = data.fullName || "";
+      if (need) {
+        need.hidden = enough;
+        need.textContent = enough ? "" : `Needs ${goal}/${goal} stamps`;
+        if (!enough) confirm.setAttribute("aria-describedby", "staffRedeemNeed");
+        else confirm.removeAttribute("aria-describedby");
+      }
+    }
   }
 
   function showStaffUsedPass(data) {
@@ -3424,37 +3849,18 @@ async function handleAuthSubmit(event) {
     }
     if (ready) ready.hidden = true;
     if (used) used.hidden = true;
-    if (submit) {
-      submit.disabled = true;
-      submit.textContent = "Looking up…";
-      submit.setAttribute("aria-busy", "true");
-    }
+    setBusy(submit, true, "Looking up…");
     const input = document.getElementById("redeemStudentNumber");
     try {
       const data = await lookupStudent(input.value);
       if (seq !== redeemLookupSeq) return;
-      if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
       const filled = typeof data.stampCount === "number" ? data.stampCount : stampCount(data.stamps || {});
       const passId = data.passId || `SP-FP-${data.studentNumber}`;
       if (isPassRedeemed(data.redeemedAt)) {
         showStaffUsedPass({ ...data, passId });
         return;
       }
-      if (filled < STAMP_BOOTHS.length) {
-        throw new Error(`This student has ${filled} / ${STAMP_BOOTHS.length} stamps. The wheel ticket is not unlocked.`);
-      }
-      const form = document.getElementById("staffRedeemLookupForm");
-      if (form) form.hidden = true;
-      if (used) used.hidden = true;
-      if (ready) ready.hidden = false;
-      document.getElementById("staffRedeemName").textContent = `${data.fullName} · ${data.studentNumber}`;
-      document.getElementById("staffRedeemId").textContent = passId;
-      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to spin the wheel`;
-      const confirm = document.getElementById("staffRedeemConfirm");
-      if (confirm) {
-        confirm.dataset.studentNumber = data.studentNumber;
-        confirm.dataset.fullName = data.fullName || "";
-      }
+      showStaffRedeemReady({ ...data, passId }, filled);
     } catch (error) {
       if (seq !== redeemLookupSeq) return;
       pushStaffLog("Redeem lookup", error);
@@ -3463,11 +3869,7 @@ async function handleAuthSubmit(event) {
         err.textContent = staffDeskError(error);
       }
     } finally {
-      if (seq === redeemLookupSeq && submit) {
-        submit.disabled = false;
-        submit.textContent = "Look up";
-        submit.removeAttribute("aria-busy");
-      }
+      if (seq === redeemLookupSeq) setBusy(submit, false);
     }
   });
 
@@ -3476,27 +3878,36 @@ async function handleAuthSubmit(event) {
     const err = document.getElementById("staffRedeemError");
     const studentNumber = btn?.dataset.studentNumber;
     const fullName = btn?.dataset.fullName || "";
-    if (!studentNumber || !btn) return;
+    if (!studentNumber || !btn || btn.disabled) return;
     const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
-    if (!window.confirm(`Mark the wheel ticket as used for ${who}?`)) return;
-    btn.disabled = true;
+    if (!window.confirm(`Mark the wheel ticket as used for ${who}? Only do this once they've spun.`)) return;
+    setBusy(btn, true, "Marking…");
     try {
       const result = await redeemPass(studentNumber);
       showStaffUsedPass({ ...result, allowUndo: !result.already });
+      logStaffAction(result.already ? "Already redeemed" : "Wheel ticket redeemed", `${result.fullName || fullName} · ${result.studentNumber || studentNumber}`);
       noteStaffChange();
       if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
         await renderStamps({ refresh: true });
-        paintStampUi();
       }
     } catch (error) {
-      resetStaffRedeemView();
       pushStaffLog("Redeem wheel ticket", error);
-      if (err) {
-        err.hidden = false;
-        err.textContent = staffDeskError(error);
+      if (error && error.code === "needs_stamps") {
+        showStaffRedeemReady({ studentNumber, fullName }, Number(error.stampCount) || 0);
+        const readyErr = document.getElementById("staffRedeemReadyError");
+        if (readyErr) {
+          readyErr.hidden = false;
+          readyErr.textContent = staffDeskError(error);
+        }
+      } else {
+        resetStaffRedeemView();
+        if (err) {
+          err.hidden = false;
+          err.textContent = staffDeskError(error);
+        }
       }
     } finally {
-      btn.disabled = false;
+      setBusy(btn, false);
     }
   });
 
@@ -3508,33 +3919,23 @@ async function handleAuthSubmit(event) {
     if (!undo || !studentNumber) return;
     const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
     if (!window.confirm(`Undo the redeem for ${who}? The ticket will be usable again.`)) return;
-    undo.disabled = true;
-    undo.textContent = "Undoing…";
+    setBusy(undo, true, "Undoing…");
     try {
       const result = await unredeemPass(studentNumber);
       const lookup = await lookupStudent(studentNumber);
       if (isPassRedeemed(lookup.redeemedAt)) {
         throw new Error("Undo did not clear the ticket. It is still marked used.");
       }
+      setBusy(undo, false);
       const filled = typeof lookup.stampCount === "number" ? lookup.stampCount : stampCount(lookup.stamps || {});
-      const form = document.getElementById("staffRedeemLookupForm");
-      const ready = document.getElementById("staffRedeemReady");
-      const used = document.getElementById("staffRedeemUsed");
-      if (form) form.hidden = true;
-      if (used) used.hidden = true;
-      if (ready) ready.hidden = false;
-      document.getElementById("staffRedeemName").textContent = `${result.fullName || fullName} · ${result.studentNumber || studentNumber}`;
-      document.getElementById("staffRedeemId").textContent = result.passId || `SP-FP-${studentNumber}`;
-      document.getElementById("staffRedeemStamps").textContent = `${filled} / ${STAMP_BOOTHS.length} stamps · ready to spin the wheel`;
-      const confirm = document.getElementById("staffRedeemConfirm");
-      if (confirm) {
-        confirm.dataset.studentNumber = result.studentNumber || studentNumber;
-        confirm.dataset.fullName = result.fullName || fullName;
-      }
+      showStaffRedeemReady({ ...lookup, fullName: result.fullName || lookup.fullName || fullName, passId: result.passId }, filled);
+      logStaffAction("Redeem undone", `${result.fullName || fullName} · ${result.studentNumber || studentNumber}`);
       noteStaffChange();
+      if (getStudentSession()?.payload.studentNumber === (result.studentNumber || studentNumber)) {
+        await renderStamps({ refresh: true });
+      }
     } catch (error) {
-      undo.disabled = false;
-      undo.textContent = "Undo redeem";
+      setBusy(undo, false);
       pushStaffLog("Undo redeem", error);
       if (err) {
         err.hidden = false;
@@ -3569,11 +3970,13 @@ async function handleAuthSubmit(event) {
       const input = tr.querySelector("[data-wait-input]");
       input.value = Math.max(0, Math.min(WAIT_MAX, Number(input.value) + Number(adjust.dataset.adjust)));
       const patch = readAdminRow(tr);
-      scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+      scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes });
     }
-    if (event.target.closest("[data-publish-one]")) {
+    const publish = event.target.closest("[data-publish-one]");
+    if (publish && !publish.classList.contains("is-busy")) {
       const patch = readAdminRow(tr);
-      persistHouse(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+      setBusy(publish, true, "Saving…");
+      persistHouse(patch.id, { wait_minutes: patch.wait_minutes }).finally(() => setBusy(publish, false));
     }
   });
 
@@ -3585,20 +3988,26 @@ async function handleAuthSubmit(event) {
 
   els.adminTable?.addEventListener("change", (event) => {
     const tr = event.target.closest("[data-admin-row]");
-    if (!tr) return;
+    if (!tr || !event.target.matches("[data-wait-input]")) return;
     const patch = readAdminRow(tr);
-    scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
+    scheduleWaitSave(patch.id, { wait_minutes: patch.wait_minutes });
   });
 
   els.publishAll?.addEventListener("click", async () => {
-    const results = await Promise.all(
-      [...els.adminTable.querySelectorAll("[data-admin-row]")].map((tr) => {
-        const patch = readAdminRow(tr);
-        return persistHouse(patch.id, { wait_minutes: patch.wait_minutes, status: patch.status });
-      })
-    );
-    const failed = results.find((r) => r && r.ok === false);
-    if (failed) setWaitSaveStatus(failed.error || "Could not save wait times to the database.");
+    if (els.publishAll.classList.contains("is-busy")) return;
+    setBusy(els.publishAll, true, "Publishing…");
+    try {
+      const results = await Promise.all(
+        [...els.adminTable.querySelectorAll("[data-admin-row]")].map((tr) => {
+          const patch = readAdminRow(tr);
+          return persistHouse(patch.id, { wait_minutes: patch.wait_minutes });
+        })
+      );
+      const failed = results.find((r) => r && r.ok === false);
+      if (failed) setWaitSaveStatus(failed.error || "Could not save wait times to the database.");
+    } finally {
+      setBusy(els.publishAll, false);
+    }
   });
 
   document.querySelectorAll("[data-staff-tab]").forEach((btn) => {
@@ -3719,16 +4128,15 @@ async function handleAuthSubmit(event) {
       els.awardStampError.textContent = "";
     }
     const submit = document.getElementById("awardStampSubmit") || els.awardStampForm.querySelector("button[type=submit]");
-    if (submit) {
-      submit.disabled = true;
-      submit.textContent = "Looking up…";
-      submit.setAttribute("aria-busy", "true");
-    }
+    const ready = document.getElementById("awardStampReady");
+    const done = document.getElementById("awardStampDone");
+    if (ready) ready.hidden = true;
+    if (done) done.hidden = true;
+    setBusy(submit, true, "Looking up…");
     const booth = boothById(els.awardBooth.value);
     try {
       const data = await lookupStudent(document.getElementById("awardStudentNumber").value);
       if (seq !== awardSeq) return;
-      if (data.demo) throw new Error("Could not reach the live database. Try again when the staff tools are online.");
       if (stampRecord(data.stamps, booth?.id)) showAwardDone(data, booth);
       else showAwardReady(data, booth);
     } catch (error) {
@@ -3739,11 +4147,7 @@ async function handleAuthSubmit(event) {
         els.awardStampError.textContent = staffDeskError(error);
       }
     } finally {
-      if (seq === awardSeq && submit) {
-        submit.disabled = false;
-        submit.textContent = "Look up";
-        submit.removeAttribute("aria-busy");
-      }
+      setBusy(submit, false);
     }
   });
 
@@ -3752,16 +4156,21 @@ async function handleAuthSubmit(event) {
     const studentNumber = btn?.dataset.studentNumber;
     const fullName = btn?.dataset.fullName || "";
     const boothId = btn?.dataset.boothId;
-    if (!btn || !studentNumber || !boothId) return;
-    btn.disabled = true;
+    if (!btn || !studentNumber || !boothId || btn.classList.contains("is-busy")) return;
+    const seq = ++awardSeq;
+    setBusy(btn, true, "Stamping…");
     try {
       const result = await awardStamp(studentNumber, boothId);
-      showAwardDone({ ...result, fullName: result.fullName || fullName, passId: `SP-FP-${result.studentNumber || studentNumber}` }, boothById(boothId), { allowUndo: true });
+      if (seq !== awardSeq) return;
+      const booth = boothById(boothId);
+      showAwardDone({ ...result, fullName: result.fullName || fullName, passId: `SP-FP-${result.studentNumber || studentNumber}` }, booth, { allowUndo: !result.already });
+      logStaffAction(result.already ? "Already stamped" : "Stamp awarded", `${booth?.name || "Booth"} · ${result.fullName || fullName} · ${result.studentNumber || studentNumber}`);
       noteStaffChange();
       if (getStudentSession()?.payload.studentNumber === result.studentNumber) {
         await renderStamps({ refresh: true });
       }
     } catch (error) {
+      if (seq !== awardSeq) return;
       resetAwardView();
       pushStaffLog("Award stamp", error);
       if (els.awardStampError) {
@@ -3769,7 +4178,7 @@ async function handleAuthSubmit(event) {
         els.awardStampError.textContent = staffDeskError(error);
       }
     } finally {
-      btn.disabled = false;
+      setBusy(btn, false);
     }
   });
 
@@ -3783,22 +4192,22 @@ async function handleAuthSubmit(event) {
     if (!undo || !studentNumber || !boothId) return;
     const who = fullName ? `${fullName} (${studentNumber})` : studentNumber;
     if (!window.confirm(`Remove the ${boothName} stamp from ${who}?`)) return;
-    undo.disabled = true;
-    undo.textContent = "Undoing…";
+    setBusy(undo, true, "Undoing…");
     try {
       const result = await unawardStamp(studentNumber, boothId);
       const lookup = await lookupStudent(studentNumber);
       if (stampRecord(lookup.stamps, boothId)) {
         throw new Error("Undo did not remove the stamp.");
       }
+      setBusy(undo, false);
       showAwardReady({ ...lookup, fullName: result.fullName || lookup.fullName || fullName }, boothById(boothId));
+      logStaffAction("Stamp undone", `${boothName} · ${result.fullName || fullName} · ${studentNumber}`);
       noteStaffChange();
       if (getStudentSession()?.payload.studentNumber === (result.studentNumber || studentNumber)) {
         await renderStamps({ refresh: true });
       }
     } catch (error) {
-      undo.disabled = false;
-      undo.textContent = "Undo stamp";
+      setBusy(undo, false);
       pushStaffLog("Undo stamp", error);
       if (err) {
         err.hidden = false;
@@ -3897,8 +4306,12 @@ async function handleAuthSubmit(event) {
     if (document.hidden) return;
     if (document.querySelector(".view.is-active")?.dataset.view !== "stamps") return;
     if (!getStudentSession()) return;
-    renderStamps({ refresh: true });
+    renderStamps({ refresh: true, quiet: true });
   }, 4000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden || !getStudentSession()) return;
+    if (document.querySelector(".view.is-active")?.dataset.view === "stamps") renderStamps({ refresh: true, quiet: true });
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -3976,6 +4389,7 @@ function onStoreChange(next, sync) {
 }
 
 async function init() {
+  watchStyleVars();
   try {
     initEventGate();
   } catch (error) {
@@ -4000,7 +4414,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r9")
+  import("./games.js?v=r40")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
@@ -4015,7 +4429,10 @@ async function init() {
   loadPublicAnnouncements();
   registerPushWorker();
   paintPushHint();
-  resumePushIfWanted(pushWatchList(readNight().watch));
+  resumePushIfWanted(pushWatchList(readNight().watch))
+    .catch(() => {})
+    .then(() => reconcileWatchState())
+    .catch(() => {});
   const start = hashToView();
   const explicitTab = Boolean(location.hash) && start.view && start.view !== "welcome";
   if (wantsOpeningNight() && !explicitTab) {

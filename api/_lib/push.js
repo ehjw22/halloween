@@ -184,13 +184,34 @@ function alertForLevels(prev, next, status, levels) {
   return ALERT_STEPS.find((step) => wanted.has(step.id) && n <= step.max && p > step.max) || null;
 }
 
+/** Browser push services only, so the server never posts to an address a client made up. */
+const PUSH_HOSTS = [
+  /^fcm\.googleapis\.com$/,
+  /^android\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/,
+  /^push\.services\.mozilla\.com$/,
+  /^web\.push\.apple\.com$/,
+  /^[a-z0-9-]+\.push\.apple\.com$/,
+  /^[a-z0-9-]+\.notify\.windows\.com$/,
+];
+
+function pushHostAllowed(endpoint) {
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== "https:" || url.port || url.username || url.password) return false;
+    return PUSH_HOSTS.some((re) => re.test(url.hostname.toLowerCase()));
+  } catch {
+    return false;
+  }
+}
+
 function validSubscription(sub) {
   const endpoint = String(sub && sub.endpoint ? sub.endpoint : "");
   const p256dh = String(sub && sub.keys && sub.keys.p256dh ? sub.keys.p256dh : "");
   const auth = String(sub && sub.keys && sub.keys.auth ? sub.keys.auth : "");
   if (!endpoint || endpoint.length > 2048) return null;
-  if (!/^https:\/\//i.test(endpoint) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(endpoint)) return null;
-  if (!p256dh || p256dh.length > 200 || !auth || auth.length > 200) return null;
+  if (!pushHostAllowed(endpoint)) return null;
+  if (!/^[A-Za-z0-9_-]{40,200}$/.test(p256dh) || !/^[A-Za-z0-9_-]{8,64}$/.test(auth)) return null;
   return { endpoint, p256dh, auth };
 }
 
@@ -295,6 +316,9 @@ async function handlePush(req, res, { readBody, fail, verifyJwt, tokenForRole })
       await deleteSub(parsed.endpoint);
       return sendJson(res, 200, { ok: true });
     }
+    if (!who) {
+      return sendJson(res, 401, { error: "Sign in first, then turn on alerts.", code: "no_session" });
+    }
     const watch = cleanWatch(body.watch);
     if (req.method === "PATCH") {
       await updateWatch(parsed.endpoint, who, watch);
@@ -314,7 +338,7 @@ async function loadAllSubs() {
   if (supabaseReady()) {
     try {
       const rows = await sb("push_subscriptions", {
-        query: "?select=endpoint,p256dh,auth&limit=250",
+        query: "?select=endpoint,p256dh,auth&limit=1000",
       });
       if (Array.isArray(rows)) return rows;
     } catch {
@@ -325,22 +349,13 @@ async function loadAllSubs() {
 }
 
 async function loadWatchers(houseId) {
+  if (!isHouseId(houseId)) return [];
   if (supabaseReady()) {
-    try {
-      const encoded = encodeURIComponent(JSON.stringify([houseId]));
-      const rows = await sb("push_subscriptions", {
-        query: `?watch=cs.${encoded}&select=endpoint,p256dh,auth,watch`,
-      });
-      if (Array.isArray(rows)) return rows;
-    } catch {
-      /* rpc next */
-    }
-    try {
-      const rows = await sbRpc("list_push_watchers", { p_house: houseId });
-      if (Array.isArray(rows) && rows.length) return rows;
-    } catch {
-      /* local fallback */
-    }
+    const encoded = encodeURIComponent(JSON.stringify([houseId]));
+    const rows = await sb("push_subscriptions", {
+      query: `?watch=cs.${encoded}&select=endpoint,p256dh,auth,watch&limit=1000`,
+    });
+    return Array.isArray(rows) ? rows : [];
   }
   return [...localSubs.values()].filter((row) => Array.isArray(row.watch) && row.watch.includes(houseId));
 }
@@ -387,7 +402,7 @@ async function sendPush(rows, payload, urgency) {
   const webpush = applyVapid();
   if (!webpush || !rows.length) return { sent: 0 };
   let sent = 0;
-  await mapPool(rows.slice(0, 250), 8, async (row) => {
+  await mapPool(rows.slice(0, 1000), 16, async (row) => {
     if (!row || !row.endpoint || !row.p256dh || !row.auth) return;
     try {
       await webpush.sendNotification(
@@ -424,13 +439,16 @@ async function notifyHouseWatchers(houseId, { name, wait_minutes, status, previo
     groups.get(hit.id).rows.push(row);
   });
   let sent = 0;
+  const reopened = Number(previous) >= 999;
   for (const { hit, rows: group } of groups.values()) {
-    const walkIn = hit.id === "open";
-    const body = walkIn
-      ? `${house}. No queue. Head over.`
-      : `${house} is down to ${minutes} minutes.`;
+    const walkIn = hit.id === "five";
+    const body = reopened
+      ? `The doors creaked open again. About ${minutes} min. Get in line before the ghosts do.`
+      : walkIn
+        ? `Basically a walk-in right now (${minutes} min). Go go go!`
+        : `Down to ${minutes} min. That's under ${hit.title}. Run (walk, please).`;
     const result = await sendPush(group, JSON.stringify({
-      title: hit.title,
+      title: `${house} · ${minutes} min`,
       body,
       url: `/#house/${houseId}`,
       walkIn,

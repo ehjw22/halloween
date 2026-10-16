@@ -1,5 +1,6 @@
-import { HOUSES } from "./houses.js?v=r19";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r11";
+import { HOUSES } from "./houses.js?v=r40";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r40";
+import { statusFor } from "./wait-status.js?v=r40";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";
@@ -11,13 +12,14 @@ function cloneHouses() {
     id: h.id,
     name: h.name,
     wait_minutes: h.wait,
+    closed: false,
     status: h.status,
-    updated_at: h.wait == null ? null : new Date().toISOString(),
+    updated_at: null,
   }));
 }
 
 function fingerprint(list) {
-  return list.map((row) => `${row.id}:${Number(row.wait_minutes) || 0}:${row.status}`).join("|");
+  return list.map((row) => `${row.id}:${row.wait_minutes ?? "-"}:${row.closed ? 1 : 0}:${row.status}:${row.updated_at || ""}`).join("|");
 }
 
 function readLocal() {
@@ -49,24 +51,17 @@ function writeLastLiveAt(iso) {
   localStorage.setItem(SYNC_KEY, JSON.stringify({ lastLiveAt: iso }));
 }
 
-function statusFor(wait) {
-  const n = Number(wait) || 0;
-  if (n >= 60) return "closed";
-  if (n >= 40) return "long";
-  if (n >= 21) return "busy";
-  if (n >= 6) return "open";
-  return "gonow";
-}
-
 function rowFromRemote(fallback, incoming) {
   const raw = incoming.wait_minutes ?? incoming.wait;
   const published = raw !== null && raw !== undefined && raw !== "";
   const wait = published ? Math.max(0, Number(raw) || 0) : null;
+  const closed = incoming.closed === true || (incoming.closed === undefined && incoming.status === "closed");
   return {
     id: fallback.id,
     name: incoming.name || fallback.name,
     wait_minutes: wait,
-    status: published ? statusFor(wait) : "open",
+    closed,
+    status: closed ? "closed" : published ? statusFor(wait) : "open",
     updated_at: incoming.updated_at || null,
   };
 }
@@ -112,14 +107,15 @@ export function createStore(onChange) {
         const held = ack.get(fallback.id);
         if (held && Date.now() > held.until) ack.delete(fallback.id);
         else if (held) {
-          const remoteWait = incoming ? incoming.wait_minutes ?? incoming.wait : null;
-          if (incoming && Number(remoteWait) === Number(held.wait_minutes)) ack.delete(fallback.id);
+          const remote = incoming ? rowFromRemote(fallback, incoming) : null;
+          if (remote && remote.wait_minutes === held.wait_minutes && remote.closed === held.closed) ack.delete(fallback.id);
           else {
             const local = current.get(fallback.id) || fallback;
             return {
               ...fallback,
               ...local,
               wait_minutes: held.wait_minutes,
+              closed: held.closed,
               status: held.status,
               updated_at: held.updated_at,
             };
@@ -130,7 +126,7 @@ export function createStore(onChange) {
       if (incoming && fromRemote) return rowFromRemote(fallback, incoming);
       if (incoming) return { ...fallback, ...incoming };
       if (fromRemote && !partial) {
-        return { ...fallback, wait_minutes: null, status: "open", updated_at: null };
+        return { ...fallback, wait_minutes: null, closed: false, status: "open", updated_at: null };
       }
       return local ? { ...fallback, ...local } : fallback;
     });
@@ -207,8 +203,9 @@ export function createStore(onChange) {
     markLive();
     applyRows(data || [], { fromRemote: true });
 
+    // Only database change events: public broadcast messages can be sent by anyone holding the anon key.
     channel = client
-      .channel("scare-houses-live", { config: { broadcast: { ack: false } } })
+      .channel("scare-houses-live")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "scare_houses" },
@@ -219,12 +216,6 @@ export function createStore(onChange) {
           applyRows([next], { fromRemote: true, partial: true, broadcastLocal: true });
         }
       )
-      .on("broadcast", { event: "wait-times" }, ({ payload }) => {
-        if (Array.isArray(payload?.rows)) {
-          markLive();
-          applyRows(payload.rows, { fromRemote: true, partial: true });
-        }
-      })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") refreshFromDb();
       });
@@ -246,11 +237,17 @@ export function createStore(onChange) {
     return { mode: liveOk ? "live" : "local" };
   }
 
-  async function publish(id, patch, { persist = true } = {}) {
+  /** patch: { wait_minutes }. Status is derived from the minutes. A stored closed flag is left as the database has it. */
+  async function publish(id, input, { persist = true } = {}) {
     const row = rows.find((r) => r.id === id);
     if (!row) return { ok: false, error: "Unknown scare house." };
 
     const updated_at = new Date().toISOString();
+    const body = { id: row.id };
+    if (input.wait_minutes !== undefined) body.wait_minutes = input.wait_minutes;
+    const nextWait = body.wait_minutes !== undefined ? body.wait_minutes : row.wait_minutes;
+    const nextClosed = Boolean(row.closed);
+    const patch = { wait_minutes: nextWait, closed: nextClosed, status: statusFor(nextWait, nextClosed) };
     if (!persist) {
       applyRows(
         rows.map((item) => (item.id === id ? { ...item, ...patch, updated_at } : item)),
@@ -263,13 +260,6 @@ export function createStore(onChange) {
     if (!session) {
       return { ok: false, error: "Staff session expired. Sign in again to save wait times." };
     }
-    if (session.payload.local) {
-      return {
-        ok: false,
-        error: "This staff login is demo-only. Wait times stay on this device.",
-      };
-    }
-
     pending.set(id, { ...patch, updated_at });
     applyRows(
       rows.map((item) => (item.id === id ? { ...item, ...patch, updated_at } : item)),
@@ -283,12 +273,7 @@ export function createStore(onChange) {
           "Content-Type": "application/json",
         },
         asRole: "admin",
-        body: JSON.stringify({
-          id: row.id,
-          name: row.name,
-          wait_minutes: patch.wait_minutes,
-          status: patch.status,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -299,16 +284,18 @@ export function createStore(onChange) {
         return { ok: false, error };
       }
       pending.delete(id);
+      const saved = data.house ? rowFromRemote(row, data.house) : { ...patch, updated_at };
       ack.set(id, {
-        wait_minutes: patch.wait_minutes,
-        status: patch.status,
-        updated_at: data.house?.updated_at || updated_at,
+        wait_minutes: saved.wait_minutes,
+        closed: saved.closed,
+        status: saved.status,
+        updated_at: saved.updated_at || updated_at,
         until: Date.now() + 5000,
       });
       if (data.house) {
         applyRows([data.house], { fromRemote: true, partial: true, broadcastLocal: true });
       }
-      return { ok: true };
+      return { ok: true, house: saved };
     } catch (error) {
       pending.delete(id);
       await refreshFromDb();

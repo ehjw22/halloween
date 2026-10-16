@@ -92,7 +92,7 @@ export const HOUSES = [
     pin: "t11b",
     name: "The Clowns That Never Died",
     short: "T11B",
-    rooms: "T11B5510",
+    rooms: "T11B510",
     blurb: "The circus came to town with painted smiles, ringing bells and laughter in the air. Behind the bright lights and cheerful faces, something darker lived beneath the canvas.\n\nThe clowns were mocked, tortured and cast aside. One by one, they disappeared. Some say they ran away. Others say they were dragged beneath the circus floor, never to be seen again.\n\nOn the final night, the circus went silent. The lights flickered, the laughter stopped, and every clown vanished. Only their costumes remained, hanging from empty hooks, their masks staring into the darkness, their belongings stained deep red.\n\nThey say that when the lights go out, the clowns return, standing perfectly still within the maze, watching from afar. Waiting.\n\nAnd when they see you, first comes the scream. Then comes the laughter. Then they run. And if they catch you, you become part of the circus.",
     wait: 22,
     status: "open",

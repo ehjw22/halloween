@@ -31,8 +31,9 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=r156" />
-    <script src="js/boot.js?v=r11"></script>
+    <link rel="stylesheet" href="css/styles.css?v=r164" />
+    <link rel="stylesheet" href="css/poster.css?v=r6" />
+    <script src="js/boot.js?v=r12"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -55,15 +56,15 @@
         <div class="event-gate__haze"></div>
         <div class="event-gate__vignette"></div>
         <div class="event-gate__grain"></div>
-        <span class="event-gate__ember" style="--x: 8%; --d: 0.4s"></span>
-        <span class="event-gate__ember" style="--x: 12%; --d: 0s"></span>
-        <span class="event-gate__ember" style="--x: 28%; --d: 1.4s"></span>
-        <span class="event-gate__ember" style="--x: 41%; --d: 3.2s"></span>
-        <span class="event-gate__ember" style="--x: 47%; --d: 0.7s"></span>
-        <span class="event-gate__ember" style="--x: 63%; --d: 2.1s"></span>
-        <span class="event-gate__ember" style="--x: 72%; --d: 4s"></span>
-        <span class="event-gate__ember" style="--x: 81%; --d: 1.1s"></span>
-        <span class="event-gate__ember" style="--x: 91%; --d: 2.8s"></span>
+        <span class="event-gate__ember event-gate__ember--1"></span>
+        <span class="event-gate__ember event-gate__ember--2"></span>
+        <span class="event-gate__ember event-gate__ember--3"></span>
+        <span class="event-gate__ember event-gate__ember--4"></span>
+        <span class="event-gate__ember event-gate__ember--5"></span>
+        <span class="event-gate__ember event-gate__ember--6"></span>
+        <span class="event-gate__ember event-gate__ember--7"></span>
+        <span class="event-gate__ember event-gate__ember--8"></span>
+        <span class="event-gate__ember event-gate__ember--9"></span>
       </div>
       <div class="event-gate__core">
         <p class="event-gate__kicker">Singapore Polytechnic</p>
@@ -85,9 +86,7 @@
             <span id="cdSeconds"></span><small>Seconds</small>
           </div>
         </div>
-        <script>
-          if (window.__screamPaintGate) window.__screamPaintGate();
-        </script>
+        <script src="js/gate-paint.js?v=r1"></script>
       </div>
       <div class="event-gate__credits">
         <p class="event-gate__by">Organised by Singapore Polytechnic student clubs</p>
@@ -482,9 +481,9 @@
             <span class="cards-sky__cloud cards-sky__cloud--b"></span>
           </div>
           <div class="house-grid" id="houseGrid"></div>
-          <section class="map-booths" id="map-booths" aria-label="Booths, Eleven squared">
+          <section class="map-booths" id="map-booths" aria-label="Booths, Eleven Square">
             <div class="section-head">
-              <h2>Booths · Eleven<sup>2</sup></h2>
+              <h2 aria-label="Booths, Eleven Square">Booths · Eleven<sup>2</sup></h2>
               <p>Complete the stations marked in <span class="booth-key">yellow</span> for a chance to spin the wheel and win prizes.</p>
             </div>
             <div class="cluster-group__grid" id="boothDirectory"></div>
@@ -500,8 +499,7 @@
               <p class="auth-card__kicker">SP Scream Fest</p>
               <h2>Open your night</h2>
               <p class="muted">
-                Don’t have an account yet? Enter your admin number and full name.
-                That counts as sign up. Next time, sign in with the same details.
+                New here? Fill this in once and that's your sign-up. Use the same admin number and full name next time.
               </p>
               <label>
                 Admin number
@@ -511,9 +509,12 @@
                   type="text"
                   inputmode="text"
                   autocomplete="username"
+                  autocapitalize="characters"
                   maxlength="8"
-                  placeholder="P2512345"
+                  placeholder="e.g. P2XXXXXX"
                   spellcheck="false"
+                  required
+                  pattern="[Pp](22|23|24|25|26)[0-9]{5}"
                   aria-describedby="studentLoginIdError"
                 />
                 <span class="field-error" id="studentLoginIdError" role="alert" hidden></span>
@@ -527,6 +528,7 @@
                   autocomplete="name"
                   maxlength="80"
                   placeholder="Full name on your card"
+                  required
                   aria-describedby="studentLoginNameError"
                 />
                 <span class="field-error" id="studentLoginNameError" role="alert" hidden></span>
@@ -542,7 +544,7 @@
                 <label class="check-row"><input type="checkbox" name="alertLevel" value="five" /> 5 minutes</label>
               </fieldset>
               <p class="form-error" id="studentLoginError" hidden></p>
-              <button class="btn" type="submit" id="loginSubmitBtn">Sign in</button>
+              <button class="btn" type="submit" id="loginSubmitBtn" data-busy-label="Summoning your card…">Sign in</button>
             </form>
           </div>
         </section>
@@ -604,6 +606,7 @@
                 <div class="station-map" id="stampRoadmap"></div>
               </section>
               <article class="fast-pass" id="fastPassCard">
+                <div class="fast-pass__sheet">
                 <div class="haunt-fx" aria-hidden="true">
                   <span class="haunt-fx__rays"></span>
                   <span class="haunt-fx__mist haunt-fx__mist--a"></span>
@@ -612,36 +615,28 @@
                   <span class="haunt-fx__web haunt-fx__web--tl"></span>
                   <span class="haunt-fx__web haunt-fx__web--tr"></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 8%; --d: 0s; --t: 7s"
+                    class="haunt-fx__ember haunt-fx__ember--1"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 18%; --d: 1.4s; --t: 8.2s"
+                    class="haunt-fx__ember haunt-fx__ember--2"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 31%; --d: 2.8s; --t: 6.6s"
+                    class="haunt-fx__ember haunt-fx__ember--3"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 44%; --d: 0.6s; --t: 7.8s"
+                    class="haunt-fx__ember haunt-fx__ember--4"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 58%; --d: 3.2s; --t: 9s"
+                    class="haunt-fx__ember haunt-fx__ember--5"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 71%; --d: 1.1s; --t: 6.4s"
+                    class="haunt-fx__ember haunt-fx__ember--6"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 82%; --d: 2.2s; --t: 8.5s"
+                    class="haunt-fx__ember haunt-fx__ember--7"
                   ></span>
                   <span
-                    class="haunt-fx__ember"
-                    style="--x: 93%; --d: 4s; --t: 7.2s"
+                    class="haunt-fx__ember haunt-fx__ember--8"
                   ></span>
                 </div>
                 <p class="fast-pass__kicker" id="passKicker">Caged spirit</p>
@@ -778,6 +773,8 @@
                   The spirit is caged. Stamp booths to uncover your ticket
                 </p>
                 </div>
+                </div>
+                <div class="fast-pass__stub">
                 <div class="pass-plate" id="passPlate">
                   <p class="pass-plate__name" id="passHolder"></p>
                   <p class="pass-plate__admin" id="passAdmin"></p>
@@ -785,6 +782,7 @@
                   <span class="fast-pass__used" id="passUsedMark" hidden>Laid to rest</span>
                 </div>
                 <p class="muted" id="redeemedNote" hidden></p>
+                </div>
               </article>
             </article>
           </div>
@@ -1247,7 +1245,7 @@
           <div id="adminApp" hidden>
             <p class="db-banner" id="dbBanner" hidden></p>
             <details class="staff-log" id="staffErrorLogWrap">
-              <summary>Error log</summary>
+              <summary>Action log (this device)</summary>
               <ul class="staff-log__list" id="staffErrorLog"></ul>
               <button class="btn btn--danger" id="staffLogClear" type="button">
                 Clear log
@@ -1323,8 +1321,8 @@
                     <tr>
                       <th>Scare house</th>
                       <th>Wait (min)</th>
-                      <th>Status</th>
-                      <th></th>
+                      <th>Published</th>
+                      <th><span class="visually-hidden">Publish</span></th>
                     </tr>
                   </thead>
                   <tbody id="adminTable"></tbody>
@@ -1351,7 +1349,7 @@
                       autocorrect="off"
                       enterkeyhint="search"
                       maxlength="8"
-                      placeholder="P2512345"
+                      placeholder="e.g. P2XXXXXX"
                       spellcheck="false"
                       required
                     />
@@ -1407,7 +1405,7 @@
                     autocorrect="off"
                     enterkeyhint="search"
                     maxlength="8"
-                    placeholder="P2512345"
+                    placeholder="e.g. P2XXXXXX"
                     spellcheck="false"
                     required
                   />
@@ -1426,6 +1424,8 @@
                 <p class="fast-pass__holder" id="staffRedeemName"></p>
                 <p class="fast-pass__id" id="staffRedeemId"></p>
                 <p class="muted" id="staffRedeemStamps"></p>
+                <p class="field-hint staff-need" id="staffRedeemNeed" hidden></p>
+                <p class="form-error" id="staffRedeemReadyError" role="alert" hidden></p>
                 <button class="btn" id="staffRedeemConfirm" type="button">
                   Mark redeemed
                 </button>
@@ -1646,7 +1646,7 @@
           <div class="modal__bar">
             <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
             <div>
-              <h3 id="boothsModalTitle">Booths · Eleven<sup>2</sup></h3>
+              <h3 id="boothsModalTitle" aria-label="Booths, Eleven Square">Booths · Eleven<sup>2</sup></h3>
             </div>
           </div>
           <div class="modal__body">
@@ -1685,9 +1685,9 @@
         </div>
       </div>
 
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" crossorigin="anonymous"></script>
+      <script src="js/vendor/supabase-2.49.1.js"></script>
       <script src="js/config.js?v=r7"></script>
-      <script type="module" src="js/app.js?v=r157"></script>
+      <script type="module" src="js/app.js?v=r165"></script>
     </div>
   </body>
 </html>
