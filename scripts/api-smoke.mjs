@@ -91,7 +91,7 @@ function client() {
     } catch {
       data = null;
     }
-    return { status: res.status, data, cookies: res.headers.getSetCookie() };
+    return { status: res.status, data, cookies: res.headers.getSetCookie(), headers: res.headers };
   };
 }
 
@@ -165,7 +165,7 @@ await check("anon key cannot call privileged database functions", async () => {
 });
 
 await check("anon key can still read public wait times", async () => {
-  const r = await anonRest("scare_houses?select=id,wait_minutes,status,closed");
+  const r = await anonRest("scare_houses?select=id,wait_minutes,status");
   expect(r.status === 200 && r.data.length >= 10, `scare_houses read failed (${r.status})`);
 });
 
@@ -320,18 +320,15 @@ await check("undo window closes after two minutes", async () => {
   expect(r.status === 409 && r.data.code === "window_closed", `late undo gave ${r.status}`);
 });
 
-await check("wait bands and explicit Closed switch", async () => {
-  const bands = [[3, "gonow"], [6, "open"], [20, "open"], [21, "busy"], [39, "busy"], [40, "long"], [75, "long"]];
+await check("wait bands (60 minutes or more reads as Closed)", async () => {
+  const bands = [[3, "gonow"], [5, "gonow"], [6, "open"], [20, "open"], [21, "busy"], [39, "busy"], [40, "long"], [59, "long"], [60, "closed"], [75, "closed"], [10, "open"]];
   for (const [wait, status] of bands) {
     const r = await waits.c("wait-times", { method: "POST", body: { id: "clowns", wait_minutes: wait } });
     expect(r.status === 200 && r.data.house.status === status, `${wait} min gave ${r.data?.house?.status}`);
+    expect(r.data.house.wait_minutes === wait, `${wait} min was saved as ${r.data.house.wait_minutes}`);
   }
   let r = await waits.c("wait-times", { method: "POST", body: { id: "clowns", closed: true } });
-  expect(r.status === 200 && r.data.house.status === "closed" && r.data.house.closed === true, "closed toggle failed");
-  r = await waits.c("wait-times", { method: "POST", body: { id: "clowns", wait_minutes: 10 } });
-  expect(r.data.house.status === "closed", "changing minutes reopened a closed house");
-  r = await waits.c("wait-times", { method: "POST", body: { id: "clowns", closed: false } });
-  expect(r.data.house.status === "open" && r.data.house.wait_minutes === 10, "reopen failed");
+  expect(r.status === 400, `a closed-only write gave ${r.status}; the Closed switch is gone`);
   r = await waits.c("wait-times", { method: "POST", body: { id: "not-a-house", wait_minutes: 10 } });
   expect(r.status === 400, "unknown house accepted");
 });
@@ -426,14 +423,94 @@ await check("a wait drop pushes to watchers and 410s are deleted", async () => {
     expect(left.some((r) => r.endpoint.endsWith("/live")), "live subscription deleted");
 
     sent.length = 0;
-    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", closed: true } });
-    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", wait_minutes: 8 } });
+    // 60+ minutes reads as Closed: no alert while it climbs or stays closed, one alert when it drops back.
+    sent.length = 0;
+    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", wait_minutes: 60 } });
+    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", wait_minutes: 70 } });
     expect(sent.length === 0, "pushed while closed");
-    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", closed: false } });
-    expect(sent.length === 1 && /creaked open/.test(sent[0].payload.body), "reopen did not alert");
+    await waits.c("wait-times", { method: "POST", body: { id: "prisoner", wait_minutes: 8 } });
+    expect(sent.length === 1 && sent[0].endpoint.endsWith("/live") && /8 min/.test(sent[0].payload.title), `reopen alert: ${sent.length} sends`);
   } finally {
     webpush.sendNotification = original;
   }
+});
+
+await check("versions is public, tiny and CDN-cacheable", async () => {
+  const r = await client()("versions");
+  expect(r.status === 200, `versions gave ${r.status}`);
+  expect(r.headers.get("cache-control") === "public, s-maxage=5, stale-while-revalidate=20", `versions cache-control: ${r.headers.get("cache-control")}`);
+  expect(!/cookie/i.test(r.headers.get("vary") || ""), "versions varies on Cookie");
+  expect(Number(r.data.waits_v) > 0 && r.data.announce_v !== undefined && r.data.server_time > 0, `versions body ${JSON.stringify(r.data)}`);
+  expect(JSON.stringify(r.data).length < 120, "versions body is not tiny");
+  const before = r.data.waits_v;
+  await waits.c("wait-times", { method: "POST", body: { id: "clowns", wait_minutes: 33 } });
+  const after = await client()("versions");
+  expect(after.data.waits_v > before, "waits_v did not move after a wait update");
+});
+
+await check("wait-times-public serves only board fields, cached, no auth needed", async () => {
+  const r = await client()("wait-times-public");
+  expect(r.status === 200 && Array.isArray(r.data.houses) && r.data.houses.length >= 10, "no houses");
+  expect(r.headers.get("cache-control") === "public, s-maxage=10, stale-while-revalidate=30", `cache-control: ${r.headers.get("cache-control")}`);
+  const keys = Object.keys(r.data.houses[0]).sort().join(",");
+  expect(keys === "id,name,status,updated_at,wait_minutes", `columns ${keys}`);
+  const clowns = r.data.houses.find((h) => h.id === "clowns");
+  expect(clowns && clowns.wait_minutes === 33, "published wait missing");
+  const post = await client()("wait-times-public", { method: "POST", body: {} });
+  expect(post.status !== 200, "wait-times-public accepted a write");
+});
+
+await check("public announcements cache; the staff list and writes do not", async () => {
+  const pub = await client()("announcements");
+  expect(pub.status === 200 && pub.headers.get("cache-control") === "public, s-maxage=30, stale-while-revalidate=60", `public cache-control: ${pub.headers.get("cache-control")}`);
+  const all = await admin.c("announcements&all=1");
+  expect(all.status === 200 && all.headers.get("cache-control") === "no-store", `staff list cache-control: ${all.headers.get("cache-control")}`);
+  const anon = await client()("announcements&all=1");
+  expect(anon.status === 401, `anonymous staff list gave ${anon.status}`);
+  const posted = await admin.c("announcements", { method: "POST", body: { message: "Doors at six" } });
+  expect(posted.status === 200 && posted.headers.get("cache-control") === "no-store", "post was cacheable");
+  const v1 = await client()("versions");
+  const patch = await admin.c("announcements", { method: "PATCH", body: { id: posted.data.announcement.id, active: false } });
+  expect(patch.status === 200, "take down failed");
+  const v2 = await client()("versions");
+  expect(v2.data.announce_v >= v1.data.announce_v && v1.data.announce_v > 0, "announce_v did not move");
+});
+
+await check("stamps-version is private and moves with the card", async () => {
+  const anon = await client()("stamps-version");
+  expect(anon.status === 401, `anonymous stamps-version gave ${anon.status}`);
+  const a = await kid("stamps-version");
+  expect(a.status === 200 && a.headers.get("cache-control") === "private, no-store", `cache-control: ${a.headers.get("cache-control")}`);
+  const card = await kid("stamps");
+  expect(card.data.version === a.data.v && a.data.v > 0, "card version and stamps-version disagree");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await sql("update public.stamp_cards set updated_at = now() where student_number = $1", [STUDENT]);
+  const b = await kid("stamps-version");
+  expect(b.data.v > a.data.v, "stamps-version did not move after the card changed");
+});
+
+await check("scores keep the best, feedback drops a double tap", async () => {
+  const scoreClient = client();
+  await scoreClient("login", { method: "POST", body: { adminNumber: STUDENT, fullName: "Test Kid" }, ip: "10.0.0.7" });
+  const put = (score) => scoreClient("scores", { method: "PUT", body: { gameId: "memory", score } });
+  const results = await Promise.all([put(5), put(9), put(7), put(9), put(1)]);
+  expect(results.every((r) => r.status === 200), "a parallel score save failed");
+  const rows = await sql("select score from public.game_scores where student_number = $1 and game_id = 'memory'", [STUDENT]);
+  expect(rows.length === 1 && rows[0].score === 9, `best score is ${JSON.stringify(rows)}`);
+  const note = { kind: "general", message: "Loved the lanterns" };
+  const sent = await Promise.all([scoreClient("feedback", { method: "POST", body: note }), scoreClient("feedback", { method: "POST", body: note })]);
+  expect(sent.every((r) => r.status === 200), "feedback failed");
+  const stored = await sql("select count(*)::int as n from public.event_feedback where student_number = $1 and message = 'Loved the lanterns'", [STUDENT]);
+  expect(stored[0].n === 1, `duplicate feedback stored ${stored[0].n} times`);
+});
+
+await check("a stale wait save is refused with a clear message", async () => {
+  const before = (await sql("select updated_at from public.scare_houses where id = 'clowns'"))[0].updated_at;
+  const stale = new Date(new Date(before).getTime() - 60000).toISOString();
+  const r = await waits.c("wait-times", { method: "POST", body: { id: "clowns", wait_minutes: 12, expected_updated_at: stale } });
+  expect(r.status === 409 && r.data.code === "conflict" && /someone else/i.test(r.data.error), `stale save gave ${r.status} ${JSON.stringify(r.data)}`);
+  const ok = await waits.c("wait-times", { method: "POST", body: { id: "clowns", wait_minutes: 12, expected_updated_at: new Date(before).toISOString() } });
+  expect(ok.status === 200 && ok.data.house.wait_minutes === 12, `fresh save gave ${ok.status}`);
 });
 
 await check("logout clears both session cookies", async () => {

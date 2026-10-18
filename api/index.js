@@ -15,8 +15,12 @@ const {
   handleUnredeem,
   handleScores,
   handleStamps,
+  handleStampsVersion,
   handleStudentAuth,
+  handleVersions,
   handleWaitTimes,
+  handleWaitTimesPublic,
+  PUBLIC_CACHE,
   jsonRequest,
   sameOrigin,
   studentLoginReady,
@@ -83,6 +87,9 @@ const HANDLERS = {
   unredeem: handleUnredeem,
   scores: handleScores,
   "wait-times": handleWaitTimes,
+  "wait-times-public": handleWaitTimesPublic,
+  versions: handleVersions,
+  "stamps-version": handleStampsVersion,
   ops: handleOps,
   "game-save": handleGameSave,
   "student-auth": handleStudentAuth,
@@ -96,6 +103,27 @@ const HANDLERS = {
     }
   },
 };
+
+/**
+ * Only these GETs may sit on the CDN, and only without credentials in the key: the response is
+ * identical for everyone. The staff announcement list (all=1) and every write stay no-store.
+ */
+function publicCachePolicy(req, name) {
+  if (req.method !== "GET" && req.method !== "HEAD") return "";
+  if (!Object.prototype.hasOwnProperty.call(PUBLIC_CACHE, name)) return "";
+  if (name === "announcements") {
+    const q = req.query || {};
+    const all = Array.isArray(q.all) ? q.all[0] : q.all;
+    let urlAll = "";
+    try {
+      urlAll = new URL(req.url, "http://localhost").searchParams.get("all") || "";
+    } catch {
+      urlAll = "";
+    }
+    if (String(all || urlAll) === "1") return "";
+  }
+  return PUBLIC_CACHE[name];
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -129,6 +157,12 @@ module.exports = async function handler(req, res) {
     if (!fn) {
       res.status(404).json({ error: "Unknown API route.", code: "unknown-route" });
       return;
+    }
+    const cachePolicy = publicCachePolicy(req, name);
+    if (cachePolicy) {
+      // Vary: Cookie would give every phone its own CDN entry. These bodies never depend on cookies.
+      res.setHeader("Vary", "Accept-Encoding");
+      res.setHeader("Cache-Control", cachePolicy);
     }
     return await fn(req, res);
   } catch (error) {

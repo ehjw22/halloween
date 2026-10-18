@@ -18,7 +18,7 @@ const WEAK_PASS = "SP2026";
 const COOKIE_STUDENT = "sp_scream_student";
 const COOKIE_STAFF = "sp_scream_staff";
 const UNDO_SECONDS = 120;
-const STAFF_MAX_FAILURES = 5;
+const STAFF_MAX_FAILURES = envPositiveInt("STAFF_ACCOUNT_FAIL_MAX", 5);
 const STAFF_LOCK_SECONDS = 15 * 60;
 
 function onHosted() {
@@ -334,6 +334,35 @@ function envPositiveInt(name, fallback) {
   return Math.min(Math.floor(n), 1_000_000);
 }
 
+/**
+ * Every rate limit in one place: [env var, default, window seconds].
+ * Campus Wi-Fi puts thousands of phones behind a few public IPs, so per-IP limits are generous;
+ * per-student and per-staff limits stay tight. Each value is read per request, so an env change
+ * takes effect on the next deploy without code edits.
+ */
+const RATE = {
+  loginIp: ["LOGIN_RATE_MAX", 5000, 600],
+  loginNum: ["LOGIN_NUM_RATE_MAX", 25, 600],
+  staffIp: ["STAFF_IP_RATE_MAX", 300, 15 * 60],
+  wait: ["WAIT_RATE_MAX", 400, 600],
+  lookup: ["LOOKUP_RATE_MAX", 600, 600],
+  award: ["AWARD_RATE_MAX", 600, 600],
+  unaward: ["UNAWARD_RATE_MAX", 40, 600],
+  redeem: ["REDEEM_RATE_MAX", 300, 600],
+  unredeem: ["UNREDEEM_RATE_MAX", 40, 600],
+  feedbackIp: ["FEEDBACK_IP_RATE_MAX", 3000, 600],
+  feedbackNum: ["FEEDBACK_NUM_RATE_MAX", 10, 600],
+  announce: ["ANNOUNCE_RATE_MAX", 30, 600],
+  scores: ["SCORES_RATE_MAX", 60, 600],
+  pushIp: ["PUSH_IP_RATE_MAX", 3000, 600],
+  stampsVersion: ["STAMPS_VERSION_RATE_MAX", 240, 600],
+};
+
+function rateOf(name) {
+  const [env, fallback, windowSec] = RATE[name];
+  return [envPositiveInt(env, fallback), windowSec];
+}
+
 function memoryHit(bucket, max, windowSec, peek = false) {
   const now = Date.now();
   const row = memoryHits.get(bucket) || { n: 0, t: now };
@@ -394,8 +423,9 @@ function tooMany(res, retryAfter, message) {
   return send(res, 429, { error: message || `Too many attempts. Try again in ${retryMinutes(retryAfter)}.`, code: "rate_limited" });
 }
 
-function send(res, status, body) {
-  res.setHeader("Cache-Control", "no-store");
+/** Responses are no-store unless a handler passes an explicit cache policy (public reads and private polls). */
+function send(res, status, body, { cache = "no-store" } = {}) {
+  res.setHeader("Cache-Control", status === 200 ? cache : "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -693,6 +723,10 @@ async function sbRpc(fn, args) {
   return data;
 }
 
+function rpcMissing(error) {
+  return /PGRST202|42883|rpc-404/.test(String((error && error.code) || ""));
+}
+
 function rpcObject(data) {
   if (Array.isArray(data)) return data[0] && typeof data[0] === "object" ? data[0] : {};
   return data && typeof data === "object" ? data : {};
@@ -749,9 +783,9 @@ async function signInStudent(req, res, body) {
     if (!isAdminNumber(studentNumber)) return signInRefusal(res, "bad_number");
     if (!fullName || fullName.length < 2) return signInRefusal(res, "bad_name");
 
-    const ipGate = await limit(`login-ip:${clientKey(req)}`, envPositiveInt("LOGIN_RATE_MAX", 150), 600);
+    const ipGate = await limit(`login-ip:${clientKey(req)}`, ...rateOf("loginIp"));
     if (!ipGate.ok) return tooMany(res, ipGate.retryAfter);
-    const numGate = await limit(`login-num:${studentNumber}`, 25, 600);
+    const numGate = await limit(`login-num:${studentNumber}`, ...rateOf("loginNum"));
     if (!numGate.ok) return tooMany(res, numGate.retryAfter);
 
     if (!getEnv().url) {
@@ -883,7 +917,7 @@ async function signInStaff(req, res, body) {
 
     const ipBucket = `staff-ip:${clientKey(req)}`;
     const accountBucket = `staff-fail:${staffId}`;
-    const ipGate = await limit(ipBucket, 30, STAFF_LOCK_SECONDS, { peek: true });
+    const ipGate = await limit(ipBucket, rateOf("staffIp")[0], STAFF_LOCK_SECONDS, { peek: true });
     if (!ipGate.ok) return tooMany(res, ipGate.retryAfter, `Too many staff password attempts. Try again in ${retryMinutes(ipGate.retryAfter)}.`);
     const accountGate = await limit(accountBucket, STAFF_MAX_FAILURES, STAFF_LOCK_SECONDS, { peek: true });
     if (!accountGate.ok) {
@@ -891,7 +925,7 @@ async function signInStaff(req, res, body) {
     }
 
     const recordFailure = async () => {
-      await limit(ipBucket, 30, STAFF_LOCK_SECONDS);
+      await limit(ipBucket, rateOf("staffIp")[0], STAFF_LOCK_SECONDS);
       await limit(accountBucket, STAFF_MAX_FAILURES, STAFF_LOCK_SECONDS);
     };
 
@@ -1033,7 +1067,7 @@ async function handleWaitTimes(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
   const session = requireScope(req, res, ["waits", "house"]);
   if (!session) return;
-  const gate = await limit(`wait:${session.staffId}`, 400, 600);
+  const gate = await limit(`wait:${session.staffId}`, ...rateOf("wait"));
   if (!gate.ok) return tooMany(res, gate.retryAfter, "Too many updates. Wait a moment.");
   let body;
   try {
@@ -1050,14 +1084,25 @@ async function handleWaitTimes(req, res) {
   const hasWait = body.wait_minutes !== undefined && body.wait_minutes !== null && body.wait_minutes !== "";
   const wait = hasWait ? Math.max(0, Math.min(240, Math.round(Number(body.wait_minutes) || 0))) : null;
   if (wait === null) return send(res, 400, { error: "Send a wait time." });
+  // Optional: the updated_at the staff screen was looking at. The database refuses a stale save.
+  const expectedMs = body.expected_updated_at ? Date.parse(String(body.expected_updated_at)) : NaN;
   try {
-    const result = rpcObject(await sbRpc("scream_set_wait", {
+    const rpcArgs = {
       p_id: id,
       p_wait: wait,
       p_closed: null,
       p_staff: session.staffId,
       p_scope: staffScope(session),
-    }));
+    };
+    if (Number.isFinite(expectedMs)) rpcArgs.p_expected_updated_at = new Date(expectedMs).toISOString();
+    const result = rpcObject(await sbRpc("scream_set_wait", rpcArgs));
+    if (result.error === "conflict") {
+      return send(res, 409, {
+        error: "Someone else just changed this wait time. Check the new number and try again.",
+        code: "conflict",
+        house: result.house || null,
+      });
+    }
     if (!result.ok || !result.house) {
       return send(res, 400, { error: "Could not save that scare house wait time." });
     }
@@ -1085,8 +1130,84 @@ async function handleWaitTimes(req, res) {
   }
 }
 
+const CACHE_VERSIONS = "public, s-maxage=5, stale-while-revalidate=20";
+const CACHE_WAITS_PUBLIC = "public, s-maxage=10, stale-while-revalidate=30";
+const CACHE_ANNOUNCE_PUBLIC = "public, s-maxage=30, stale-while-revalidate=60";
+const CACHE_PRIVATE = "private, no-store";
+
+function epochMs(value) {
+  const t = Date.parse(String(value || ""));
+  return Number.isFinite(t) ? t : 0;
+}
+
+/** One cheap RPC (two max() lookups on indexed columns). Falls back to two tiny reads if the RPC is not installed yet. */
+async function readVersions() {
+  try {
+    const row = rpcObject(await sbRpc("scream_versions", {}));
+    if (row.waits_v !== undefined) {
+      return { waits_v: Number(row.waits_v) || 0, announce_v: Number(row.announce_v) || 0 };
+    }
+  } catch (error) {
+    if (!rpcMissing(error)) throw error;
+  }
+  const newest = async (table, col) => {
+    const rows = await sb(table, { query: `?select=${col}&order=${col}.desc&limit=1` });
+    return Array.isArray(rows) && rows[0] ? epochMs(rows[0][col]) : 0;
+  };
+  const [waits, announce] = await Promise.all([
+    newest("scare_houses", "updated_at"),
+    newest("announcements", "updated_at").catch(() => newest("announcements", "created_at")),
+  ]);
+  return { waits_v: waits, announce_v: announce };
+}
+
+/** Public, CDN-cached (s-maxage=5). Phones poll this and fetch real data only when a number moves. */
+async function handleVersions(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "Method not allowed" });
+  try {
+    const v = getEnv().url ? await readVersions() : { waits_v: 0, announce_v: 0 };
+    return send(res, 200, { ...v, server_time: Date.now() }, { cache: CACHE_VERSIONS });
+  } catch (error) {
+    return fail(res, error, "versions");
+  }
+}
+
+/** Public, CDN-cached wait times: only the columns the board needs. Writes still go through wait-times. */
+async function handleWaitTimesPublic(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "Method not allowed" });
+  try {
+    if (!getEnv().url) return send(res, 200, { houses: [], waits_v: 0, local: true, server_time: Date.now() });
+    const rows = await sb("scare_houses", { query: "?select=id,name,wait_minutes,status,updated_at&order=name" });
+    const houses = Array.isArray(rows) ? rows : [];
+    const waitsV = houses.reduce((max, row) => Math.max(max, epochMs(row.updated_at)), 0);
+    return send(res, 200, { houses, waits_v: waitsV, server_time: Date.now() }, { cache: CACHE_WAITS_PUBLIC });
+  } catch (error) {
+    return fail(res, error, "wait-times-public");
+  }
+}
+
+/** Private tiny poll for the open stamp card: the card's updated_at in ms. Moves on every stamp, undo and redeem. */
+async function handleStampsVersion(req, res) {
+  if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" });
+  try {
+    const session = requireStudent(req, res);
+    if (!session) return;
+    const gate = memoryHit(`stamps-ver:${session.studentNumber}`, ...rateOf("stampsVersion"));
+    if (!gate.ok) return tooMany(res, gate.retryAfter);
+    if (!getEnv().url) return send(res, 200, { v: 0 }, { cache: CACHE_PRIVATE });
+    const rows = await sb("stamp_cards", {
+      query: `?student_number=eq.${encodeURIComponent(session.studentNumber)}&select=updated_at&limit=1`,
+    });
+    const v = Array.isArray(rows) && rows[0] ? epochMs(rows[0].updated_at) : 0;
+    return send(res, 200, { v }, { cache: CACHE_PRIVATE });
+  } catch (error) {
+    return fail(res, error, "stamps-version");
+  }
+}
+
 function cardResponse(row) {
   return {
+    version: epochMs(row.updated_at),
     studentNumber: row.student_number,
     fullName: row.full_name,
     stamps: asStampMap(row.stamps),
@@ -1148,7 +1269,7 @@ async function handleLookupStudent(req, res) {
       studentNumber = normalizeNumber(body.studentNumber);
     }
     if (!isAdminNumber(studentNumber)) return send(res, 400, { error: STAFF_NUMBER_HINT });
-    const gate = await limit(`lookup:${session.staffId}`, 600, 600);
+    const gate = await limit(`lookup:${session.staffId}`, ...rateOf("lookup"));
     if (!gate.ok) return tooMany(res, gate.retryAfter);
     const row = await lookupRow(studentNumber);
     if (!row) return noStudent(res);
@@ -1203,7 +1324,7 @@ async function handleAwardStamp(req, res) {
     if (lockedBooth && lockedBooth !== String(boothId)) {
       return send(res, 403, { error: "This staff login can only award its own booth.", code: "wrong_booth" });
     }
-    const gate = await limit(`award:${session.staffId}`, 600, 600);
+    const gate = await limit(`award:${session.staffId}`, ...rateOf("award"));
     if (!gate.ok) return tooMany(res, gate.retryAfter);
     const booth = BOOTHS.find((b) => b.id === String(boothId));
     const row = rpcObject(await sbRpc("scream_award_stamp", {
@@ -1240,7 +1361,7 @@ async function handleUnawardStamp(req, res) {
     if (lockedBooth && lockedBooth !== String(boothId)) {
       return send(res, 403, { error: "This staff login can only update its own booth.", code: "wrong_booth" });
     }
-    const gate = await limit(`unaward:${session.staffId}`, 40, 600);
+    const gate = await limit(`unaward:${session.staffId}`, ...rateOf("unaward"));
     if (!gate.ok) return tooMany(res, gate.retryAfter, "Too many undo attempts. Wait a few minutes.");
     const row = rpcObject(await sbRpc("scream_unaward_stamp", {
       p_number: studentNumber,
@@ -1272,12 +1393,12 @@ function feedbackTargetOk(kind, targetId) {
 async function handleFeedback(req, res) {
   try {
     if (req.method === "POST") {
-      const ipGate = await limit(`feedback-ip:${clientKey(req)}`, 60, 600);
+      const ipGate = await limit(`feedback-ip:${clientKey(req)}`, ...rateOf("feedbackIp"));
       if (!ipGate.ok) return tooMany(res, ipGate.retryAfter, "Too many feedback notes from this network. Try again in a few minutes.");
       const student = verifyJwt(tokenForRole(req, "student"));
       const studentNumber = student?.role === "student" ? student.studentNumber : null;
       if (studentNumber) {
-        const mine = await limit(`feedback-num:${studentNumber}`, 10, 600);
+        const mine = await limit(`feedback-num:${studentNumber}`, ...rateOf("feedbackNum"));
         if (!mine.ok) return tooMany(res, mine.retryAfter, "You have sent a lot of notes. Try again in a few minutes.");
       }
       const body = await readBody(req);
@@ -1303,7 +1424,18 @@ async function handleFeedback(req, res) {
         student_number: studentNumber,
         created_at: new Date().toISOString(),
       };
-      await sb("event_feedback", { method: "POST", body: row, prefer: "return=minimal" });
+      try {
+        await sbRpc("scream_add_feedback", {
+          p_kind: row.kind,
+          p_target: row.target_id,
+          p_message: row.message,
+          p_rating: row.rating,
+          p_student: row.student_number,
+        });
+      } catch (error) {
+        if (!rpcMissing(error)) throw error;
+        await sb("event_feedback", { method: "POST", body: row, prefer: "return=minimal" });
+      }
       return send(res, 200, { ok: true });
     }
 
@@ -1370,13 +1502,13 @@ async function handleAnnouncements(req, res) {
         .filter(Boolean)
         .filter((row) => !(row.expires_at && new Date(row.expires_at).getTime() < now))
         .slice(0, 20);
-      return send(res, 200, { announcements: live });
+      return send(res, 200, { announcements: live }, { cache: CACHE_ANNOUNCE_PUBLIC });
     }
 
     if (req.method === "POST") {
       const session = requireScope(req, res, []);
       if (!session) return;
-      const gate = await limit(`announce:${session.staffId}`, 30, 600);
+      const gate = await limit(`announce:${session.staffId}`, ...rateOf("announce"));
       if (!gate.ok) return tooMany(res, gate.retryAfter);
       const body = await readBody(req);
       const message = sanitizePlain(body.message, 400);
@@ -1460,7 +1592,7 @@ async function handleRedeem(req, res) {
   try {
     const session = requireScope(req, res, ["redeem"]);
     if (!session) return;
-    const gate = await limit(`redeem:${session.staffId}`, 300, 600);
+    const gate = await limit(`redeem:${session.staffId}`, ...rateOf("redeem"));
     if (!gate.ok) return tooMany(res, gate.retryAfter);
     const body = await readBody(req);
     const studentNumber = normalizeNumber(body.studentNumber);
@@ -1486,7 +1618,7 @@ async function handleUnredeem(req, res) {
   try {
     const session = requireScope(req, res, ["redeem"]);
     if (!session) return;
-    const gate = await limit(`unredeem:${session.staffId}`, 40, 600);
+    const gate = await limit(`unredeem:${session.staffId}`, ...rateOf("unredeem"));
     if (!gate.ok) return tooMany(res, gate.retryAfter, "Too many undo attempts. Wait a few minutes.");
     const body = await readBody(req);
     const studentNumber = normalizeNumber(body.studentNumber);
@@ -1506,6 +1638,28 @@ async function handleUnredeem(req, res) {
   } catch (error) {
     return fail(res, error, "unredeem");
   }
+}
+
+/** Only used until supabase/scale-3000.sql has been run: read, then write (not race-proof). */
+async function saveScoreLegacy(studentNumber, id, score) {
+  const who = encodeURIComponent(studentNumber);
+  const game = encodeURIComponent(id);
+  const existing = await sb("game_scores", { query: `?student_number=eq.${who}&game_id=eq.${game}&select=score` });
+  const row = Array.isArray(existing) ? existing[0] : null;
+  if (row && score <= row.score) return { ok: true, best: row.score, updated: false };
+  if (!row) {
+    await sb("game_scores", {
+      method: "POST",
+      body: { student_number: studentNumber, game_id: id, score, updated_at: new Date().toISOString() },
+    });
+  } else {
+    await sb("game_scores", {
+      method: "PATCH",
+      query: `?student_number=eq.${who}&game_id=eq.${game}`,
+      body: { score, updated_at: new Date().toISOString() },
+    });
+  }
+  return { ok: true, best: score, updated: true };
 }
 
 async function handleScores(req, res) {
@@ -1543,7 +1697,7 @@ async function handleScores(req, res) {
     if (req.method === "PUT") {
       const session = requireStudent(req, res);
       if (!session) return;
-      const gate = await limit(`scores:${session.studentNumber}`, 60, 600);
+      const gate = await limit(`scores:${session.studentNumber}`, ...rateOf("scores"));
       if (!gate.ok) return tooMany(res, gate.retryAfter, "Too many score saves. Wait a moment.");
       const body = await readBody(req);
       const id = String(body.gameId || "");
@@ -1552,31 +1706,15 @@ async function handleScores(req, res) {
       if (!Number.isFinite(score) || score < 0 || score > 999999999) {
         return send(res, 400, { error: "Invalid score." });
       }
-      const existing = await sb("game_scores", {
-        query: `?student_number=eq.${encodeURIComponent(session.studentNumber)}&game_id=eq.${encodeURIComponent(id)}&select=score`,
-      });
-      const row = Array.isArray(existing) ? existing[0] : null;
-      if (row && score <= row.score) {
-        return send(res, 200, { best: row.score, updated: false });
+      let saved;
+      try {
+        saved = rpcObject(await sbRpc("scream_save_score", { p_number: session.studentNumber, p_game: id, p_score: score }));
+      } catch (error) {
+        if (!rpcMissing(error)) throw error;
+        saved = await saveScoreLegacy(session.studentNumber, id, score);
       }
-      if (!row) {
-        await sb("game_scores", {
-          method: "POST",
-          body: {
-            student_number: session.studentNumber,
-            game_id: id,
-            score,
-            updated_at: new Date().toISOString(),
-          },
-        });
-      } else {
-        await sb("game_scores", {
-          method: "PATCH",
-          query: `?student_number=eq.${encodeURIComponent(session.studentNumber)}&game_id=eq.${encodeURIComponent(id)}`,
-          body: { score, updated_at: new Date().toISOString() },
-        });
-      }
-      return send(res, 200, { best: score, updated: true });
+      if (!saved.ok) return send(res, 400, { error: "Invalid score." });
+      return send(res, 200, { best: Number(saved.best) || 0, updated: Boolean(saved.updated) });
     }
 
     return send(res, 405, { error: "Method not allowed" });
@@ -1664,7 +1802,7 @@ async function handleOps(req, res) {
 
 async function handlePushRoute(req, res) {
   if (req.method !== "GET") {
-    const gate = await limit(`push-ip:${clientKey(req)}`, 120, 600);
+    const gate = await limit(`push-ip:${clientKey(req)}`, ...rateOf("pushIp"));
     if (!gate.ok) return tooMany(res, gate.retryAfter, "Too many notification updates. Wait a few minutes.");
   }
   return require("./push").handlePush(req, res, { readBody, fail, verifyJwt, tokenForRole });
@@ -1686,6 +1824,14 @@ module.exports = {
   handleUnredeem,
   handleScores,
   handleWaitTimes,
+  handleVersions,
+  handleWaitTimesPublic,
+  handleStampsVersion,
+  PUBLIC_CACHE: {
+    versions: CACHE_VERSIONS,
+    "wait-times-public": CACHE_WAITS_PUBLIC,
+    announcements: CACHE_ANNOUNCE_PUBLIC,
+  },
   handleLookupStudent,
   handleOps,
   handleGameSave,

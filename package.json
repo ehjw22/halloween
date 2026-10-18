@@ -8,6 +8,11 @@
     "dev": "node server.js",
     "dev:local": "node scripts/dev-stack.mjs",
     "test:api": "node scripts/api-smoke.mjs",
+    "test:concurrency": "node scripts/concurrency-test.mjs",
+    "stamp": "node scripts/stamp-version.mjs",
+    "stamp:check": "node scripts/stamp-version.mjs --check",
+    "predeploy": "node scripts/stamp-version.mjs",
+    "load:test": "node scripts/load-test.mjs",
     "hash-passcode": "node scripts/hash-passcode.mjs"
   },
   "dependencies": {

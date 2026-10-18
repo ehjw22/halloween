@@ -1,4 +1,4 @@
-import { boothById } from "./booths.js?v=r40";
+import { boothById } from "./booths.js?v=f72170c0a1";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
@@ -369,6 +369,17 @@ export async function fetchStamps() {
   throw apiFail(data, res, "Could not load your stamp card.");
 }
 
+/** Tiny private poll for the open stamp card: a number that moves whenever the card changes. */
+export async function fetchStampsVersion() {
+  const session = getStudentSession();
+  if (!session) throw new Error("Sign in to open your stamp card.");
+  const res = await apiFetch(apiUrl("stamps-version"), { asRole: "student", cache: "no-store" });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) return Number(data.v) || 0;
+  if (res.status === 401) forgetStudentSession();
+  throw apiFail(data, res, "Could not check your stamp card.");
+}
+
 export async function lookupStudent(studentNumber) {
   const session = getAdminSession();
   if (!session) throw new Error("Staff session expired.");
@@ -498,15 +509,24 @@ function writeLocalAnnouncements(rows) {
   localStorage.setItem(LOCAL_ANNOUNCE, JSON.stringify(rows.slice(0, 50)));
 }
 
-export async function fetchAnnouncements({ all = false } = {}) {
+/**
+ * Public list: a plain cookie-less GET the CDN can cache for everyone (`v` is the announce_v that
+ * just changed, so phones on the same version share one copy; `fresh` skips the cache for staff who
+ * just posted). The staff list (all) stays authenticated and uncached. `strict` makes a failed
+ * public load throw so the caller can keep what is already on screen.
+ */
+export async function fetchAnnouncements({ all = false, v, fresh = false, strict = false } = {}) {
   try {
-    const res = await apiFetch(apiUrl("announcements", all ? { all: "1" } : {}));
+    const params = all ? { all: "1" } : v ? { v } : fresh ? { fresh: Date.now() } : {};
+    const res = all
+      ? await apiFetch(apiUrl("announcements", params))
+      : await fetch(apiUrl("announcements", params), { credentials: "omit" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw apiFail(data, res, "Could not load announcements.");
     return data.announcements || [];
   } catch (error) {
     if (!isBrowserLocal()) {
-      if (all) throw error;
+      if (all || strict) throw error;
       return [];
     }
     const rows = readLocalAnnouncements();

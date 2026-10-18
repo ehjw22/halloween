@@ -9,7 +9,10 @@ function safeClientUrl(url) {
   }
 }
 
-const STATIC_CACHE = "scream-static-v5";
+// Stamped by `npm run stamp` (scripts/stamp-version.mjs). A new build gets a new cache name,
+// and activate() below deletes every older cache, so a deploy never serves last night's files.
+const BUILD = "f72170c0a1";
+const STATIC_CACHE = `scream-static-${BUILD}`;
 
 function isCacheable(url) {
   if (url.origin !== self.location.origin) return false;

@@ -1,11 +1,28 @@
-import { HOUSES } from "./houses.js?v=r40";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=r40";
-import { statusFor } from "./wait-status.js?v=r40";
+import { HOUSES } from "./houses.js?v=f72170c0a1";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=f72170c0a1";
+import { statusFor } from "./wait-status.js?v=f72170c0a1";
+import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=f72170c0a1";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";
 const SYNC_KEY = "sp-halloween-waits-sync-v1";
-const POLL_MS = 4000;
+const STUDENT_VERSIONS_MS = 17000;
+const STAFF_VERSIONS_MS = 8000;
+const MAX_RETRY_MS = 120000;
+
+// The UMD bundle sets self.supabase when it runs; it exports nothing. Fetched once, on demand, same origin
+// (script-src 'self'). Not stamped with ?v= because the file name carries the library version.
+let supabaseLib = null;
+function loadSupabaseLib() {
+  if (self.supabase?.createClient) return Promise.resolve(self.supabase);
+  if (!supabaseLib) {
+    supabaseLib = import("./vendor/supabase-2.49.1.js").then(() => self.supabase || null);
+    supabaseLib.catch(() => {
+      supabaseLib = null;
+    });
+  }
+  return supabaseLib;
+}
 
 function cloneHouses() {
   return HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezone").map((h) => ({
@@ -71,7 +88,12 @@ export function createStore(onChange) {
   let rows = readLocal();
   let client = null;
   let channel = null;
-  let pollTimer = null;
+  let realtimeLoading = false;
+  let unsubscribe = null;
+  let inflight = null;
+  let dirty = false;
+  let retryAt = 0;
+  let retryStep = 0;
   let liveOk = false;
   let wasLive = false;
   let failStreak = 0;
@@ -151,58 +173,81 @@ export function createStore(onChange) {
     }
   };
 
-  async function refreshFromDb() {
-    if (!client) return;
-    const { data, error } = await client.from("scare_houses").select("*");
-    if (error || !data) {
-      failStreak += 1;
-      if (failStreak >= 2) {
-        markStale();
-        emit();
+  /**
+   * Reads go through the CDN-cached /api?path=wait-times-public (never the Supabase table with the
+   * anon key). `v` is the waits_v that just changed, so every phone seeing the same version shares
+   * one cached copy. `fresh` skips the cache for a staff phone that just failed to save.
+   */
+  function loadRemote({ v, fresh = false } = {}) {
+    if (inflight) return inflight;
+    inflight = (async () => {
+      try {
+        const params = {};
+        if (v !== undefined && v !== null) params.v = v;
+        else if (fresh) params.fresh = Date.now();
+        const data = await fetchPublicJson("wait-times-public", params);
+        if (data.local) return { local: true };
+        if (!Array.isArray(data.houses)) throw new Error("Bad wait times response.");
+        markLive();
+        dirty = false;
+        retryStep = 0;
+        retryAt = 0;
+        seedVersion("waits_v", data.waits_v);
+        const changed = applyRows(data.houses, { fromRemote: true, broadcastLocal: true });
+        if (!changed) emit();
+        return { ok: true };
+      } catch (error) {
+        // Keep the last data on screen. The board shows its existing "last known waits" note after two misses.
+        dirty = true;
+        retryStep = Math.min(retryStep + 1, 6);
+        retryAt = Date.now() + Math.min(MAX_RETRY_MS, 4000 * 2 ** retryStep);
+        failStreak += 1;
+        if (failStreak >= 2) {
+          markStale();
+          emit();
+        }
+        return { ok: false, error };
+      } finally {
+        inflight = null;
       }
-      return;
-    }
-    markLive();
-    const changed = applyRows(data || [], { fromRemote: true, broadcastLocal: true });
-    if (!changed) emit();
+    })();
+    return inflight;
   }
 
-  function startPolling() {
-    stopPolling();
-    pollTimer = setInterval(() => {
-      if (document.hidden) return;
-      refreshFromDb();
-    }, POLL_MS);
-  }
-
-  function stopPolling() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
-  }
-
-  async function connect() {
+  /** Staff phones only: Realtime for instant updates, and a faster version poll. Students never open this. */
+  function syncStaffRealtime() {
     const config = readConfig();
-    const hasRemote = Boolean(config.supabaseUrl && config.supabaseAnonKey);
-    if (!hasRemote || !window.supabase) {
-      emit();
-      return { mode: "local" };
+    const staff = Boolean(getAdminSession());
+    setVersionsBase(staff ? STAFF_VERSIONS_MS : STUDENT_VERSIONS_MS);
+    if (staff && !channel && !realtimeLoading && config.supabaseUrl && config.supabaseAnonKey) {
+      realtimeLoading = true;
+      // The Supabase library is only fetched here, for a signed-in staff session. Students never download it.
+      loadSupabaseLib()
+        .then((lib) => {
+          if (!lib || channel || !getAdminSession()) return;
+          openStaffChannel(lib, config);
+        })
+        .catch(() => {
+          /* no Realtime: the version poll still keeps this phone current */
+        })
+        .finally(() => {
+          realtimeLoading = false;
+        });
+    } else if (!staff && channel) {
+      try {
+        client.removeChannel(channel);
+      } catch {
+        /* ignore */
+      }
+      channel = null;
+      client = null;
     }
+  }
 
-    client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+  function openStaffChannel(lib, config) {
+    client = lib.createClient(config.supabaseUrl, config.supabaseAnonKey, {
       realtime: { params: { eventsPerSecond: 20 } },
     });
-
-    const { data, error } = await client.from("scare_houses").select("*").order("name");
-    if (error) {
-      console.warn("Supabase read failed, using local demo mode.", error.message);
-      markStale();
-      emit();
-      return { mode: "local" };
-    }
-
-    markLive();
-    applyRows(data || [], { fromRemote: true });
-
     // Only database change events: public broadcast messages can be sent by anyone holding the anon key.
     channel = client
       .channel("scare-houses-live")
@@ -217,22 +262,57 @@ export function createStore(onChange) {
         }
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") refreshFromDb();
+        if (status === "SUBSCRIBED") loadRemote({ fresh: true });
       });
+  }
 
-    startPolling();
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) refreshFromDb();
-    });
-    window.addEventListener("focus", refreshFromDb);
-    window.addEventListener("online", () => {
-      refreshFromDb();
-    });
+  const versionListener = {
+    onChange(key, value) {
+      if (key === "waits_v") loadRemote({ v: value });
+    },
+    onOk() {
+      if (dirty) {
+        if (Date.now() >= retryAt) loadRemote();
+      } else {
+        const wasOk = liveOk;
+        markLive();
+        if (!wasOk) emit();
+      }
+      syncStaffRealtime();
+    },
+    onFail() {
+      failStreak += 1;
+      if (failStreak >= 2) {
+        markStale();
+        emit();
+      }
+    },
+  };
+
+  function refresh() {
+    kickVersions();
+    return dirty ? loadRemote() : Promise.resolve();
+  }
+
+  async function connect() {
+    const first = await loadRemote();
+    if (first.local || (first.error && first.error.status === 404)) {
+      // No API behind this page (static hosting or no database): demo mode, no polling.
+      emit();
+      return { mode: "local" };
+    }
+    unsubscribe = subscribeVersions(versionListener);
+    syncStaffRealtime();
     window.addEventListener("offline", () => {
       markStale();
       emit();
     });
-
+    if (!first.ok) {
+      // First read failed: stay on the saved board and keep retrying with backoff.
+      console.warn("Wait times unavailable, retrying.", first.error && first.error.message);
+      emit();
+      return { mode: "local" };
+    }
     emit();
     return { mode: liveOk ? "live" : "local" };
   }
@@ -278,7 +358,7 @@ export function createStore(onChange) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         pending.delete(id);
-        await refreshFromDb();
+        await loadRemote({ fresh: true });
         const error = userFacingError(data.error, "Could not save the wait time. Try again.");
         console.warn("Wait time save failed.", error);
         return { ok: false, error };
@@ -298,7 +378,7 @@ export function createStore(onChange) {
       return { ok: true, house: saved };
     } catch (error) {
       pending.delete(id);
-      await refreshFromDb();
+      await loadRemote({ fresh: true });
       console.warn("Wait time save failed.", error.message);
       return { ok: false, error: userFacingError(error, "Could not save the wait time. Try again.") };
     }
@@ -309,10 +389,11 @@ export function createStore(onChange) {
   }
 
   function destroy() {
-    stopPolling();
+    if (unsubscribe) unsubscribe();
+    unsubscribe = null;
     tabChannel.close();
     if (channel && client) client.removeChannel(channel);
   }
 
-  return { connect, publish, refresh: refreshFromDb, get, destroy, hasRemote: Boolean(readConfig().supabaseUrl && readConfig().supabaseAnonKey), getSync };
+  return { connect, publish, refresh, get, destroy, hasRemote: Boolean(readConfig().supabaseUrl && readConfig().supabaseAnonKey), getSync };
 }

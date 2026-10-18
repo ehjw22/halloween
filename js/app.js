@@ -1,13 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=r40";
-import { CLUBS } from "./clubs.js?v=r40";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=r40";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=r40";
-import { SPONSORS } from "./sponsors.js?v=r40";
-import { applyGhostPass } from "./ghost-pass.js?v=r40";
-import { markImg } from "./marks.js?v=r40";
-import { stationSvg } from "./station-art.js?v=r40";
-import { createStore } from "./store.js?v=r41";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=r40";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=f72170c0a1";
+import { CLUBS } from "./clubs.js?v=f72170c0a1";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=f72170c0a1";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f72170c0a1";
+import { SPONSORS } from "./sponsors.js?v=f72170c0a1";
+import { applyGhostPass } from "./ghost-pass.js?v=f72170c0a1";
+import { markImg } from "./marks.js?v=f72170c0a1";
+import { stationSvg } from "./station-art.js?v=f72170c0a1";
+import { createStore } from "./store.js?v=f72170c0a1";
+import { createPoller, subscribeVersions } from "./live.js?v=f72170c0a1";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=f72170c0a1";
 import {
   apiFetch,
   apiUrl,
@@ -19,6 +20,7 @@ import {
   fetchFeedback,
   fetchOps,
   fetchStamps,
+  fetchStampsVersion,
   getAdminSession,
   getStudentSession,
   canUseStaffUi,
@@ -34,7 +36,7 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=r42";
+} from "./session.js?v=f72170c0a1";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -46,7 +48,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=r40";
+} from "./push.js?v=f72170c0a1";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -144,7 +146,10 @@ let houses = HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezon
 }));
 let staffTab = "waits";
 let feedbackKindFilter = "";
-let stampPoll = 0;
+let stampVersion = 0;
+let announceRows = [];
+let announceLoaded = false;
+let announceDirty = false;
 let waitSync = { liveOk: false, wasLive: false, lastLiveAt: null };
 let autoSave = false;
 let cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
@@ -587,12 +592,13 @@ function setView(name, extra) {
   if (name === "admin") renderAdmin();
   if (name === "map") {
     renderTimeline();
-    loadPublicAnnouncements();
+    if (!announceLoaded || announceDirty) loadPublicAnnouncements();
     requestAnimationFrame(() => fitMap());
   }
   if (name === "feedback") fillFeedbackTargets();
   if (name === "stamps") {
     paintStampUi();
+    stampWatch.start();
     requestAnimationFrame(layoutStampPage);
   }
   if (name === "help") {
@@ -2144,8 +2150,29 @@ async function loadCardFromServer() {
     justLit = new Set(litStampIds(next.stamps).filter((id) => !before.has(id)));
   }
   cardState = next;
+  stampVersion = Number(data.version) || 0;
   return changed;
 }
+
+/**
+ * Stamp card freshness: while the stamps view is open and the tab is visible, ask a tiny private
+ * endpoint for the card's version every ~17s (jittered, backing off on errors) and fetch the full
+ * card only when it moved. Other views never poll. Opening the view, returning to the tab and the
+ * student's own actions all refresh straight away.
+ */
+const stampWatch = createPoller({
+  baseMs: 17000,
+  active: () => Boolean(getStudentSession()) && document.querySelector(".view.is-active")?.dataset.view === "stamps",
+  run: async () => {
+    const version = await fetchStampsVersion();
+    if (version === stampVersion) return;
+    const changed = await loadCardFromServer();
+    if (changed) {
+      paintStampUi();
+      if (justLit.size) celebrateStamps();
+    }
+  },
+});
 
 let spiritRaised = false;
 let ghostRoaming = false;
@@ -2856,15 +2883,41 @@ function announceItemHtml(row) {
   </li>`;
 }
 
-async function loadPublicAnnouncements() {
-  const rows = await fetchAnnouncements().catch(() => []);
-  noteNewAnnouncements(rows);
+function paintAnnouncements(rows) {
   const empty = `<li class="announce-item announce-item--empty"><p class="announce-item__body">No announcements yet. All quiet in the crypt.</p></li>`;
   const html = rows.length ? rows.map(announceItemHtml).join("") : empty;
   if (els.announceStrip) els.announceStrip.innerHTML = html;
   if (els.announceList) els.announceList.innerHTML = html;
   const details = document.getElementById("announceDetails");
   if (details) details.open = rows.length > 0;
+}
+
+/** Announcements load once, then only when the shared versions poll says announce_v moved. A failed load keeps what is on screen. */
+async function loadPublicAnnouncements({ v, fresh = false } = {}) {
+  let rows;
+  try {
+    rows = await fetchAnnouncements({ v, fresh, strict: true });
+  } catch {
+    announceDirty = true;
+    if (!announceLoaded) {
+      announceLoaded = true;
+      paintAnnouncements([]);
+    }
+    return;
+  }
+  announceDirty = false;
+  announceLoaded = true;
+  announceRows = rows;
+  noteNewAnnouncements(rows);
+  paintAnnouncements(rows);
+}
+
+/** No network: drops expired notes and refreshes the "x min ago" labels from the rows already loaded. */
+function repaintAnnouncements() {
+  if (!announceLoaded) return;
+  const now = Date.now();
+  announceRows = announceRows.filter((row) => !(row.expires_at && new Date(row.expires_at).getTime() < now));
+  paintAnnouncements(announceRows);
 }
 
 const ANNOUNCE_SEEN_KEY = "scream-announce-seen";
@@ -4277,7 +4330,7 @@ function bindUi() {
       });
       document.getElementById("announceMessage").value = "";
       await loadAdminAnnouncements();
-      await loadPublicAnnouncements();
+      await loadPublicAnnouncements({ fresh: true });
     } catch (error) {
       if (els.announceError) {
         els.announceError.hidden = false;
@@ -4292,7 +4345,7 @@ function bindUi() {
     try {
       await setAnnouncementActive(btn.dataset.announceOff, false);
       await loadAdminAnnouncements();
-      await loadPublicAnnouncements();
+      await loadPublicAnnouncements({ fresh: true });
     } catch (error) {
       if (els.announceError) {
         els.announceError.hidden = false;
@@ -4302,15 +4355,8 @@ function bindUi() {
   });
 
   fillFeedbackTargets();
-  stampPoll = window.setInterval(() => {
-    if (document.hidden) return;
-    if (document.querySelector(".view.is-active")?.dataset.view !== "stamps") return;
-    if (!getStudentSession()) return;
-    renderStamps({ refresh: true, quiet: true });
-  }, 4000);
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden || !getStudentSession()) return;
-    if (document.querySelector(".view.is-active")?.dataset.view === "stamps") renderStamps({ refresh: true, quiet: true });
+    if (!document.hidden) stampWatch.start();
   });
 
   document.addEventListener("keydown", (event) => {
@@ -4319,7 +4365,10 @@ function bindUi() {
       if (open) closeModals({ restore: true, force: true });
     }
   });
-  window.addEventListener("online", () => paintWaitBanner());
+  window.addEventListener("online", () => {
+    paintWaitBanner();
+    stampWatch.start();
+  });
   window.addEventListener("offline", () => paintWaitBanner());
 }
 
@@ -4414,7 +4463,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r40")
+  import("./games.js?v=f72170c0a1")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
@@ -4446,11 +4495,20 @@ async function init() {
     const asked = Boolean(location.hash) && next.view && next.view !== "welcome";
     if (wantsOpeningNight() && !asked) setView("welcome");
   });
+  // No data polling here: this only refreshes "x min ago" labels from what is already loaded.
   window.setInterval(() => {
     if (document.hidden) return;
-    loadPublicAnnouncements();
+    repaintAnnouncements();
     if (document.querySelector(".view.is-active")?.dataset.view === "map") renderTimeline();
   }, 20000);
+  subscribeVersions({
+    onChange(key, value) {
+      if (key === "announce_v") loadPublicAnnouncements({ v: value });
+    },
+    onOk() {
+      if (announceDirty) loadPublicAnnouncements();
+    },
+  });
   window.addEventListener("offline", () => paintWaitBanner());
   window.addEventListener("online", () => {
     paintWaitBanner();
