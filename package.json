@@ -9,6 +9,7 @@
     "dev:local": "node scripts/dev-stack.mjs",
     "test:api": "node scripts/api-smoke.mjs",
     "test:concurrency": "node scripts/concurrency-test.mjs",
+    "test:retry": "node --no-warnings scripts/signin-retry-test.mjs",
     "stamp": "node scripts/stamp-version.mjs",
     "stamp:check": "node scripts/stamp-version.mjs --check",
     "predeploy": "node scripts/stamp-version.mjs",

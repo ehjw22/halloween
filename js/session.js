@@ -1,4 +1,4 @@
-import { boothById } from "./booths.js?v=f72170c0a1";
+import { boothById } from "./booths.js?v=e5069938de";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
@@ -317,18 +317,27 @@ function offline(error) {
   return !error || /failed to fetch|networkerror|load failed|network request failed/i.test(String(error.message || ""));
 }
 
+const LOGIN_TIMEOUT_MS = 15000;
+
 async function postLogin(body, fallback) {
   let res;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), LOGIN_TIMEOUT_MS);
   try {
     res = await apiFetch(apiUrl("login"), {
       method: "POST",
       skipAuth: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: ctrl.signal,
     });
   } catch (error) {
-    if (offline(error)) throw new Error("Can't reach the server. Check your connection and try again.");
+    // status 0 + network/timeout lets the student sign-in retry by itself (js/signin-retry.js).
+    if (ctrl.signal.aborted) throw Object.assign(new Error("Can't reach the server. Check your connection and try again."), { status: 0, timeout: true });
+    if (offline(error)) throw Object.assign(new Error("Can't reach the server. Check your connection and try again."), { status: 0, network: true });
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
   const data = await res.json().catch(() => ({}));
   if (res.ok && (data.student || data.staff)) {
@@ -336,7 +345,9 @@ async function postLogin(body, fallback) {
     return data;
   }
   if (res.ok) throw new Error("Sign-in did not return a session. Try again.");
-  throw apiFail(data, res, fallback);
+  const err = apiFail(data, res, fallback);
+  err.retryAfter = Number(res.headers.get("Retry-After")) || 0;
+  throw err;
 }
 
 /** Student sign-in. A new admin number and name creates the card. */

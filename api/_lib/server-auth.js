@@ -460,6 +460,10 @@ function fail(res, error, action) {
   const detail = String((error && (error.detail || error.message)) || "").slice(0, 280);
   const code = (error && error.code) || (status >= 500 ? "server" : "request");
   console.error("[scream]", action || "api", status, code, detail);
+  // Busy or unreachable database: tell phones when to come back, spread over 2-5 s so they don't return together.
+  if (status === 503 && res.setHeader && !(res.getHeader && res.getHeader("Retry-After"))) {
+    res.setHeader("Retry-After", String(2 + Math.floor(Math.random() * 4)));
+  }
   return send(res, status, {
     error: publicErrorMessage(error, status),
     code: status >= 500 ? "server" : code,

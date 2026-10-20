@@ -295,6 +295,8 @@ await check("a stuck database answers 503 fast instead of queueing the sign-in",
     const r = await client()("login", { method: "POST", body: { adminNumber: "P2600115", fullName: "Stuck Db" }, ip: "10.0.1.6" });
     const ms = Date.now() - t0;
     expect(r.status === 503 && ms < 3000, `stuck database gave ${r.status} after ${ms} ms`);
+    const wait = Number(r.headers.get("retry-after"));
+    expect(wait >= 2 && wait <= 5, `503 Retry-After ${r.headers.get("retry-after")}`);
     expect(!JSON.stringify(r.data).match(/supabase|127\.0\.0\.1|timed out/i), `503 leaks internals ${JSON.stringify(r.data)}`);
   } finally {
     process.env.SUPABASE_URL = saved;

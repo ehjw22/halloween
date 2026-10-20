@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=f72170c0a1";
-import { CLUBS } from "./clubs.js?v=f72170c0a1";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=f72170c0a1";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f72170c0a1";
-import { SPONSORS } from "./sponsors.js?v=f72170c0a1";
-import { applyGhostPass } from "./ghost-pass.js?v=f72170c0a1";
-import { markImg } from "./marks.js?v=f72170c0a1";
-import { stationSvg } from "./station-art.js?v=f72170c0a1";
-import { createStore } from "./store.js?v=f72170c0a1";
-import { createPoller, subscribeVersions } from "./live.js?v=f72170c0a1";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=f72170c0a1";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=e5069938de";
+import { CLUBS } from "./clubs.js?v=e5069938de";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=e5069938de";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=e5069938de";
+import { SPONSORS } from "./sponsors.js?v=e5069938de";
+import { applyGhostPass } from "./ghost-pass.js?v=e5069938de";
+import { markImg } from "./marks.js?v=e5069938de";
+import { stationSvg } from "./station-art.js?v=e5069938de";
+import { createStore } from "./store.js?v=e5069938de";
+import { createPoller, subscribeVersions } from "./live.js?v=e5069938de";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=e5069938de";
 import {
   apiFetch,
   apiUrl,
@@ -36,7 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=f72170c0a1";
+} from "./session.js?v=e5069938de";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=e5069938de";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -48,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=f72170c0a1";
+} from "./push.js?v=e5069938de";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -3735,13 +3736,18 @@ function bindUi() {
       (idBad ? idInput : nameInput)?.focus();
       return;
     }
+    if (authInFlight) return;
+    authInFlight = true;
     setBusy(submit, true);
     try {
       flushGameProgress();
-      const data = await signIn({
-        adminNumber: idValue,
-        fullName: nameInput.value,
-      });
+      // After a crowded failure, a quick re-tap waits a random moment so phones don't retry in step.
+      if (lastSignInCrowded) await new Promise((resolve) => setTimeout(resolve, Math.random() * FIRST_TRY_JITTER_MS));
+      const data = await withSignInRetry(
+        () => signIn({ adminNumber: idValue, fullName: nameInput.value }),
+        { onRetry: (text) => setBusy(submit, true, text) }
+      );
+      lastSignInCrowded = false;
       applyGameAccount();
       updateNav();
       setView("stamps");
@@ -3761,14 +3767,19 @@ function bindUi() {
         }
       }
     } catch (error) {
+      lastSignInCrowded = Boolean(error && error.crowded);
       if (err) {
         err.hidden = false;
-        err.textContent = userFacingError(error, "Sign-in failed. Check your admin number and name.");
+        err.textContent = lastSignInCrowded ? SIGNIN_TEXT.gaveUp : userFacingError(error, "Sign-in failed. Check your admin number and name.");
       }
     } finally {
+      authInFlight = false;
       setBusy(submit, false);
     }
   }
+
+  let authInFlight = false;
+  let lastSignInCrowded = false;
 
   document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event));
 
@@ -4463,7 +4474,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=f72170c0a1")
+  import("./games.js?v=e5069938de")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
