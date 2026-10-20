@@ -1,4 +1,4 @@
-import { boothById } from "./booths.js?v=e5069938de";
+import { boothById } from "./booths.js?v=7bf717e66b";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";
@@ -370,14 +370,27 @@ export async function unlockStaff(password) {
 export async function fetchStamps() {
   const session = getStudentSession();
   if (!session) throw new Error("Sign in to open your stamp card.");
-  const res = await apiFetch(apiUrl("stamps"), { asRole: "student" });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), LOGIN_TIMEOUT_MS);
+  let res;
+  try {
+    res = await apiFetch(apiUrl("stamps"), { asRole: "student", signal: ctrl.signal });
+  } catch (error) {
+    if (ctrl.signal.aborted) throw Object.assign(new Error("Could not load your stamp card."), { status: 0, timeout: true });
+    if (offline(error)) throw Object.assign(new Error("Could not load your stamp card."), { status: 0, network: true });
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
   const data = await res.json().catch(() => ({}));
   if (res.ok) {
     applyStaffFlags(data);
     return data;
   }
   if (res.status === 401) forgetStudentSession();
-  throw apiFail(data, res, "Could not load your stamp card.");
+  const err = apiFail(data, res, "Could not load your stamp card.");
+  err.retryAfter = Number(res.headers.get("Retry-After")) || 0;
+  throw err;
 }
 
 /** Tiny private poll for the open stamp card: a number that moves whenever the card changes. */

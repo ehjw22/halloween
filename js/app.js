@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=e5069938de";
-import { CLUBS } from "./clubs.js?v=e5069938de";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=e5069938de";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=e5069938de";
-import { SPONSORS } from "./sponsors.js?v=e5069938de";
-import { applyGhostPass } from "./ghost-pass.js?v=e5069938de";
-import { markImg } from "./marks.js?v=e5069938de";
-import { stationSvg } from "./station-art.js?v=e5069938de";
-import { createStore } from "./store.js?v=e5069938de";
-import { createPoller, subscribeVersions } from "./live.js?v=e5069938de";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=e5069938de";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=7bf717e66b";
+import { CLUBS } from "./clubs.js?v=7bf717e66b";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=7bf717e66b";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=7bf717e66b";
+import { SPONSORS } from "./sponsors.js?v=7bf717e66b";
+import { applyGhostPass } from "./ghost-pass.js?v=7bf717e66b";
+import { markImg } from "./marks.js?v=7bf717e66b";
+import { stationSvg } from "./station-art.js?v=7bf717e66b";
+import { createStore } from "./store.js?v=7bf717e66b";
+import { createPoller, subscribeVersions } from "./live.js?v=7bf717e66b";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=7bf717e66b";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=e5069938de";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=e5069938de";
+} from "./session.js?v=7bf717e66b";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=7bf717e66b";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=e5069938de";
+} from "./push.js?v=7bf717e66b";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -2128,14 +2128,14 @@ function cardSignature(card) {
 }
 
 /** Returns true when the card changed. Responses that arrive after a newer request are dropped. */
-async function loadCardFromServer() {
+async function loadCardFromServer({ retry = false } = {}) {
   const session = getStudentSession();
   if (!session) {
     cardState = { stamps: {}, redeemedAt: null, redeemedBy: null, fullName: "", studentNumber: "", passId: "" };
     return true;
   }
   const seq = ++cardSeq;
-  const data = await fetchStamps();
+  const data = retry ? await withSignInRetry(() => fetchStamps()) : await fetchStamps();
   if (seq !== cardSeq) return false;
   const next = {
     stamps: data.stamps || {},
@@ -2652,7 +2652,7 @@ function celebrateStamps() {
   showWaitToast("Stamp collected!", `${names.join(" & ")} is on your card. ${tail}`, false);
 }
 
-async function renderStamps({ refresh = false, quiet = false } = {}) {
+async function renderStamps({ refresh = false, quiet = false, retry = false } = {}) {
   const session = getStudentSession();
   if (!session) {
     paintStampUi();
@@ -2664,7 +2664,7 @@ async function renderStamps({ refresh = false, quiet = false } = {}) {
   if (!refresh && cardState.studentNumber) return;
 
   try {
-    const changed = await loadCardFromServer();
+    const changed = await loadCardFromServer({ retry });
     if (changed || !quiet) paintStampUi();
     if (changed && justLit.size) celebrateStamps();
   } catch (error) {
@@ -3721,8 +3721,59 @@ function bindUi() {
     }
   }
 
+  const SIGNIN_DRAFT_KEY = "sp-signin-draft";
+
+  function readSignInDraft() {
+    try {
+      return JSON.parse(sessionStorage.getItem(SIGNIN_DRAFT_KEY) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function writeSignInDraft(adminNumber, fullName) {
+    try {
+      sessionStorage.setItem(SIGNIN_DRAFT_KEY, JSON.stringify({ adminNumber, fullName }));
+    } catch {
+      /* private mode */
+    }
+  }
+
+  function clearSignInDraft() {
+    try {
+      sessionStorage.removeItem(SIGNIN_DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function fillSignInFormFromDraft() {
+    const draft = readSignInDraft();
+    if (!draft) return;
+    const idInput = document.getElementById("studentLoginId");
+    const nameInput = document.getElementById("studentLoginName");
+    if (idInput && !idInput.value && draft.adminNumber) idInput.value = draft.adminNumber;
+    if (nameInput && !nameInput.value && draft.fullName) nameInput.value = draft.fullName;
+  }
+
+  fillSignInFormFromDraft();
+  ["studentLoginId", "studentLoginName"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", () => {
+      const idInput = document.getElementById("studentLoginId");
+      const nameInput = document.getElementById("studentLoginName");
+      const num = normalizeAdminNumber(idInput?.value || "");
+      const name = String(nameInput?.value || "").trim();
+      if (num || name) writeSignInDraft(num, name);
+    });
+  });
+
+  let authPromise = null;
+  let lastSignInCrowded = false;
+
   async function handleAuthSubmit(event) {
     event.preventDefault();
+    // A tap during an active retry keeps that attempt going — never start a parallel one.
+    if (authPromise) return authPromise;
     const err = document.getElementById("studentLoginError");
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     const idInput = document.getElementById("studentLoginId");
@@ -3730,56 +3781,66 @@ function bindUi() {
     if (err) err.hidden = true;
     const idValue = normalizeAdminNumber(idInput?.value || "");
     if (idInput) idInput.value = idValue;
+    const nameValue = String(nameInput?.value || "").trim();
     const idBad = setFieldError(idInput, "studentLoginIdError", admissionNumberProblem(idValue));
-    const nameBad = setFieldError(nameInput, "studentLoginNameError", nameInput?.value.trim().length >= 2 ? "" : "Enter your full name, like it's on your student card.");
+    const nameBad = setFieldError(nameInput, "studentLoginNameError", nameValue.length >= 2 ? "" : "Enter your full name, like it's on your student card.");
     if (idBad || nameBad) {
       (idBad ? idInput : nameInput)?.focus();
       return;
     }
-    if (authInFlight) return;
-    authInFlight = true;
-    setBusy(submit, true);
-    try {
-      flushGameProgress();
-      // After a crowded failure, a quick re-tap waits a random moment so phones don't retry in step.
-      if (lastSignInCrowded) await new Promise((resolve) => setTimeout(resolve, Math.random() * FIRST_TRY_JITTER_MS));
-      const data = await withSignInRetry(
-        () => signIn({ adminNumber: idValue, fullName: nameInput.value }),
-        { onRetry: (text) => setBusy(submit, true, text) }
-      );
-      lastSignInCrowded = false;
-      applyGameAccount();
-      updateNav();
-      setView("stamps");
-      if (data.created) {
-        showWaitToast("Card created", "Use this same admin number and name to sign in on another device.", false);
-      }
-      if (data.student) {
-        cardState.studentNumber = "";
-        renderStamps({ refresh: true }).catch(() => paintStampUi());
-        const picked = [...document.querySelectorAll('input[name="alertLevel"]:checked')].map((input) => input.value);
-        writeAlertLevels(picked);
-        if (picked.length) {
-          setWantsPush(true);
-          enablePushNotifications(pushWatchList(readNight().watch)).then(paintPushHint).catch(paintPushHint);
-        } else {
-          paintPushHint();
+    writeSignInDraft(idValue, nameValue);
+    authPromise = (async () => {
+      setBusy(submit, true);
+      try {
+        flushGameProgress();
+        // After a crowded failure, a quick re-tap waits a random moment so phones don't retry in step.
+        if (lastSignInCrowded) await new Promise((resolve) => setTimeout(resolve, Math.random() * FIRST_TRY_JITTER_MS));
+        const data = await withSignInRetry(
+          () => signIn({ adminNumber: idValue, fullName: nameValue }),
+          { onStatus: (text) => setBusy(submit, true, text) }
+        );
+        // created:false (already exists) is success — signIn already applied the session.
+        lastSignInCrowded = false;
+        clearSignInDraft();
+        applyGameAccount();
+        updateNav();
+        // Into the map first; the stamp card loads quietly in the background with the same retry.
+        setView("map");
+        if (data.created) {
+          showWaitToast("Card created", "Use this same admin number and name to sign in on another device.", false);
         }
+        if (data.student) {
+          // Seed the card from the session so the stamps tab isn't empty while we fetch.
+          cardState.fullName = data.student.fullName || nameValue;
+          cardState.studentNumber = data.student.studentNumber || idValue;
+          cardState.passId = `SP-FP-${cardState.studentNumber}`;
+          cardState.stamps = cardState.stamps || {};
+          renderStamps({ refresh: true, quiet: true, retry: true }).catch(() => paintStampUi());
+          const picked = [...document.querySelectorAll('input[name="alertLevel"]:checked')].map((input) => input.value);
+          writeAlertLevels(picked);
+          if (picked.length) {
+            setWantsPush(true);
+            enablePushNotifications(pushWatchList(readNight().watch)).then(paintPushHint).catch(paintPushHint);
+          } else {
+            paintPushHint();
+          }
+        }
+      } catch (error) {
+        lastSignInCrowded = Boolean(error && error.crowded);
+        if (err) {
+          err.hidden = false;
+          err.textContent = lastSignInCrowded ? SIGNIN_TEXT.gaveUp : userFacingError(error, "Sign-in failed. Check your admin number and name.");
+        }
+      } finally {
+        setBusy(submit, false);
       }
-    } catch (error) {
-      lastSignInCrowded = Boolean(error && error.crowded);
-      if (err) {
-        err.hidden = false;
-        err.textContent = lastSignInCrowded ? SIGNIN_TEXT.gaveUp : userFacingError(error, "Sign-in failed. Check your admin number and name.");
-      }
+    })();
+    try {
+      await authPromise;
     } finally {
-      authInFlight = false;
-      setBusy(submit, false);
+      authPromise = null;
     }
   }
-
-  let authInFlight = false;
-  let lastSignInCrowded = false;
 
   document.getElementById("studentLoginForm")?.addEventListener("submit", (event) => handleAuthSubmit(event));
 
@@ -4474,7 +4535,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=e5069938de")
+  import("./games.js?v=7bf717e66b")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
