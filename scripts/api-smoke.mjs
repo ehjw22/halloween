@@ -158,7 +158,7 @@ await check("anon key cannot read or write private tables", async () => {
 });
 
 await check("anon key cannot call privileged database functions", async () => {
-  for (const fn of ["scream_award_stamp", "scream_redeem_pass", "scream_set_wait", "scream_student_sign_in", "scream_ops_summary", "scream_lookup_student", "scream_rate_reset"]) {
+  for (const fn of ["scream_award_stamp", "scream_redeem_pass", "scream_set_wait", "scream_student_sign_in", "scream_student_login", "scream_rate_hit_sharded", "scream_ops_summary", "scream_lookup_student", "scream_rate_reset"]) {
     const r = await anonRest(`rpc/${fn}`, { method: "POST", body: JSON.stringify({}) });
     expect(r.status === 401 || r.status === 403 || r.status === 404, `${fn} callable by anon (${r.status})`);
   }
@@ -201,6 +201,107 @@ await check("returning student signs in; a different name is refused", async () 
   expect(r.status === 200 && !r.data.created, `returning sign-in failed (${r.status})`);
   r = await other("login", { method: "POST", body: { adminNumber: STUDENT, fullName: "Someone Else" }, ip: ipA });
   expect(r.status === 409 && r.data.code === "name_mismatch", `wrong name gave ${r.status}`);
+});
+
+// Counts the API's calls to database functions (the handler runs in this process).
+const realFetch = globalThis.fetch;
+async function rpcCallsDuring(fn) {
+  const calls = [];
+  globalThis.fetch = (url, init) => {
+    const m = String(url).match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/i);
+    if (m) calls.push(m[1]);
+    return realFetch(url, init);
+  };
+  try {
+    return { result: await fn(), calls };
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+
+await check("a student sign-in is one database call with both rate limits", async () => {
+  const { result: r, calls } = await rpcCallsDuring(() => client()("login", { method: "POST", body: { adminNumber: "P2600111", fullName: "One Trip" }, ip: "10.0.1.1" }));
+  expect(r.status === 200 && r.data.created, `sign-up failed ${r.status} ${JSON.stringify(r.data)}`);
+  expect(calls.length === 1 && calls[0] === "scream_student_login", `database calls: ${calls.join(", ") || "none"}`);
+  const ip = await sql("select bucket, hits from public.scream_rate_limits where bucket like 'login-ip:10.0.1.1#%'");
+  expect(ip.length === 1 && ip[0].hits === 1, `per-IP shard rows ${JSON.stringify(ip)}`);
+  const num = await sql("select hits from public.scream_rate_limits where bucket = 'login-num:P2600111'");
+  expect(num[0] && num[0].hits === 1, `per-number bucket ${JSON.stringify(num)}`);
+});
+
+await check("sign-in rate limits still answer 429 (per number and per IP)", async () => {
+  const c = client();
+  process.env.LOGIN_NUM_RATE_MAX = "2";
+  try {
+    const statuses = [];
+    for (let i = 0; i < 3; i += 1) {
+      const r = await c("login", { method: "POST", body: { adminNumber: "P2600112", fullName: "Limit Kid" }, ip: "10.0.1.2" });
+      statuses.push(r.status);
+      if (r.status === 429) expect(Number(r.headers.get("retry-after")) > 0 && r.data.code === "rate_limited", "429 without Retry-After");
+    }
+    expect(statuses.join() === "200,200,429", `per-number statuses ${statuses.join()}`);
+  } finally {
+    delete process.env.LOGIN_NUM_RATE_MAX;
+  }
+  process.env.LOGIN_RATE_MAX = "3";
+  try {
+    const statuses = [];
+    for (let i = 0; i < 4; i += 1) {
+      const r = await client()("login", { method: "POST", body: { adminNumber: `P260012${i}`, fullName: "Ip Kid" }, ip: "10.0.1.3" });
+      statuses.push(r.status);
+    }
+    expect(statuses.join() === "200,200,200,429", `per-IP statuses ${statuses.join()}`);
+  } finally {
+    delete process.env.LOGIN_RATE_MAX;
+  }
+});
+
+await check("the database limit holds on its own (sharded per-IP count is exact)", async () => {
+  const out = [];
+  for (let i = 0; i < 5; i += 1) {
+    const rows = await sql("select public.scream_student_login($1, 'Shard Kid', '10.0.1.4', 4, 25, 600) as r", [`P260013${i}`]);
+    out.push(rows[0].r.ok ? "ok" : rows[0].r.error);
+  }
+  expect(out.join() === "ok,ok,ok,ok,rate_limited", `db gate ${out.join()}`);
+  const made = await sql("select count(*)::int as n from public.students where student_number like 'P260013%'");
+  expect(made[0].n === 4, `${made[0].n} rows created past the limit`);
+  const bad = await sql("select public.scream_student_login('P2109999', 'Old Year', '10.0.1.4', 4, 25, 600) as r");
+  expect(bad[0].r.error === "bad_number", `22-26 rule ${JSON.stringify(bad[0].r)}`);
+});
+
+await check("sign-in still works before supabase/signin-fast.sql is installed (old 3 calls)", async () => {
+  await sql("alter function public.scream_student_login(text, text, text, integer, integer, integer) rename to scream_student_login_off");
+  try {
+    const { result: r, calls } = await rpcCallsDuring(() => client()("login", { method: "POST", body: { adminNumber: "P2600114", fullName: "Old Path" }, ip: "10.0.1.5" }));
+    expect(r.status === 200 && r.data.created, `fallback sign-up failed ${r.status} ${JSON.stringify(r.data)}`);
+    expect(calls.join() === "scream_student_login,scream_rate_hit,scream_rate_hit,scream_student_sign_in", `fallback calls ${calls.join()}`);
+  } finally {
+    await sql("alter function public.scream_student_login_off(text, text, text, integer, integer, integer) rename to scream_student_login");
+  }
+});
+
+await check("a stuck database answers 503 fast instead of queueing the sign-in", async () => {
+  const sockets = new Set();
+  const stuck = http.createServer(() => {
+    /* never answers */
+  });
+  stuck.on("connection", (s) => sockets.add(s));
+  await new Promise((resolve) => stuck.listen(0, "127.0.0.1", resolve));
+  const saved = process.env.SUPABASE_URL;
+  process.env.SUPABASE_URL = `http://127.0.0.1:${stuck.address().port}`;
+  process.env.SUPABASE_TIMEOUT_MS = "300";
+  try {
+    const t0 = Date.now();
+    const r = await client()("login", { method: "POST", body: { adminNumber: "P2600115", fullName: "Stuck Db" }, ip: "10.0.1.6" });
+    const ms = Date.now() - t0;
+    expect(r.status === 503 && ms < 3000, `stuck database gave ${r.status} after ${ms} ms`);
+    expect(!JSON.stringify(r.data).match(/supabase|127\.0\.0\.1|timed out/i), `503 leaks internals ${JSON.stringify(r.data)}`);
+  } finally {
+    process.env.SUPABASE_URL = saved;
+    delete process.env.SUPABASE_TIMEOUT_MS;
+    sockets.forEach((s) => s.destroy());
+    stuck.close();
+  }
 });
 
 await check("staff unlock needs a student session and a staff account", async () => {

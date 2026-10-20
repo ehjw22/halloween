@@ -387,6 +387,11 @@ function memoryHit(bucket, max, windowSec, peek = false) {
 async function limit(bucket, max, windowSec, { peek = false } = {}) {
   const local = memoryHit(bucket, max, windowSec, peek);
   if (!local.ok) return local;
+  return remoteLimit(local, bucket, max, windowSec, { peek });
+}
+
+/** The database half of limit(): the row that makes a limit hold across every Vercel instance. */
+async function remoteLimit(local, bucket, max, windowSec, { peek = false } = {}) {
   if (!getEnv().url || !privilegedKey()) return local;
   try {
     const remote = await sbRpc(peek ? "scream_rate_peek" : "scream_rate_hit", {
@@ -642,6 +647,27 @@ function dbMissing() {
   return err;
 }
 
+/**
+ * Every database call gives up after SUPABASE_TIMEOUT_MS (default 8s). Without it a slow database
+ * makes requests pile up inside the function for minutes instead of answering "try again".
+ */
+function dbTimeoutMs() {
+  return envPositiveInt("SUPABASE_TIMEOUT_MS", 8000);
+}
+
+async function dbFetch(url, init, what) {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(dbTimeoutMs()) });
+  } catch (error) {
+    const timedOut = error && (error.name === "TimeoutError" || error.name === "AbortError");
+    const err = new Error(timedOut ? `Database timed out (${what})` : `Database unreachable (${what})`);
+    err.status = 503;
+    err.code = timedOut ? "db-timeout" : "db-unreachable";
+    err.detail = `${what} · ${(error && (error.cause?.code || error.name)) || "fetch"}`;
+    throw err;
+  }
+}
+
 async function sb(path, { method = "GET", body, query = "", prefer } = {}) {
   const env = getEnv();
   const key = privilegedKey();
@@ -651,7 +677,7 @@ async function sb(path, { method = "GET", body, query = "", prefer } = {}) {
     err.status = 500;
     throw err;
   }
-  const res = await fetch(`${env.url}/rest/v1/${path}${query}`, {
+  const res = await dbFetch(`${env.url}/rest/v1/${path}${query}`, {
     method,
     headers: {
       apikey: key,
@@ -661,7 +687,7 @@ async function sb(path, { method = "GET", body, query = "", prefer } = {}) {
       Prefer: prefer || "return=representation",
     },
     body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  }, path);
   const text = await res.text();
   let data = null;
   if (text) {
@@ -691,7 +717,7 @@ async function sbRpc(fn, args) {
     err.status = 500;
     throw err;
   }
-  const res = await fetch(`${env.url}/rest/v1/rpc/${fn}`, {
+  const res = await dbFetch(`${env.url}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: {
       apikey: key,
@@ -699,7 +725,7 @@ async function sbRpc(fn, args) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(args),
-  });
+  }, fn);
   const text = await res.text();
   let data = null;
   if (text) {
@@ -783,20 +809,22 @@ async function signInStudent(req, res, body) {
     if (!isAdminNumber(studentNumber)) return signInRefusal(res, "bad_number");
     if (!fullName || fullName.length < 2) return signInRefusal(res, "bad_name");
 
-    const ipGate = await limit(`login-ip:${clientKey(req)}`, ...rateOf("loginIp"));
-    if (!ipGate.ok) return tooMany(res, ipGate.retryAfter);
-    const numGate = await limit(`login-num:${studentNumber}`, ...rateOf("loginNum"));
-    if (!numGate.ok) return tooMany(res, numGate.retryAfter);
+    const ip = clientKey(req);
+    const [ipMax, ipWindow] = rateOf("loginIp");
+    const [numMax, numWindow] = rateOf("loginNum");
+    // In-memory first: stops a flood on a warm instance without touching the database.
+    const ipLocal = memoryHit(`login-ip:${ip}`, ipMax, ipWindow);
+    if (!ipLocal.ok) return tooMany(res, ipLocal.retryAfter);
+    const numLocal = memoryHit(`login-num:${studentNumber}`, numMax, numWindow);
+    if (!numLocal.ok) return tooMany(res, numLocal.retryAfter);
 
     if (!getEnv().url) {
       if (onHosted()) return send(res, 503, { error: "Sign-in is not available right now. Try again later." });
       return signInLocalStudent(req, res, studentNumber, fullName);
     }
 
-    const row = rpcObject(await sbRpc("scream_student_sign_in", {
-      p_number: studentNumber,
-      p_name: fullName,
-    }));
+    const row = await studentSignInRow({ ip, studentNumber, fullName, ipMax, ipWindow, numMax, numWindow, ipLocal, numLocal });
+    if (row.error === "rate_limited") return tooMany(res, row.retry_after);
     if (!row.ok) {
       if (row.error === "name_mismatch" || row.error === "bad_credentials") {
         console.warn("[scream] student-sign-in-fail", row.error, clientKey(req));
@@ -816,6 +844,39 @@ async function signInStudent(req, res, body) {
     return fail(res, error, "student-sign-in");
   }
 }
+
+/**
+ * One database round trip per sign-in: scream_student_login (supabase/signin-fast.sql) runs the
+ * per-IP limit (sharded, no hot row), the per-number limit and the conflict-safe sign-in in one
+ * transaction. Until that SQL is installed it falls back to the old three calls.
+ */
+async function studentSignInRow({ ip, studentNumber, fullName, ipMax, ipWindow, numMax, numWindow, ipLocal, numLocal }) {
+  if (ipWindow === numWindow) {
+    try {
+      return rpcObject(await sbRpc("scream_student_login", {
+        p_number: studentNumber,
+        p_name: fullName,
+        p_ip: ip,
+        p_ip_max: ipMax,
+        p_num_max: numMax,
+        p_window_seconds: ipWindow,
+      }));
+    } catch (error) {
+      if (!rpcMissing(error)) throw error;
+      if (!warnedSlowSignIn) {
+        warnedSlowSignIn = true;
+        console.warn("[scream] scream_student_login is missing. Run supabase/signin-fast.sql; using the slower 3-call sign-in.");
+      }
+    }
+  }
+  const ipGate = await remoteLimit(ipLocal, `login-ip:${ip}`, ipMax, ipWindow);
+  if (!ipGate.ok) return { ok: false, error: "rate_limited", retry_after: ipGate.retryAfter };
+  const numGate = await remoteLimit(numLocal, `login-num:${studentNumber}`, numMax, numWindow);
+  if (!numGate.ok) return { ok: false, error: "rate_limited", retry_after: numGate.retryAfter };
+  return rpcObject(await sbRpc("scream_student_sign_in", { p_number: studentNumber, p_name: fullName }));
+}
+
+let warnedSlowSignIn = false;
 
 async function signInLocalStudent(req, res, studentNumber, fullName) {
   let row = localStudents.get(studentNumber);

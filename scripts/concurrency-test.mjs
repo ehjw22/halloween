@@ -140,6 +140,16 @@ await check(`${N} phones sign up the same new number at once: one student row`, 
   }
 });
 
+await check(`${N} different students sign up at once from one IP: all in, the IP counts every one`, async () => {
+  const before = dev ? (await sql("select coalesce(sum(hits), 0)::int as n from public.scream_rate_limits where bucket like 'login-ip:10.9.8.7#%'"))[0].n : 0;
+  const rs = await burst((i) => client()("login", { method: "POST", body: { adminNumber: `P24002${String(i).padStart(2, "0")}`, fullName: `Rush Kid ${i}` } }));
+  expect(rs.every((r) => r.status === 200 && r.data.created === true), `statuses ${[...new Set(rs.map((r) => r.status))]}`);
+  if (dev) {
+    const after = (await sql("select coalesce(sum(hits), 0)::int as n from public.scream_rate_limits where bucket like 'login-ip:10.9.8.7#%'"))[0].n;
+    expect(after - before === N, `per-IP count moved by ${after - before}, expected ${N}`);
+  }
+});
+
 await check(`${N} parallel awards, same student and booth: one stamp, the rest "already"`, async () => {
   const rs = await burst(() => staff("award-stamp", { method: "POST", body: { studentNumber: STUDENT, boothId: "1" } }));
   expect(rs.every((r) => r.status === 200), `statuses ${[...new Set(rs.map((r) => r.status))]}`);
