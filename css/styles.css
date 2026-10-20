@@ -3324,6 +3324,7 @@ a,
 .map-booths .house-card[data-theme="pasta"] { --booth-tint: #241428; --booth-accent: #d4a0d8; --booth-line: #6a4068; }
 .map-booths .house-card[data-theme="kwazy"] { --booth-tint: #2a1024; --booth-accent: #f0a0d0; --booth-line: #8a3a68; }
 .map-booths .house-card[data-theme="matcha"] { --booth-tint: #141c30; --booth-accent: #a0b8e8; --booth-line: #3a4a6e; }
+.map-booths .house-card[data-theme="bree"] { --booth-tint: #241612; --booth-accent: #f0c08a; --booth-line: #6a4630; }
 .house-card--food[data-theme="beamori"] .house-card__logo,
 .booth-logo[data-brand="beamori"],
 .booths-list__logo[data-brand="beamori"] {
@@ -5507,6 +5508,25 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   object-fit: contain;
   object-position: left center;
 }
+.booth-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+}
+.booth-head__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.booth-logo--head {
+  flex: 0 0 auto;
+  height: 56px;
+  max-width: min(45%, 9rem);
+  margin: 0;
+}
+@media (max-width: 800px) {
+  .booth-logo--head { height: 48px; }
+}
 .booth-links[hidden],
 .modal__story[hidden],
 .screening-films[hidden] {
@@ -6395,6 +6415,10 @@ body.is-board { background: #050308; }
   html.event-open main,
   html.event-open .view.is-active {
     padding-bottom: calc(var(--mobile-nav-clear) + 16px);
+  }
+  /* The footer already clears the tab bar; padding the wrapper too left a dark strip above it. */
+  html.event-open body:not(.is-board) #eventApp[data-event-app] {
+    padding-bottom: 0;
   }
   .site-footer {
     padding-bottom: calc(var(--mobile-nav-clear) + 24px);

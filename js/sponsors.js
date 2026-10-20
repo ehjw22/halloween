@@ -7,4 +7,8 @@ export const SPONSORS = [
     url: "https://www.charmsandlinks.com/",
   },
   { name: "Double Chin", logo: "img/sponsors/double-chin.png", url: "https://doublechincafe.com/" },
+  { name: "Sonic Bowl", logo: "img/sponsors/sonic-bowl.webp", url: "https://www.sonicbowl.sg/" },
+  { name: "POTICO.sg", logo: "img/sponsors/potico.webp", url: "https://potico.sg/" },
+  { name: "WePlay Paintball", logo: "img/sponsors/weplay-paintball.webp", url: "https://weplaypaintball.com/" },
+  { name: "SIM Global Education", logo: "img/sponsors/sim-ge.webp", url: "https://www.sim.edu.sg/" },
 ];

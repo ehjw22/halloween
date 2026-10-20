@@ -31,9 +31,9 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=7bf717e66b" />
-    <link rel="stylesheet" href="css/poster.css?v=7bf717e66b" />
-    <script src="js/boot.js?v=7bf717e66b"></script>
+    <link rel="stylesheet" href="css/styles.css?v=b451f5706d" />
+    <link rel="stylesheet" href="css/poster.css?v=b451f5706d" />
+    <script src="js/boot.js?v=b451f5706d"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -86,7 +86,7 @@
             <span id="cdSeconds"></span><small>Seconds</small>
           </div>
         </div>
-        <script src="js/gate-paint.js?v=7bf717e66b"></script>
+        <script src="js/gate-paint.js?v=b451f5706d"></script>
       </div>
       <div class="event-gate__credits">
         <p class="event-gate__by">Organised by Singapore Polytechnic student clubs</p>
@@ -1666,9 +1666,12 @@
         >
           <div class="modal__bar">
             <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-            <div>
-              <p class="modal__code" data-booth-code></p>
-              <h3 id="boothModalTitle" data-booth-title></h3>
+            <div class="booth-head">
+              <img class="booth-logo booth-logo--head" data-booth-logo alt="" hidden>
+              <div class="booth-head__text">
+                <p class="modal__code" data-booth-code></p>
+                <h3 id="boothModalTitle" data-booth-title></h3>
+              </div>
             </div>
           </div>
           <div class="modal__body">
@@ -1676,7 +1679,6 @@
             <p class="modal__story" data-booth-blurb hidden></p>
             <div class="booth-links" data-booth-links hidden></div>
             <div class="booth-menu" data-booth-menu hidden></div>
-            <img class="booth-logo" data-booth-logo alt="" hidden>
             <p class="modal__story" data-booth-summary></p>
             <ul class="booth-items" data-booth-items hidden></ul>
             <p class="booth-note" data-booth-note hidden></p>
@@ -1685,8 +1687,8 @@
         </div>
       </div>
 
-      <script src="js/config.js?v=7bf717e66b"></script>
-      <script type="module" src="js/app.js?v=7bf717e66b"></script>
+      <script src="js/config.js?v=b451f5706d"></script>
+      <script type="module" src="js/app.js?v=b451f5706d"></script>
     </div>
   </body>
 </html>

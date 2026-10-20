@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=7bf717e66b";
-import { CLUBS } from "./clubs.js?v=7bf717e66b";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=7bf717e66b";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=7bf717e66b";
-import { SPONSORS } from "./sponsors.js?v=7bf717e66b";
-import { applyGhostPass } from "./ghost-pass.js?v=7bf717e66b";
-import { markImg } from "./marks.js?v=7bf717e66b";
-import { stationSvg } from "./station-art.js?v=7bf717e66b";
-import { createStore } from "./store.js?v=7bf717e66b";
-import { createPoller, subscribeVersions } from "./live.js?v=7bf717e66b";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=7bf717e66b";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=b451f5706d";
+import { CLUBS } from "./clubs.js?v=b451f5706d";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=b451f5706d";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=b451f5706d";
+import { SPONSORS } from "./sponsors.js?v=b451f5706d";
+import { applyGhostPass } from "./ghost-pass.js?v=b451f5706d";
+import { markImg } from "./marks.js?v=b451f5706d";
+import { stationSvg } from "./station-art.js?v=b451f5706d";
+import { createStore } from "./store.js?v=b451f5706d";
+import { createPoller, subscribeVersions } from "./live.js?v=b451f5706d";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=b451f5706d";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=7bf717e66b";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=7bf717e66b";
+} from "./session.js?v=b451f5706d";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=b451f5706d";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=7bf717e66b";
+} from "./push.js?v=b451f5706d";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -774,6 +774,7 @@ const BOOTH_TILT = {
   pasta: "-1.5deg",
   kwazy: "1.6deg",
   matcha: "-1.2deg",
+  bree: "1.4deg",
 };
 
 function posterArt(fill, line, shapes, details = "") {
@@ -794,6 +795,7 @@ const BOOTH_IDLE_DELAY = {
   pasta: "1.5s",
   kwazy: "0.6s",
   matcha: "2.1s",
+  bree: "0.85s",
 };
 
 function boothArt(theme) {
@@ -819,6 +821,7 @@ function boothArt(theme) {
       <rect x="40" y="48" width="8" height="22" rx="3"/>
     `, `<g class="drip"><path d="M24 62c6 10 2 16-4 20 6-2 10-8 4-20z" fill="#ff8fbe" stroke="#3a1024" stroke-width="2.2"/><path d="M62 60c4 12 8 16 2 22-2-8-2-14-2-22z" fill="#ff8fbe" stroke="#3a1024" stroke-width="2.2"/></g>`),
     matcha: `<svg viewBox="0 0 96 96" aria-hidden="true"><defs><clipPath id="matchaGlass"><path d="M26 34h44l-6 50H32z"/></clipPath></defs><g clip-path="url(#matchaGlass)"><path d="M24 34h50l-8 54H30z" fill="#f4efe4"/><path d="M26 34h44l-4 36H31z" fill="#3f9a2c"/><path d="M28 50c10 5 16-3 26 1 6 2 12 1 16-3v16H30z" fill="#2d7420"/><g class="swirl"><path d="M48 52c6 0 8 6 3 9-5 3-10 0-9-5 0-3 3-4 6-4z" fill="none" stroke="#d6ff9a" stroke-width="2.5" stroke-linecap="round"/></g><rect x="34" y="42" width="11" height="8" rx="2" transform="rotate(-14 39 46)" fill="#e7f6ff" stroke="#163024" stroke-width="1.4"/><rect x="52" y="48" width="10" height="7" rx="2" transform="rotate(12 57 51)" fill="#e7f6ff" stroke="#163024" stroke-width="1.4"/></g><path d="M26 34h44l-6 50H32z" fill="none" stroke="#e7ffd4" stroke-width="2.8" stroke-linejoin="round"/><g class="ghost"><path d="M38 30c0-8 18-8 18 0v7l-3-2.2-3 2.2-3-2.2-3 2.2-3-2.2-3 2.2z" fill="#f7fff2" stroke="#163024" stroke-width="1.6" stroke-linejoin="round"/><circle cx="43" cy="29" r="1.3" fill="#163024"/><circle cx="51" cy="29" r="1.3" fill="#163024"/></g><rect x="58" y="10" width="5" height="30" rx="2.5" transform="rotate(16 60 25)" fill="#f7f3ea" stroke="#163024" stroke-width="1.8"/></svg>`,
+    bree: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#2a140c" transform="translate(2 2)"><path d="M18 56c0-20 14-28 30-28s30 8 30 28z"/><path d="M24 54h48l-6 32H30z"/></g><path d="M24 54h48l-6 32H30z" fill="#ff8a2e" stroke="#2a140c" stroke-width="2.6" stroke-linejoin="round"/><path d="M36 56l2 28M48 56v28M60 56l-2 28" stroke="#2a140c" stroke-width="2" stroke-linecap="round"/><path d="M18 56c0-20 14-28 30-28s30 8 30 28c-4 3-8-2-12 1s-8-2-12 1-8-2-12 1-8-2-12 1-8-1-12-1z" fill="#e0a052" stroke="#2a140c" stroke-width="2.6" stroke-linejoin="round"/><g fill="#3a1c10"><circle cx="30" cy="46" r="2.4"/><circle cx="62" cy="44" r="2.4"/><circle cx="40" cy="52" r="2"/><circle cx="58" cy="53" r="2"/><circle cx="70" cy="51" r="1.8"/></g><g class="ghost"><path d="M38 34c0-12 20-12 20 0v8l-3.3-2.4-3.3 2.4-3.4-2.4-3.3 2.4-3.4-2.4-3.3 2.4z" fill="#fff6ea" stroke="#2a140c" stroke-width="2" stroke-linejoin="round"/><circle cx="44.5" cy="31" r="1.6" fill="#2a140c"/><circle cx="51.5" cy="31" r="1.6" fill="#2a140c"/><ellipse cx="48" cy="36" rx="1.6" ry="2" fill="#2a140c"/></g><g class="bub"><circle cx="24" cy="24" r="2.6" fill="#fff6ea" stroke="#2a140c" stroke-width="1.3"/><circle cx="74" cy="18" r="2.1" fill="#fff6ea" stroke="#2a140c" stroke-width="1.2"/><circle cx="68" cy="28" r="1.5" fill="#fff6ea" stroke="#2a140c" stroke-width="1.1"/></g></svg>`,
   };
   return art[theme] || "";
 }
@@ -1738,7 +1741,7 @@ function openBooth(id, opts = {}) {
   }
   const logo = modal.querySelector("[data-booth-logo]");
   if (logo) {
-    const showLogo = Boolean(booth.logo) && !(booth.menu || []).length;
+    const showLogo = Boolean(booth.food && booth.logo);
     if (showLogo) {
       logo.hidden = false;
       logo.src = booth.logo;
@@ -2746,11 +2749,16 @@ const LOGO_SIZES = {
   "img/food/beamori.png": [162, 197],
   "img/food/kwazy.png": [240, 128],
   "img/food/matcha-hour.png": [756, 408],
+  "img/food/baked-bree.png": [160, 160],
   "img/food/pasta-lab.png": [634, 633],
   "img/sponsors/aeroflow.png": [814, 144],
   "img/sponsors/boulder-planet.png": [1616, 139],
   "img/sponsors/charms-n-links.png": [394, 432],
   "img/sponsors/double-chin.png": [726, 708],
+  "img/sponsors/sonic-bowl.webp": [308, 144],
+  "img/sponsors/potico.webp": [380, 75],
+  "img/sponsors/weplay-paintball.webp": [174, 144],
+  "img/sponsors/sim-ge.webp": [195, 144],
   "img/clubLogos/clean/abec.png": [640, 210],
   "img/clubLogos/clean/clsc.png": [426, 426],
   "img/clubLogos/clean/cscc.png": [900, 888],
@@ -4535,7 +4543,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=7bf717e66b")
+  import("./games.js?v=b451f5706d")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
