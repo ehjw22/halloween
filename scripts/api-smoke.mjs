@@ -616,6 +616,72 @@ await check("a stale wait save is refused with a clear message", async () => {
   expect(ok.status === 200 && ok.data.house.wait_minutes === 12, `fresh save gave ${ok.status}`);
 });
 
+
+await check("Supabase overload (502/53300) becomes 503 with Retry-After 2-5", async () => {
+  const sockets = new Set();
+  const upstream = http.createServer((req, res) => {
+    res.writeHead(502, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ code: "53300", message: "sorry, too many clients already" }));
+  });
+  upstream.on("connection", (s) => sockets.add(s));
+  await new Promise((resolve) => upstream.listen(0, "127.0.0.1", resolve));
+  const saved = process.env.SUPABASE_URL;
+  process.env.SUPABASE_URL = `http://127.0.0.1:${upstream.address().port}`;
+  try {
+    const r = await client()("login", { method: "POST", body: { adminNumber: "P2600199", fullName: "Overload Kid" }, ip: "10.0.2.9" });
+    expect(r.status === 503, `overload mapped to ${r.status} not 503`);
+    const wait = Number(r.headers.get("retry-after"));
+    expect(wait >= 2 && wait <= 5, `Retry-After ${r.headers.get("retry-after")}`);
+    expect(!/53300|too many clients|supabase/i.test(JSON.stringify(r.data)), `leaked internals ${JSON.stringify(r.data)}`);
+  } finally {
+    process.env.SUPABASE_URL = saved;
+    sockets.forEach((s) => s.destroy());
+    upstream.close();
+  }
+});
+
+await check("sign-in admission cap sheds with 503 when instance is saturated", async () => {
+  const sockets = new Set();
+  const upstream = http.createServer((req, res) => {
+    // Hold each RPC open long enough that parallel logins hit the gate.
+    setTimeout(() => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, student_number: "P2600200", full_name: "Cap Kid", created: true }));
+    }, 600);
+  });
+  upstream.on("connection", (s) => sockets.add(s));
+  await new Promise((resolve) => upstream.listen(0, "127.0.0.1", resolve));
+  const savedUrl = process.env.SUPABASE_URL;
+  const savedMax = process.env.SIGNIN_MAX_INFLIGHT;
+  const savedQ = process.env.SIGNIN_QUEUE_MS;
+  process.env.SUPABASE_URL = `http://127.0.0.1:${upstream.address().port}`;
+  process.env.SIGNIN_MAX_INFLIGHT = "2";
+  process.env.SIGNIN_QUEUE_MS = "50";
+  const authLib = require("../api/_lib/server-auth.js");
+  authLib.__resetAdmissionForTests();
+  try {
+    const jobs = Array.from({ length: 8 }, (_, i) =>
+      client()("login", { method: "POST", body: { adminNumber: `P26002${10 + i}`, fullName: "Cap Kid" }, ip: `10.0.3.${i + 1}` })
+    );
+    const settled = await Promise.all(jobs);
+    const shed = settled.filter((r) => r.status === 503);
+    expect(shed.length >= 1, `expected some 503 sheds, got statuses ${settled.map((r) => r.status).join(",")}`);
+    for (const r of shed) {
+      const wait = Number(r.headers.get("retry-after"));
+      expect(wait >= 2 && wait <= 5, `shed Retry-After ${r.headers.get("retry-after")}`);
+    }
+  } finally {
+    process.env.SUPABASE_URL = savedUrl;
+    if (savedMax === undefined) delete process.env.SIGNIN_MAX_INFLIGHT;
+    else process.env.SIGNIN_MAX_INFLIGHT = savedMax;
+    if (savedQ === undefined) delete process.env.SIGNIN_QUEUE_MS;
+    else process.env.SIGNIN_QUEUE_MS = savedQ;
+    authLib.__resetAdmissionForTests();
+    sockets.forEach((s) => s.destroy());
+    upstream.close();
+  }
+});
+
 await check("logout clears both session cookies", async () => {
   const r = await admin.c("logout", { method: "POST", body: {} });
   expect(r.status === 200, "logout failed");

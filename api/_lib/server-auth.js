@@ -659,6 +659,131 @@ function dbTimeoutMs() {
   return envPositiveInt("SUPABASE_TIMEOUT_MS", 8000);
 }
 
+/**
+ * Map Supabase/PostgREST failures to what phones should see.
+ * Run 5 showed ~1200 login HTTP 500s with 3–5 s latency and no Retry-After: upstream 502/503/504
+ * and pool/timeout errors were forwarded as 500, so the client gave up instead of retrying.
+ * Infrastructure overload → 503 (retryable). Genuine app bugs still throw status 500 before fetch,
+ * or return 200 with ok:false from our SQL.
+ */
+function isTransientDbFailure(httpStatus, pgCode, message) {
+  const status = Number(httpStatus) || 0;
+  const code = String(pgCode || "");
+  // Schema / input bugs from PostgREST must stay 500 so we do not ask phones to retry forever.
+  if (/^(42P01|42P02|42703|42601|42804|22P02|22001|23502|23503|PGRST100|PGRST102|PGRST103|PGRST116|PGRST204)$/i.test(code)) {
+    return false;
+  }
+  if (status === 408 || status === 429 || status >= 500) return true;
+  if (/^(57P03|53300|53000|53100|53200|08000|08001|08003|08004|08006|08007|08P01|40001|40P01|57014|55P03|PGRST002|PGRST003)$/i.test(code)) {
+    return true;
+  }
+  return /timeout|timed out|too many connections|remaining connection slots|connection (reset|refused|terminated)|server closed the connection|overload|circuit.?breaker|temporarily unavailable|could not connect|max clients|pool.?timeout|canceling statement/i.test(
+    String(message || "")
+  );
+}
+
+function dbFailureStatus(httpStatus, pgCode, message, { rpc = false } = {}) {
+  const status = Number(httpStatus) || 0;
+  const code = String(pgCode || "");
+  if (rpc && (status === 404 || code === "PGRST202" || code === "42883")) return 503;
+  if (isTransientDbFailure(status, code, message)) return 503;
+  if (status >= 400 && status < 500) return status;
+  return 500;
+}
+
+// ---------------------------------------------------------------------------
+// Per-instance admission control for student sign-in (and the stamp-card read).
+// Vercel runs many instances, so this is a soft brake on each one — not a global
+// queue. Default 48 is high enough that normal night traffic (a few sign-ins per
+// second per warm instance, ~100 ms each in Singapore) never waits, but a single
+// instance cannot open hundreds of DB calls during a door-rush stampede.
+// ---------------------------------------------------------------------------
+
+function signInMaxInflight() {
+  return envPositiveInt("SIGNIN_MAX_INFLIGHT", 48);
+}
+
+function signInQueueMs() {
+  return envPositiveInt("SIGNIN_QUEUE_MS", 1500);
+}
+
+function stampsMaxInflight() {
+  return envPositiveInt("STAMPS_MAX_INFLIGHT", 64);
+}
+
+function stampsQueueMs() {
+  return envPositiveInt("STAMPS_QUEUE_MS", 1500);
+}
+
+function busyError(kind) {
+  const err = new Error(kind === "stamps" ? "Stamp card is busy" : "Sign-in is busy");
+  err.status = 503;
+  err.code = "busy";
+  err.public = "Something went wrong. Try again.";
+  return err;
+}
+
+function makeGate(kind, maxFn, queueFn) {
+  const state = { inflight: 0, waiters: [] };
+  async function run(fn) {
+    if (state.inflight >= maxFn()) {
+      const got = await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          const idx = state.waiters.indexOf(wake);
+          if (idx >= 0) state.waiters.splice(idx, 1);
+          resolve(false);
+        }, queueFn());
+        const wake = () => {
+          clearTimeout(timer);
+          resolve(true);
+        };
+        state.waiters.push(wake);
+      });
+      if (!got) throw busyError(kind);
+    }
+    state.inflight += 1;
+    try {
+      return await fn();
+    } finally {
+      state.inflight -= 1;
+      const next = state.waiters.shift();
+      if (next) next();
+    }
+  }
+  run._state = state;
+  return run;
+}
+
+const withSignInGate = makeGate("signin", signInMaxInflight, signInQueueMs);
+const withStampsGate = makeGate("stamps", stampsMaxInflight, stampsQueueMs);
+
+/** Fast-fail for a few seconds when recent student DB calls are mostly failing. */
+const circuit = { openUntil: 0, recent: [] };
+
+function circuitRecord(ok) {
+  const now = Date.now();
+  circuit.recent.push({ t: now, ok: Boolean(ok) });
+  if (circuit.recent.length > 40) circuit.recent.splice(0, circuit.recent.length - 40);
+  const window = circuit.recent.filter((row) => now - row.t < 8000);
+  if (window.length >= 12) {
+    const bad = window.filter((row) => !row.ok).length;
+    if (bad / window.length >= 0.7) circuit.openUntil = now + 3000;
+  }
+}
+
+function circuitOpen() {
+  return Date.now() < circuit.openUntil;
+}
+
+function __resetAdmissionForTests() {
+  withSignInGate._state.inflight = 0;
+  withSignInGate._state.waiters.length = 0;
+  withStampsGate._state.inflight = 0;
+  withStampsGate._state.waiters.length = 0;
+  circuit.recent.length = 0;
+  circuit.openUntil = 0;
+}
+
 async function dbFetch(url, init, what) {
   try {
     return await fetch(url, { ...init, signal: AbortSignal.timeout(dbTimeoutMs()) });
@@ -704,7 +829,7 @@ async function sb(path, { method = "GET", body, query = "", prefer } = {}) {
   if (!res.ok) {
     const pg = data && typeof data === "object" ? data : {};
     const err = new Error(pg.message || text || `Supabase ${res.status}`);
-    err.status = res.status >= 400 && res.status < 500 ? res.status : 500;
+    err.status = dbFailureStatus(res.status, pg.code, pg.message || text);
     err.code = pg.code || `sb-${res.status}`;
     err.detail = [pg.details, pg.hint, pg.code, `HTTP ${res.status}`].filter(Boolean).join(" · ");
     throw err;
@@ -742,7 +867,7 @@ async function sbRpc(fn, args) {
   if (!res.ok) {
     const pg = data && typeof data === "object" ? data : {};
     const err = new Error(pg.message || text || `RPC ${res.status}`);
-    err.status = res.status >= 400 && res.status < 500 ? 503 : 500;
+    err.status = dbFailureStatus(res.status, pg.code, pg.message || text, { rpc: true });
     err.code = pg.code || `rpc-${res.status}`;
     err.detail = [fn, pg.details, pg.hint, pg.code, `HTTP ${res.status}`].filter(Boolean).join(" · ");
     if (res.status === 404 || pg.code === "PGRST202" || pg.code === "42883") {
@@ -827,7 +952,15 @@ async function signInStudent(req, res, body) {
       return signInLocalStudent(req, res, studentNumber, fullName);
     }
 
-    const row = await studentSignInRow({ ip, studentNumber, fullName, ipMax, ipWindow, numMax, numWindow, ipLocal, numLocal });
+    if (circuitOpen()) return fail(res, busyError("signin"), "student-sign-in");
+    let row;
+    try {
+      row = await withSignInGate(() => studentSignInRow({ ip, studentNumber, fullName, ipMax, ipWindow, numMax, numWindow, ipLocal, numLocal }));
+      circuitRecord(true);
+    } catch (error) {
+      if (error && error.status === 503 && error.code !== "busy") circuitRecord(false);
+      throw error;
+    }
     if (row.error === "rate_limited") return tooMany(res, row.retry_after);
     if (!row.ok) {
       if (row.error === "name_mismatch" || row.error === "bad_credentials") {
@@ -1298,7 +1431,15 @@ async function handleStamps(req, res) {
     if (!getEnv().url) {
       return send(res, 200, { studentNumber: num, fullName: session.name, stamps: {}, stampCount: 0, redeemedAt: null, passId: `SP-FP-${num}` });
     }
-    const row = rpcObject(await sbRpc("scream_lookup_student", { p_number: num }));
+    if (circuitOpen()) return fail(res, busyError("stamps"), "stamps");
+    let row;
+    try {
+      row = rpcObject(await withStampsGate(() => sbRpc("scream_lookup_student", { p_number: num })));
+      circuitRecord(true);
+    } catch (error) {
+      if (error && error.status === 503 && error.code !== "busy") circuitRecord(false);
+      throw error;
+    }
     if (!row.ok) {
       return send(res, 401, { error: "Student session expired. Sign in again.", code: "no_session" });
     }
@@ -1877,6 +2018,11 @@ module.exports = {
   JWT_TTL_SEC,
   STAFF_TTL_SEC,
   getEnv,
+  isTransientDbFailure,
+  dbFailureStatus,
+  withSignInGate,
+  withStampsGate,
+  __resetAdmissionForTests,
   handleStudentAuth,
   handleAdminAuth,
   handleLogin,
