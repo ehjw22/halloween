@@ -1,4 +1,4 @@
-import { boothById } from "./booths.js?v=b451f5706d";
+import { boothById } from "./booths.js?v=f04b5e6c03";
 
 const STUDENT_KEY = "sp-student-jwt";
 const ADMIN_KEY = "sp-admin-jwt";

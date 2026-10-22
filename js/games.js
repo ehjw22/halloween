@@ -1,6 +1,6 @@
-import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=b451f5706d";
-import { setupCatchArcade } from "./catch-arcade.js?v=b451f5706d";
-import { markImg } from "./marks.js?v=b451f5706d";
+import { fetchClickerSave, fetchLeaderboard, getAdminSession, getStudentSession, saveClickerRemote, submitScore } from "./session.js?v=f04b5e6c03";
+import { setupCatchArcade } from "./catch-arcade.js?v=f04b5e6c03";
+import { markImg } from "./marks.js?v=f04b5e6c03";
 
 const GAMES = ["clicker", "memory", "catch"];
 const ICONS = ["pumpkin", "bat", "ghost", "web", "candy", "crypt", "moon", "flask", "owl", "fang", "key", "lantern"];

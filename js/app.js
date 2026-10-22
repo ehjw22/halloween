@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=b451f5706d";
-import { CLUBS } from "./clubs.js?v=b451f5706d";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=b451f5706d";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=b451f5706d";
-import { SPONSORS } from "./sponsors.js?v=b451f5706d";
-import { applyGhostPass } from "./ghost-pass.js?v=b451f5706d";
-import { markImg } from "./marks.js?v=b451f5706d";
-import { stationSvg } from "./station-art.js?v=b451f5706d";
-import { createStore } from "./store.js?v=b451f5706d";
-import { createPoller, subscribeVersions } from "./live.js?v=b451f5706d";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=b451f5706d";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=f04b5e6c03";
+import { CLUBS } from "./clubs.js?v=f04b5e6c03";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=f04b5e6c03";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f04b5e6c03";
+import { SPONSORS } from "./sponsors.js?v=f04b5e6c03";
+import { applyGhostPass } from "./ghost-pass.js?v=f04b5e6c03";
+import { markImg } from "./marks.js?v=f04b5e6c03";
+import { stationSvg } from "./station-art.js?v=f04b5e6c03";
+import { createStore } from "./store.js?v=f04b5e6c03";
+import { createPoller, subscribeVersions } from "./live.js?v=f04b5e6c03";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=f04b5e6c03";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=b451f5706d";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=b451f5706d";
+} from "./session.js?v=f04b5e6c03";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=f04b5e6c03";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=b451f5706d";
+} from "./push.js?v=f04b5e6c03";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -806,7 +806,7 @@ function boothArt(theme) {
     eye: posterArt("#d4f3c6", "#14301c", `
       <path d="M22 52h52l-8 30H30z"/>
     `, `<g class="bob"><circle cx="28" cy="22" r="12" fill="${hi}" stroke="#14301c" stroke-width="2.4"/><circle cx="28" cy="23" r="5" fill="#e23b3b"/><circle cx="28" cy="23" r="2" fill="#1a100c"/><circle cx="52" cy="34" r="10" fill="${hi}" stroke="#14301c" stroke-width="2.4"/><circle cx="52" cy="35" r="4" fill="#e23b3b"/><circle cx="52" cy="35" r="1.6" fill="#1a100c"/></g><ellipse cx="48" cy="52" rx="16" ry="4" fill="${hi}"/>`),
-    skel: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#141a28" transform="translate(1.6 1.8)"><circle cx="24" cy="16" r="10"/><rect x="16" y="28" width="16" height="16" rx="4"/><rect x="8" y="32" width="10" height="4" rx="2"/><rect x="30" y="30" width="12" height="4" rx="2" transform="rotate(-24 30 32)"/><rect x="16" y="46" width="16" height="6" rx="2"/><rect x="16" y="54" width="5" height="20" rx="2"/><rect x="27" y="54" width="5" height="20" rx="2"/><path d="M62 18h20c-2 8-8 12-10 16 2 4 8 8 10 16H62c2-8 8-12 10-16-2-4-8-8-10-16z"/></g><circle cx="24" cy="16" r="10" fill="#f7f4ec" stroke="#141a28" stroke-width="2.4"/><circle cx="20" cy="15" r="1.7" fill="#141a28"/><circle cx="28" cy="15" r="1.7" fill="#141a28"/><g class="jaw"><path d="M17 20h14c0 4-3 7-7 7s-7-3-7-7z" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="28" width="16" height="16" rx="4" fill="#f7f4ec" stroke="#141a28" stroke-width="2.2"/><path d="M18 33h12M18 37h12M18 41h12" stroke="#141a28" stroke-width="1.6" stroke-linecap="round"/><rect x="8" y="32" width="10" height="4" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><g class="arm"><rect x="30" y="28" width="14" height="4.5" rx="2" transform="rotate(-28 32 30)" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="46" width="16" height="6" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="16" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="27" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><path d="M60 16h22c-2 9-9 13-11 18 2 5 9 9 11 18H60c2-9 9-13 11-18-2-5-9-9-11-18z" fill="#f7f4ec" stroke="#141a28" stroke-width="2.4" stroke-linejoin="round"/><ellipse cx="71" cy="28" rx="6" ry="4" fill="#e8b34a"/><ellipse cx="71" cy="56" rx="7" ry="4" fill="#f0c14a"/><g class="sand"><rect x="70" y="32" width="2.4" height="8" rx="1" fill="#e8b34a"/><circle cx="71.2" cy="42" r="2.2" fill="#f6d56a"/></g></svg>`,
+    skel: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#141a28" transform="translate(1.6 1.8)"><circle cx="24" cy="16" r="10"/><rect x="16" y="28" width="16" height="16" rx="4"/><rect x="8" y="32" width="10" height="4" rx="2"/><rect x="30" y="30" width="12" height="4" rx="2" transform="rotate(-24 30 32)"/><rect x="16" y="46" width="16" height="6" rx="2"/><rect x="16" y="54" width="5" height="20" rx="2"/><rect x="27" y="54" width="5" height="20" rx="2"/><rect x="55" y="11" width="32" height="6" rx="2"/><rect x="55" y="53" width="32" height="6" rx="2"/><rect x="57" y="16" width="4" height="38"/><rect x="81" y="16" width="4" height="38"/></g><circle cx="24" cy="16" r="10" fill="#f7f4ec" stroke="#141a28" stroke-width="2.4"/><circle cx="20" cy="15" r="1.7" fill="#141a28"/><circle cx="28" cy="15" r="1.7" fill="#141a28"/><g class="jaw"><path d="M17 20h14c0 4-3 7-7 7s-7-3-7-7z" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="28" width="16" height="16" rx="4" fill="#f7f4ec" stroke="#141a28" stroke-width="2.2"/><path d="M18 33h12M18 37h12M18 41h12" stroke="#141a28" stroke-width="1.6" stroke-linecap="round"/><rect x="8" y="32" width="10" height="4" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><g class="arm"><rect x="30" y="28" width="14" height="4.5" rx="2" transform="rotate(-28 32 30)" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/></g><rect x="16" y="46" width="16" height="6" rx="2" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="16" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><rect x="27" y="54" width="5" height="22" rx="2.5" fill="#f7f4ec" stroke="#141a28" stroke-width="2"/><defs><clipPath id="skelGlass"><path d="M62 17h18c0 9-6 12-7.5 17 1.5 5 7.5 8 7.5 17H62c0-9 6-12 7.5-17-1.5-5-7.5-8-7.5-17z"/></clipPath></defs><path d="M62 17h18c0 9-6 12-7.5 17 1.5 5 7.5 8 7.5 17H62c0-9 6-12 7.5-17-1.5-5-7.5-8-7.5-17z" fill="#e9f0fa"/><g clip-path="url(#skelGlass)"><path d="M64 23h14c-1.5 4-4.5 7-7 10-2.5-3-5.5-6-7-10z" fill="#e8b34a"/><g class="sand"><rect x="70.3" y="32" width="1.4" height="9" rx="0.7" fill="#f6d56a"/></g><path d="M62 51c2.5-6 6-8.5 9-8.5s6.5 2.5 9 8.5z" fill="#f0c14a"/></g><path d="M62 17h18c0 9-6 12-7.5 17 1.5 5 7.5 8 7.5 17H62c0-9 6-12 7.5-17-1.5-5-7.5-8-7.5-17z" fill="none" stroke="#141a28" stroke-width="2.2" stroke-linejoin="round"/><g fill="#c98a4a" stroke="#141a28" stroke-width="2" stroke-linejoin="round"><rect x="58" y="16" width="3" height="36" rx="1"/><rect x="81" y="16" width="3" height="36" rx="1"/><rect x="55" y="11" width="32" height="6" rx="2"/><rect x="55" y="51" width="32" height="6" rx="2"/></g></svg>`,
     scream: posterArt("#f6d0d4", "#2a1218", ``, `<g class="ghost"><path d="M18 34c0-16 34-18 36 0 8 2 14 16 4 24 4 12-6 22-18 24S14 72 18 54c-10-2-12-14-4-20z" fill="#f6d0d4" stroke="#2a1218" stroke-width="2.6" stroke-linejoin="round"/><circle cx="32" cy="36" r="2.4" fill="#2a1218"/><circle cx="46" cy="36" r="2.4" fill="#2a1218"/><ellipse cx="39" cy="48" rx="5" ry="8" fill="#2a1218"/></g><g class="meter"><rect x="70" y="18" width="8" height="18" rx="2" fill="#ffd8dc" stroke="#2a1218" stroke-width="2"/><rect x="70" y="40" width="12" height="8" rx="2" fill="#ff9aa6" stroke="#2a1218" stroke-width="2"/><rect x="70" y="52" width="16" height="8" rx="2" fill="#ff6d80" stroke="#2a1218" stroke-width="2"/></g>`),
     jagua: `<svg viewBox="0 0 96 96" aria-hidden="true"><defs><clipPath id="jaguaPalm"><path d="M16 60h48c3 8 1 16-6 22-10 8-26 8-36 0-6-6-8-14-6-22z"/></clipPath><clipPath id="jaguaThumb"><rect x="0" y="60" width="24" height="14" rx="7" transform="rotate(42 24 67)"/></clipPath></defs><g fill="#f2c7a6" stroke="#3a2218" stroke-width="2.1" stroke-linejoin="round"><rect x="16" y="32" width="10" height="30" rx="5"/><rect x="30" y="10" width="10" height="50" rx="5"/><rect x="44" y="20" width="10" height="40" rx="5"/><rect x="58" y="32" width="8" height="28" rx="4"/><path d="M16 60h48c3 8 1 16-6 22-10 8-26 8-36 0-6-6-8-14-6-22z"/><rect x="0" y="60" width="24" height="14" rx="7" transform="rotate(42 24 67)"/></g><g clip-path="url(#jaguaPalm)"><path class="henna" pathLength="100" d="M28 78c2-14 20-16 24-1" fill="none" stroke="#140c3a" stroke-width="3" stroke-linecap="round"/></g><g fill="none" stroke="#140c3a" stroke-width="3" stroke-linecap="round"><path class="henna henna-b" pathLength="100" d="M18.5 46h5M32.5 26h5M46.5 36h5M60 46h4"/></g><g fill="#140c3a"><circle cx="21" cy="36" r="1.6"/><circle cx="35" cy="15" r="1.6"/><circle cx="49" cy="25" r="1.6"/><circle cx="62" cy="36.5" r="1.45"/></g><g clip-path="url(#jaguaThumb)" stroke="#140c3a" stroke-width="3" stroke-linecap="round"><path class="henna henna-c" pathLength="100" d="M8 67h12" transform="rotate(42 24 67)" fill="none"/><circle cx="5" cy="67" r="1.6" transform="rotate(42 24 67)" fill="#140c3a" stroke="none"/></g><path d="M78 28l12 6-14 30z" fill="#f4f1ea" stroke="#12142e" stroke-width="2.4" stroke-linejoin="round"/><circle cx="77" cy="63" r="3.2" fill="#5ec8ff" stroke="#12142e" stroke-width="1.6"/><g class="gel"><path d="M75 69c2.6 5 1 9-3.4 9s-5.8-4-3.2-9c1.2-2 3.4-2 6.6 0z" fill="#7ad4ff" stroke="#12142e" stroke-width="1.5"/></g><g class="bat"><path d="M70 12c-6-5-11 1-5 4 1.8-1.3 3.2-1.3 5 0z" fill="#f4f6ff" stroke="#12142e" stroke-width="1.4" stroke-linejoin="round"/><path d="M70 12c6-5 11 1 5 4-1.8-1.3-3.2-1.3-5 0z" fill="#f4f6ff" stroke="#12142e" stroke-width="1.4" stroke-linejoin="round"/><circle cx="70" cy="12.6" r="1.6" fill="#f4f6ff" stroke="#12142e" stroke-width="1.1"/></g></svg>`,
     glam: `<svg viewBox="0 0 96 96" aria-hidden="true"><g fill="#2a1218" transform="translate(2 2)"><ellipse cx="28" cy="64" rx="22" ry="14"/><circle cx="62" cy="36" r="18"/></g><ellipse cx="28" cy="64" rx="22" ry="14" fill="#fff6f8" stroke="#1a1014" stroke-width="2.4"/><circle cx="16" cy="62" r="5" fill="#ff4d88" stroke="#1a1014" stroke-width="1.6"/><circle cx="28" cy="58" r="5" fill="#fff" stroke="#1a1014" stroke-width="1.6"/><circle cx="40" cy="62" r="5" fill="#1a1014"/><circle cx="28" cy="70" r="4" fill="#ffb3cc" stroke="#1a1014" stroke-width="1.4"/><circle cx="62" cy="36" r="18" fill="#fff6f8" stroke="#1a1014" stroke-width="2.4"/><path d="M62 18a18 18 0 0 1 0 36V18z" fill="#ff5c93"/><circle cx="55" cy="34" r="2.2" fill="#1a1014"/><circle cx="69" cy="34" r="2.2" fill="#1a1014"/><path d="M62 40v5" stroke="#1a1014" stroke-width="2" stroke-linecap="round"/><path d="M56 48c2 2 10 2 12 0" fill="none" stroke="#1a1014" stroke-width="1.8" stroke-linecap="round"/><g class="brush"><rect x="44" y="72" width="30" height="6" rx="3" transform="rotate(-32 58 75)" fill="#ffd0e0" stroke="#1a1014" stroke-width="2"/><path d="M70 58l8 6-3 4-8-6z" fill="#1a1014"/></g></svg>`,
@@ -4543,7 +4543,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=b451f5706d")
+  import("./games.js?v=f04b5e6c03")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

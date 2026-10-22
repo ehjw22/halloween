@@ -127,8 +127,10 @@ html.event-open main {
   initial-value: 1;
 }
 @keyframes gate-glow-sync {
-  0%, 18% { --gate-glow: 1; }
-  55%, 100% { --gate-glow: 0; }
+  /* Start dark and build up, so the first paint (and every loop) ramps in instead of snapping on. */
+  0% { --gate-glow: 0; }
+  25%, 35% { --gate-glow: 1; }
+  70%, 100% { --gate-glow: 0; }
 }
 .event-gate {
   position: fixed;
@@ -2734,7 +2736,7 @@ html.event-welcome .view[data-view="welcome"].is-active {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 188px;
+  min-height: 170px;
   border: 0;
   border-radius: var(--house-radius);
   background: none;
@@ -2747,7 +2749,7 @@ html.event-welcome .view[data-view="welcome"].is-active {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  min-height: 188px;
+  min-height: 170px;
   overflow: hidden;
   border-radius: var(--house-radius);
   background-color: #14101a;
@@ -2775,7 +2777,37 @@ html.event-welcome .view[data-view="welcome"].is-active {
   background-color: #14101a;
   border-color: color-mix(in srgb, var(--house-accent, #c4b0ff) 55%, #14101a);
 }
-#houseGrid .house-card__open { position: relative; min-height: 148px; }
+#houseGrid .house-card__open {
+  position: relative;
+  min-height: 132px;
+  /* Fill the card so the Notify row always sits at the bottom, whatever the title length. */
+  flex: 1 1 auto;
+}
+#houseGrid .house-card__watch { margin-top: auto; }
+/* Every card reserves a two-line title (no title needs three), so cards match across rows. */
+#houseGrid .house-card__name {
+  min-height: 2lh;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+/* One shared height per breakpoint, sized to the tallest card, so cards match across rows too. */
+#houseGrid .house-card,
+#houseGrid .house-card__face { min-height: 186px; }
+@media (max-width: 800px) {
+  #houseGrid .house-card,
+  #houseGrid .house-card__face { min-height: 186px; }
+}
+#houseGrid .cluster-group__grid { gap: calc(var(--s3) * 0.9); }
+@media (min-width: 801px) {
+  #houseGrid .cluster-group__grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 226px), 1fr)); }
+  #houseGrid .house-card__open {
+    padding: calc(var(--s3) * 0.75) calc(var(--s4) * 0.85) calc(var(--s3) * 0.75) calc(var(--s4) * 0.85 + 3px);
+    gap: calc(var(--s2) * 0.6);
+  }
+}
 #houseGrid .house-card__name { padding-right: 4px; color: var(--house-accent, #e8dcc8); }
 #houseGrid .house-card__meta { max-width: calc(100% - 76px); color: #f3e6d8; }
 #houseGrid .house-card__short {
@@ -3093,6 +3125,43 @@ html.event-welcome .view[data-view="welcome"].is-active {
 .map-booths .house-card.is-stamped.is-ticket .house-card__rail {
   background: #6aab7a;
 }
+/* Accent bar treatments. Pick one with data-accent on #map-booths in index.html: a (slim full-height bar), b (title pill), c (top glow). */
+.map-booths .house-card { --rail-color: var(--booth-accent, var(--ink-3)); }
+.map-booths .house-card.is-ticket { --rail-color: #f0c36a; }
+.map-booths .house-card.is-stamped.is-ticket { --rail-color: #6aab7a; }
+.map-booths[data-accent] .house-card__rail,
+.map-booths[data-accent] .house-card.is-ticket .house-card__rail {
+  background: var(--rail-color);
+  z-index: 2;
+  pointer-events: none;
+}
+.map-booths[data-accent="a"] .house-card .house-card__rail {
+  /* Full height on the left edge; the card's overflow:hidden + radius clips it to the rounded corners. */
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  border-radius: 0;
+}
+.map-booths[data-accent="a"] .house-card.is-ticket .house-card__rail { width: 4px; }
+.map-booths[data-accent="b"] .house-card .house-card__rail {
+  top: 20px;
+  bottom: auto;
+  left: 7px;
+  width: 4px;
+  height: 22px;
+  border-radius: 4px;
+}
+.map-booths[data-accent="c"] .house-card .house-card__rail {
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rail-color), color-mix(in srgb, var(--rail-color) 35%, transparent) 70%, transparent);
+}
+.map-booths[data-accent="c"] .house-card.is-ticket .house-card__open { padding-left: 18px; }
 .map-booths .house-card.is-stamped {
   background-image:
     linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
@@ -7155,8 +7224,9 @@ li.empty-state { list-style: none; }
     padding: 12px 10px 10px 12px;
   }
   .house-card__name { font-size: 0.9rem; }
-  #houseGrid .house-card { min-height: 168px; }
-  #houseGrid .house-card__open { padding: 10px 8px 8px 12px; min-height: 0; }
+  #houseGrid .house-card,
+  #houseGrid .house-card__face { min-height: 188px; }
+  #houseGrid .house-card__open { padding: 8px 7px 6px 11px; gap: 3px; min-height: 0; }
   #houseGrid .house-card__name { font-size: 0.8125rem; }
   #houseGrid .house-card__wait { font-size: 1.05rem; }
   #houseGrid .house-art,
