@@ -1,3 +1,9 @@
+// Countdown page switch. false = skip the countdown and land straight on the welcome page.
+// Set to true (here AND in js/boot.js) to bring the countdown gate back.
+export const COUNTDOWN_ENABLED = false;
+// ?dev=scream preview switch. false = the param does nothing for anyone.
+// Set to true (here AND in js/boot.js) to bring the dev preview back.
+export const DEV_VIEW_ENABLED = false;
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
 const OPEN_KEY = "scream-gates-opened";
 const DEV_KEY = "scream-dev-view";
@@ -16,6 +22,7 @@ let stingStarted = false;
 let devLatched = false;
 
 function hasDevView() {
+  if (!DEV_VIEW_ENABLED) return false;
   if (devLatched) return true;
   try {
     if (new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE) return true;
@@ -47,6 +54,7 @@ function rememberGatesOpened() {
 }
 
 export function isEventOpen() {
+  if (!COUNTDOWN_ENABLED) return true;
   if (countdownQueryActive()) return Date.now() >= gateUntil();
   if (Date.now() >= GATES_AT) return true;
   if (gatesRemembered()) return true;
@@ -248,6 +256,7 @@ function stripDevQuery() {
 }
 
 function rememberDevView() {
+  if (!DEV_VIEW_ENABLED) return;
   let fromQuery = false;
   try {
     fromQuery = new URLSearchParams(location.search).get(DEV_PARAM) === DEV_VALUE;
@@ -309,7 +318,7 @@ export function lockEventGate() {
 export function initEventGate() {
   rememberDevView();
   if (!countdownQueryActive() && Date.now() >= GATES_AT) rememberGatesOpened();
-  if (countdownQueryActive() && Date.now() < gateUntil()) {
+  if (COUNTDOWN_ENABLED && countdownQueryActive() && Date.now() < gateUntil()) {
     lockEventGate();
     return;
   }

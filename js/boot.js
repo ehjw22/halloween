@@ -1,4 +1,9 @@
 (function () {
+  // Countdown page switch (keep in sync with COUNTDOWN_ENABLED in js/gate.js).
+  // false = skip the countdown and open straight on the welcome page.
+  var COUNTDOWN_ENABLED = false;
+  // ?dev=scream preview switch (keep in sync with DEV_VIEW_ENABLED in js/gate.js).
+  var DEV_VIEW_ENABLED = false;
   var GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
   // Artwork switch. "poster" is the hand-made redesign; "classic" brings back every original
   // illustration, stamp and ticket. Visitors can also flip it with ?theme=classic / ?theme=poster.
@@ -95,10 +100,13 @@
   var open = Date.now() >= GATES_AT;
   try {
     if (localStorage.getItem("scream-gates-opened") === "1") open = true;
-    if (sessionStorage.getItem("scream-dev-view") === "1") open = true;
-    if (new URLSearchParams(location.search).get("dev") === "scream") open = true;
+    if (DEV_VIEW_ENABLED) {
+      if (sessionStorage.getItem("scream-dev-view") === "1") open = true;
+      if (new URLSearchParams(location.search).get("dev") === "scream") open = true;
+    }
   } catch (e) {}
   if (override) open = false;
+  if (!COUNTDOWN_ENABLED) open = true;
   if (open) {
     document.documentElement.classList.add("event-open");
     try {
