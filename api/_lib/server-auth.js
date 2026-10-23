@@ -1316,7 +1316,10 @@ async function handleWaitTimes(req, res) {
             status: row.status,
             previous: result.previous_closed ? 999 : previousWait,
           }),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
+          new Promise((resolve) => setTimeout(() => {
+            console.log(JSON.stringify({ evt: "push.wait.timeout", houseId: id, ms: 8000 }));
+            resolve();
+          }, 8000)),
         ]);
       }
     } catch {

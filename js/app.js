@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=40779f5429";
-import { CLUBS } from "./clubs.js?v=40779f5429";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=40779f5429";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=40779f5429";
-import { SPONSORS } from "./sponsors.js?v=40779f5429";
-import { applyGhostPass } from "./ghost-pass.js?v=40779f5429";
-import { markImg } from "./marks.js?v=40779f5429";
-import { stationSvg } from "./station-art.js?v=40779f5429";
-import { createStore } from "./store.js?v=40779f5429";
-import { createPoller, subscribeVersions } from "./live.js?v=40779f5429";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=40779f5429";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=bec9998c40";
+import { CLUBS } from "./clubs.js?v=bec9998c40";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=bec9998c40";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=bec9998c40";
+import { SPONSORS } from "./sponsors.js?v=bec9998c40";
+import { applyGhostPass } from "./ghost-pass.js?v=bec9998c40";
+import { markImg } from "./marks.js?v=bec9998c40";
+import { stationSvg } from "./station-art.js?v=bec9998c40";
+import { createStore } from "./store.js?v=bec9998c40";
+import { createPoller, subscribeVersions } from "./live.js?v=bec9998c40";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=bec9998c40";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=40779f5429";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=40779f5429";
+} from "./session.js?v=bec9998c40";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=bec9998c40";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=40779f5429";
+} from "./push.js?v=bec9998c40";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -4573,7 +4573,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=40779f5429")
+  import("./games.js?v=bec9998c40")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

@@ -6836,7 +6836,8 @@ body.is-board { background: #050308; }
 
 @media (max-width: 800px) {
   .view[data-view="map"] > .map-jump {
-    top: 0;
+    /* Stick below the notch/status bar; the solid upward shadow fills that gap so cards never show through. */
+    top: env(safe-area-inset-top, 0px);
     z-index: 30;
     margin-left: -12px;
     margin-right: -12px;
@@ -6846,7 +6847,7 @@ body.is-board { background: #050308; }
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 calc(-1px - env(safe-area-inset-top, 0px)) 0 0 var(--bg), 0 10px 18px rgba(0, 0, 0, 0.4);
   }
   .cluster-group,
   .cluster-group__head,
@@ -7246,8 +7247,8 @@ li.empty-state { list-style: none; }
   .card-charm--crow { left: 46px; width: 32px; height: 24px; top: -10px; }
   .card-charm--spider { top: 26px; right: 4px; left: auto; width: 30px; height: 46px; }
   #houseGrid .house-card__metric .status-pill { font-size: 0.82rem; }
-  #houseGrid .map-badge--kind { top: 8px; right: 6px; font-size: 0.62rem; }
-  #houseGrid .house-card__top { padding-right: 5.2rem; }
+  #houseGrid .map-badge--kind { top: 12px; right: 12px; font-size: 0.62rem; }
+  #houseGrid .house-card__top { padding-right: 6rem; margin-bottom: 4px; }
   #houseGrid .house-card__meta { max-width: calc(100% - 58px); }
   .map-booths .house-card__name { font-size: 0.8125rem; }
   .map-booths .house-card--food .house-card__title { flex-wrap: wrap; }

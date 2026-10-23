@@ -167,7 +167,11 @@ function cleanWatch(list) {
 }
 
 function levelsFromWatch(watch) {
-  const picked = (Array.isArray(watch) ? watch : [])
+  let list = watch;
+  if (typeof list === "string") {
+    try { list = JSON.parse(list); } catch { list = []; }
+  }
+  const picked = (Array.isArray(list) ? list : [])
     .map((id) => String(id || ""))
     .filter((id) => id.startsWith("level:"))
     .map((id) => id.slice(6))
@@ -398,10 +402,24 @@ function crossedMilestone(prev, next, status) {
   return null;
 }
 
+function logPush(event, detail) {
+  try {
+    console.log(JSON.stringify({ evt: `push.${event}`, ...detail }));
+  } catch {
+    /* logging must never break a request */
+  }
+}
+
 async function sendPush(rows, payload, urgency) {
   const webpush = applyVapid();
-  if (!webpush || !rows.length) return { sent: 0 };
+  if (!webpush) {
+    logPush("disabled", { reason: "missing VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY or web-push", rows: rows.length });
+    return { sent: 0, failed: 0, codes: {} };
+  }
+  if (!rows.length) return { sent: 0, failed: 0, codes: {} };
   let sent = 0;
+  let failed = 0;
+  const codes = {};
   await mapPool(rows.slice(0, 1000), 16, async (row) => {
     if (!row || !row.endpoint || !row.p256dh || !row.auth) return;
     try {
@@ -414,19 +432,24 @@ async function sendPush(rows, payload, urgency) {
         { TTL: 3600, urgency }
       );
       sent += 1;
+      codes["201"] = (codes["201"] || 0) + 1;
     } catch (error) {
+      failed += 1;
       const code = Number(error && error.statusCode);
+      const key = Number.isFinite(code) && code > 0 ? String(code) : "network";
+      codes[key] = (codes[key] || 0) + 1;
       if (code === 404 || code === 410) await dropEndpoint(row.endpoint);
     }
   });
-  return { sent };
+  return { sent, failed, codes };
 }
 
 async function notifyHouseWatchers(houseId, { name, wait_minutes, status, previous }) {
   let rows = [];
   try {
     rows = await loadWatchers(houseId);
-  } catch {
+  } catch (error) {
+    logPush("wait.error", { houseId, stage: "loadWatchers", message: String((error && error.message) || error) });
     return { sent: 0 };
   }
   const house = name || "Scare house";
@@ -439,6 +462,9 @@ async function notifyHouseWatchers(houseId, { name, wait_minutes, status, previo
     groups.get(hit.id).rows.push(row);
   });
   let sent = 0;
+  let failed = 0;
+  const codes = {};
+  const levels = {};
   const reopened = Number(previous) >= 999;
   for (const { hit, rows: group } of groups.values()) {
     const walkIn = hit.id === "five";
@@ -455,10 +481,16 @@ async function notifyHouseWatchers(houseId, { name, wait_minutes, status, previo
       houseId,
       level: hit.id,
       tag: `scream-${houseId}-${hit.id}`,
-    }), walkIn ? "high" : "normal");
+    // Every wait alert is time-sensitive. "normal" urgency maps to APNs priority 5 and FCM normal
+    // priority, which phones defer or drop while asleep; only the walk-in alert used to be "high".
+    }), "high");
     sent += result.sent || 0;
+    failed += result.failed || 0;
+    Object.entries(result.codes || {}).forEach(([k, v]) => { codes[k] = (codes[k] || 0) + v; });
+    levels[hit.id] = group.length;
   }
-  return { sent };
+  logPush("wait", { houseId, previous, next: wait_minutes, status, watchers: rows.length, levels, sent, failed, codes });
+  return { sent, failed, codes };
 }
 
 async function notifyAnnouncement({ message, id }) {
@@ -467,16 +499,19 @@ async function notifyAnnouncement({ message, id }) {
   let rows = [];
   try {
     rows = await loadAllSubs();
-  } catch {
+  } catch (error) {
+    logPush("announce.error", { stage: "loadAllSubs", message: String((error && error.message) || error) });
     return { sent: 0 };
   }
   const body = text.length > 180 ? `${text.slice(0, 177)}...` : text;
-  return sendPush(rows, JSON.stringify({
+  const result = await sendPush(rows, JSON.stringify({
     title: "Announcement",
     body,
     url: "/#map",
     tag: id ? `scream-announce-${id}` : "scream-announce",
   }), "high");
+  logPush("announce", { id: id || null, subscribers: rows.length, ...result });
+  return result;
 }
 
 module.exports = {
@@ -486,4 +521,8 @@ module.exports = {
   notifyAnnouncement,
   crossedMilestone,
   pushConfigured,
+  // Exported for scripts/push-levels-test.mjs.
+  alertForLevels,
+  levelsFromWatch,
+  ALERT_STEPS,
 };

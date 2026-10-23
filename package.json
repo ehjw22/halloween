@@ -10,6 +10,7 @@
     "test:api": "node scripts/db-overload-test.mjs && node scripts/api-smoke.mjs",
     "test:concurrency": "node scripts/concurrency-test.mjs",
     "test:retry": "node --no-warnings scripts/signin-retry-test.mjs",
+    "test:push": "node scripts/push-levels-test.mjs",
     "stamp": "node scripts/stamp-version.mjs",
     "stamp:check": "node scripts/stamp-version.mjs --check",
     "predeploy": "node scripts/stamp-version.mjs",

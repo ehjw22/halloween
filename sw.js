@@ -11,7 +11,7 @@ function safeClientUrl(url) {
 
 // Stamped by `npm run stamp` (scripts/stamp-version.mjs). A new build gets a new cache name,
 // and activate() below deletes every older cache, so a deploy never serves last night's files.
-const BUILD = "40779f5429";
+const BUILD = "bec9998c40";
 const STATIC_CACHE = `scream-static-${BUILD}`;
 
 function isCacheable(url) {
@@ -105,8 +105,8 @@ self.addEventListener("push", (event) => {
     data: { url: safeClientUrl(data.url || "/#map") },
   };
   event.waitUntil((async () => {
-    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    if (windows.some((client) => client.visibilityState === "visible")) return;
+    // Always show: iOS revokes subscriptions whose pushes show nothing, and phones often report a
+    // backgrounded PWA as "visible", which silently swallowed alerts. The tag dedupes repeats.
     await self.registration.showNotification(title, options);
   })());
 });
