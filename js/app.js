@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=4d008b7e7d";
-import { CLUBS } from "./clubs.js?v=4d008b7e7d";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=4d008b7e7d";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=4d008b7e7d";
-import { SPONSORS } from "./sponsors.js?v=4d008b7e7d";
-import { applyGhostPass } from "./ghost-pass.js?v=4d008b7e7d";
-import { markImg } from "./marks.js?v=4d008b7e7d";
-import { stationSvg } from "./station-art.js?v=4d008b7e7d";
-import { createStore } from "./store.js?v=4d008b7e7d";
-import { createPoller, subscribeVersions } from "./live.js?v=4d008b7e7d";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=4d008b7e7d";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=40779f5429";
+import { CLUBS } from "./clubs.js?v=40779f5429";
+import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=40779f5429";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=40779f5429";
+import { SPONSORS } from "./sponsors.js?v=40779f5429";
+import { applyGhostPass } from "./ghost-pass.js?v=40779f5429";
+import { markImg } from "./marks.js?v=40779f5429";
+import { stationSvg } from "./station-art.js?v=40779f5429";
+import { createStore } from "./store.js?v=40779f5429";
+import { createPoller, subscribeVersions } from "./live.js?v=40779f5429";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=40779f5429";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=4d008b7e7d";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=4d008b7e7d";
+} from "./session.js?v=40779f5429";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=40779f5429";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=4d008b7e7d";
+} from "./push.js?v=40779f5429";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -2126,6 +2126,29 @@ function litStampIds(stamps) {
   return STAMP_BOOTHS.filter((booth) => stamps && (stamps[booth.id] || stamps[Number(booth.id)])).map((booth) => booth.id);
 }
 
+const SEEN_STAMPS_KEY = "scream-stamps-seen";
+
+function readSeenStamps(studentNumber) {
+  if (!studentNumber) return null;
+  try {
+    const all = JSON.parse(localStorage.getItem(SEEN_STAMPS_KEY) || "{}");
+    return Array.isArray(all[studentNumber]) ? new Set(all[studentNumber].map(String)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSeenStamps(studentNumber, ids) {
+  if (!studentNumber) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(SEEN_STAMPS_KEY) || "{}");
+    all[studentNumber] = ids.map(String);
+    localStorage.setItem(SEEN_STAMPS_KEY, JSON.stringify(all));
+  } catch {
+    /* private mode: no memory, so no stamp toasts rather than repeated ones */
+  }
+}
+
 function cardSignature(card) {
   return `${card.studentNumber}|${litStampIds(card.stamps).join(",")}|${card.redeemedAt || ""}`;
 }
@@ -2149,10 +2172,12 @@ async function loadCardFromServer({ retry = false } = {}) {
     passId: data.passId || `SP-FP-${session.payload.studentNumber}`,
   };
   const changed = cardSignature(next) !== cardSignature(cardState);
-  if (changed && cardState.studentNumber && cardState.studentNumber === next.studentNumber) {
-    const before = new Set(litStampIds(cardState.stamps));
-    justLit = new Set(litStampIds(next.stamps).filter((id) => !before.has(id)));
-  }
+  // Toast only stamps this device has not seen for this student. The first load (sign-in, reload,
+  // new device) seeds the seen list silently, so old stamps never pop up again.
+  const lit = litStampIds(next.stamps);
+  const seen = readSeenStamps(next.studentNumber);
+  justLit = seen ? new Set(lit.filter((id) => !seen.has(id))) : new Set();
+  writeSeenStamps(next.studentNumber, lit);
   cardState = next;
   stampVersion = Number(data.version) || 0;
   return changed;
@@ -4088,11 +4113,16 @@ function bindUi() {
     });
   });
 
-  document.getElementById("adminLock")?.addEventListener("click", () => {
+  document.getElementById("adminLock")?.addEventListener("click", async () => {
     stopOpsRefresh();
-    clearAdminSession();
+    try {
+      await clearAdminSession();
+    } catch {
+      /* the local session is gone either way */
+    }
     updateNav();
     setView(getStudentSession() ? "admin" : "login");
+    showWaitToast("Staff locked", "Staff tools are closed on this device.", false);
   });
 
   els.adminTable?.addEventListener("click", (event) => {
@@ -4543,7 +4573,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=4d008b7e7d")
+  import("./games.js?v=40779f5429")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

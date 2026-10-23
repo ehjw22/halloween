@@ -1328,7 +1328,7 @@ async function handleWaitTimes(req, res) {
   }
 }
 
-const CACHE_VERSIONS = "public, s-maxage=5, stale-while-revalidate=20";
+const CACHE_VERSIONS = "public, s-maxage=4, stale-while-revalidate=4";
 const CACHE_WAITS_PUBLIC = "public, s-maxage=10, stale-while-revalidate=30";
 const CACHE_ANNOUNCE_PUBLIC = "public, s-maxage=30, stale-while-revalidate=60";
 const CACHE_PRIVATE = "private, no-store";
@@ -1359,7 +1359,7 @@ async function readVersions() {
   return { waits_v: waits, announce_v: announce };
 }
 
-/** Public, CDN-cached (s-maxage=5). Phones poll this and fetch real data only when a number moves. */
+/** Public, CDN-cached (s-maxage=4). Phones poll this and fetch real data only when a number moves. */
 async function handleVersions(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "Method not allowed" });
   try {

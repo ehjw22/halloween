@@ -1,12 +1,12 @@
-import { HOUSES } from "./houses.js?v=4d008b7e7d";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=4d008b7e7d";
-import { statusFor } from "./wait-status.js?v=4d008b7e7d";
-import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=4d008b7e7d";
+import { HOUSES } from "./houses.js?v=40779f5429";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=40779f5429";
+import { statusFor } from "./wait-status.js?v=40779f5429";
+import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=40779f5429";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";
 const SYNC_KEY = "sp-halloween-waits-sync-v1";
-const STUDENT_VERSIONS_MS = 17000;
+const STUDENT_VERSIONS_MS = 10000;
 const STAFF_VERSIONS_MS = 8000;
 const MAX_RETRY_MS = 120000;
 
