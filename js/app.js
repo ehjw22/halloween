@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=8af8250379";
-import { CLUBS } from "./clubs.js?v=8af8250379";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=8af8250379";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=8af8250379";
-import { SPONSORS } from "./sponsors.js?v=8af8250379";
-import { applyGhostPass } from "./ghost-pass.js?v=8af8250379";
-import { markImg } from "./marks.js?v=8af8250379";
-import { stationSvg } from "./station-art.js?v=8af8250379";
-import { createStore } from "./store.js?v=8af8250379";
-import { createPoller, subscribeVersions } from "./live.js?v=8af8250379";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=8af8250379";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=820ce28902";
+import { CLUBS } from "./clubs.js?v=820ce28902";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=820ce28902";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=820ce28902";
+import { SPONSORS } from "./sponsors.js?v=820ce28902";
+import { applyGhostPass } from "./ghost-pass.js?v=820ce28902";
+import { markImg } from "./marks.js?v=820ce28902";
+import { stationSvg } from "./station-art.js?v=820ce28902";
+import { createStore } from "./store.js?v=820ce28902";
+import { createPoller, subscribeVersions } from "./live.js?v=820ce28902";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=820ce28902";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=8af8250379";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=8af8250379";
+} from "./session.js?v=820ce28902";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=820ce28902";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=8af8250379";
+} from "./push.js?v=820ce28902";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -2171,7 +2171,12 @@ function layoutStampLock() {
   lock.style.right = "auto";
   lock.style.width = `${document.documentElement.clientWidth}px`;
   const cardH = card.offsetHeight;
-  card.style.top = `${Math.max(16, (height - cardH) / 2)}px`;
+  // Centre in the part of the stage visible on first load (between header and bottom menu), not the whole ghost card.
+  const nav = document.querySelector(".nav");
+  const navRect = nav ? nav.getBoundingClientRect() : null;
+  const navClear = navRect && navRect.top > window.innerHeight / 2 ? Math.max(0, window.innerHeight - navRect.top) : 0;
+  const visibleH = Math.min(height, Math.max(cardH + 32, window.innerHeight - headerBottom - navClear));
+  card.style.top = `${Math.max(16, (visibleH - cardH) / 2)}px`;
   const width = lock.clientWidth;
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
@@ -4665,7 +4670,22 @@ function onStoreChange(next, sync) {
   }
 }
 
+/** Sticky offsets follow the real header height (it grows by the safe-area inset in home-screen mode). */
+function watchHeaderHeight() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+  const root = document.documentElement;
+  const apply = () => {
+    if (getComputedStyle(header).position === "sticky") root.style.setProperty("--nav-h", `${Math.round(header.getBoundingClientRect().height)}px`);
+    else root.style.removeProperty("--nav-h");
+  };
+  apply();
+  if (typeof ResizeObserver === "function") new ResizeObserver(apply).observe(header);
+  window.addEventListener("resize", apply);
+}
+
 async function init() {
+  watchHeaderHeight();
   watchStyleVars();
   try {
     initEventGate();
@@ -4691,7 +4711,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=8af8250379")
+  import("./games.js?v=820ce28902")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

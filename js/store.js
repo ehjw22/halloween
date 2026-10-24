@@ -1,7 +1,7 @@
-import { HOUSES } from "./houses.js?v=8af8250379";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=8af8250379";
-import { statusFor } from "./wait-status.js?v=8af8250379";
-import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=8af8250379";
+import { HOUSES } from "./houses.js?v=820ce28902";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=820ce28902";
+import { statusFor } from "./wait-status.js?v=820ce28902";
+import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=820ce28902";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";

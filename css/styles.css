@@ -7524,3 +7524,45 @@ button.is-busy::before,
   z-index: 6;
 }
 .modal__back[hidden] { display: none; }
+
+/* ---------- Round 27: home-screen safe area, centred sheets, bigger house logos ---------- */
+:root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
+/* Header clears the status bar in home-screen mode (inset is 0 in a normal browser tab). */
+.site-header { padding-top: var(--safe-top); }
+/* Desktop/tablet: chips stick under the real header height (set from JS), not a fixed 53px. */
+.view[data-view="map"] > .map-jump { top: var(--nav-h, calc(53px + var(--safe-top))); }
+@media (max-width: 800px) {
+  .view[data-view="map"] > .map-jump { top: var(--safe-top); }
+  /* Solid band behind the iPhone status bar so scrolled content never shows above the sticky chips. */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--safe-top);
+    background: var(--bg);
+    z-index: 35;
+    pointer-events: none;
+  }
+  /* Pin sheets and the booth/house detail opened from them: centred in the visible viewport. */
+  .modal {
+    place-items: center;
+    align-items: center;
+    padding: calc(var(--safe-top) + 12px) 12px calc(var(--safe-bottom) + 12px);
+  }
+  .modal__panel {
+    width: min(560px, 100%);
+    margin: 0 auto;
+    border-radius: 16px;
+    max-height: calc(100vh - var(--safe-top) - var(--safe-bottom) - 24px);
+    max-height: calc(100svh - var(--safe-top) - var(--safe-bottom) - 24px);
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px);
+  }
+  .modal__body { padding-bottom: var(--s4); }
+}
+/* House poster logos ~25% bigger; titles wrap beside them so cards stay compact. */
+.house-card__logo--poster { width: 56px; height: 56px; }
+@media (max-width: 430px) {
+  .house-card__logo--poster { width: 40px; height: 40px; }
+}
