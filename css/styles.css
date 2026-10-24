@@ -7566,3 +7566,19 @@ button.is-busy::before,
 @media (max-width: 430px) {
   .house-card__logo--poster { width: 40px; height: 40px; }
 }
+/* ---------- Round 28: iOS Safari keeps the bars pinned ---------- */
+@media (max-width: 800px) {
+  /* Own compositing layer so iOS repositions the tab bar with the viewport while its toolbar collapses. */
+  .nav { -webkit-transform: translateZ(0); transform: translateZ(0); }
+  /* Solid bleed below the tab bar: if iOS leaves it a few px above the screen edge, no page shows under it. */
+  .nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 120px;
+    background: var(--bg);
+    pointer-events: none;
+  }
+}

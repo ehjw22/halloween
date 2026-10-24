@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=820ce28902";
-import { CLUBS } from "./clubs.js?v=820ce28902";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=820ce28902";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=820ce28902";
-import { SPONSORS } from "./sponsors.js?v=820ce28902";
-import { applyGhostPass } from "./ghost-pass.js?v=820ce28902";
-import { markImg } from "./marks.js?v=820ce28902";
-import { stationSvg } from "./station-art.js?v=820ce28902";
-import { createStore } from "./store.js?v=820ce28902";
-import { createPoller, subscribeVersions } from "./live.js?v=820ce28902";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=820ce28902";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=21e51c2e51";
+import { CLUBS } from "./clubs.js?v=21e51c2e51";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=21e51c2e51";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=21e51c2e51";
+import { SPONSORS } from "./sponsors.js?v=21e51c2e51";
+import { applyGhostPass } from "./ghost-pass.js?v=21e51c2e51";
+import { markImg } from "./marks.js?v=21e51c2e51";
+import { stationSvg } from "./station-art.js?v=21e51c2e51";
+import { createStore } from "./store.js?v=21e51c2e51";
+import { createPoller, subscribeVersions } from "./live.js?v=21e51c2e51";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=21e51c2e51";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=820ce28902";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=820ce28902";
+} from "./session.js?v=21e51c2e51";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=21e51c2e51";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=820ce28902";
+} from "./push.js?v=21e51c2e51";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -4684,8 +4684,25 @@ function watchHeaderHeight() {
   window.addEventListener("resize", apply);
 }
 
+/** iOS Safari can leave fixed/sticky bars offset after the keyboard closes; a 1px scroll nudge re-anchors them. */
+function reanchorAfterKeyboard() {
+  if (!/iP(hone|ad|od)/.test(navigator.userAgent) && !(navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform))) return;
+  document.addEventListener("focusout", (e) => {
+    if (!e.target || !e.target.matches || !e.target.matches("input, textarea, select")) return;
+    setTimeout(() => {
+      const el = document.activeElement;
+      if (el && el.matches && el.matches("input, textarea, select")) return;
+      if (document.documentElement.classList.contains("is-scroll-locked")) return;
+      const y = window.scrollY;
+      window.scrollTo(window.scrollX, y + 1);
+      window.scrollTo(window.scrollX, y);
+    }, 350);
+  });
+}
+
 async function init() {
   watchHeaderHeight();
+  reanchorAfterKeyboard();
   watchStyleVars();
   try {
     initEventGate();
@@ -4711,7 +4728,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=820ce28902")
+  import("./games.js?v=21e51c2e51")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
