@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=310bcfcfa1";
-import { CLUBS } from "./clubs.js?v=310bcfcfa1";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=310bcfcfa1";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=310bcfcfa1";
-import { SPONSORS } from "./sponsors.js?v=310bcfcfa1";
-import { applyGhostPass } from "./ghost-pass.js?v=310bcfcfa1";
-import { markImg } from "./marks.js?v=310bcfcfa1";
-import { stationSvg } from "./station-art.js?v=310bcfcfa1";
-import { createStore } from "./store.js?v=310bcfcfa1";
-import { createPoller, subscribeVersions } from "./live.js?v=310bcfcfa1";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=310bcfcfa1";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=8af8250379";
+import { CLUBS } from "./clubs.js?v=8af8250379";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=8af8250379";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=8af8250379";
+import { SPONSORS } from "./sponsors.js?v=8af8250379";
+import { applyGhostPass } from "./ghost-pass.js?v=8af8250379";
+import { markImg } from "./marks.js?v=8af8250379";
+import { stationSvg } from "./station-art.js?v=8af8250379";
+import { createStore } from "./store.js?v=8af8250379";
+import { createPoller, subscribeVersions } from "./live.js?v=8af8250379";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=8af8250379";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=310bcfcfa1";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=310bcfcfa1";
+} from "./session.js?v=8af8250379";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=8af8250379";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=310bcfcfa1";
+} from "./push.js?v=8af8250379";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -4691,7 +4691,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=310bcfcfa1")
+  import("./games.js?v=8af8250379")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
