@@ -7582,3 +7582,24 @@ button.is-busy::before,
     pointer-events: none;
   }
 }
+/* ---------- Round 29: top bar stays pinned on phones (Safari + home-screen app) ---------- */
+@media (max-width: 800px) {
+  /* Header is a direct child of the tall #eventApp column, so sticky pins it under the status bar (its own safe-top padding). */
+  html.event-open body:not(.is-board) .site-header {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgb(22, 12, 16); /* same colour, now opaque so cards never show through */
+  }
+  /* Map cluster chips stick just below the pinned header (height measured in JS, includes the safe-area inset). */
+  .view[data-view="map"] > .map-jump {
+    top: var(--nav-h, calc(53px + var(--safe-top)));
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+  }
+  /* Anchored sections land below the pinned header, not behind it. */
+  #night-programme,
+  #help-how,
+  #help-safety,
+  #follow-clubs { scroll-margin-top: calc(var(--nav-h, 53px) + 8px); }
+}

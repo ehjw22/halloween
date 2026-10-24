@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=21e51c2e51";
-import { CLUBS } from "./clubs.js?v=21e51c2e51";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=21e51c2e51";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=21e51c2e51";
-import { SPONSORS } from "./sponsors.js?v=21e51c2e51";
-import { applyGhostPass } from "./ghost-pass.js?v=21e51c2e51";
-import { markImg } from "./marks.js?v=21e51c2e51";
-import { stationSvg } from "./station-art.js?v=21e51c2e51";
-import { createStore } from "./store.js?v=21e51c2e51";
-import { createPoller, subscribeVersions } from "./live.js?v=21e51c2e51";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=21e51c2e51";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=a60dbd09fc";
+import { CLUBS } from "./clubs.js?v=a60dbd09fc";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=a60dbd09fc";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=a60dbd09fc";
+import { SPONSORS } from "./sponsors.js?v=a60dbd09fc";
+import { applyGhostPass } from "./ghost-pass.js?v=a60dbd09fc";
+import { markImg } from "./marks.js?v=a60dbd09fc";
+import { stationSvg } from "./station-art.js?v=a60dbd09fc";
+import { createStore } from "./store.js?v=a60dbd09fc";
+import { createPoller, subscribeVersions } from "./live.js?v=a60dbd09fc";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=a60dbd09fc";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=21e51c2e51";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=21e51c2e51";
+} from "./session.js?v=a60dbd09fc";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=a60dbd09fc";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=21e51c2e51";
+} from "./push.js?v=a60dbd09fc";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -4680,7 +4680,7 @@ function watchHeaderHeight() {
     else root.style.removeProperty("--nav-h");
   };
   apply();
-  if (typeof ResizeObserver === "function") new ResizeObserver(apply).observe(header);
+  if (typeof ResizeObserver === "function") new ResizeObserver(apply).observe(header, { box: "border-box" });
   window.addEventListener("resize", apply);
 }
 
@@ -4728,7 +4728,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=21e51c2e51")
+  import("./games.js?v=a60dbd09fc")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

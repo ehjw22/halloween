@@ -4,7 +4,7 @@
 // CDN-cached endpoint (/api?path=versions) and fetch real data only when a number moves.
 // Everything here pauses while the tab is hidden, jitters each wait so 3000 phones do not
 // tick in step, and backs off exponentially after failures.
-import { apiUrl } from "./session.js?v=21e51c2e51";
+import { apiUrl } from "./session.js?v=a60dbd09fc";
 
 const VERSIONS_BASE_MS = 17000;
 const JITTER_MS = 3000;
