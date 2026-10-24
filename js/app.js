@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=bec9998c40";
-import { CLUBS } from "./clubs.js?v=bec9998c40";
-import { CLUSTERS, HOUSES, PINS, clusterById, pinById, STATUSES } from "./houses.js?v=bec9998c40";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=bec9998c40";
-import { SPONSORS } from "./sponsors.js?v=bec9998c40";
-import { applyGhostPass } from "./ghost-pass.js?v=bec9998c40";
-import { markImg } from "./marks.js?v=bec9998c40";
-import { stationSvg } from "./station-art.js?v=bec9998c40";
-import { createStore } from "./store.js?v=bec9998c40";
-import { createPoller, subscribeVersions } from "./live.js?v=bec9998c40";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=bec9998c40";
+import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=310bcfcfa1";
+import { CLUBS } from "./clubs.js?v=310bcfcfa1";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=310bcfcfa1";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=310bcfcfa1";
+import { SPONSORS } from "./sponsors.js?v=310bcfcfa1";
+import { applyGhostPass } from "./ghost-pass.js?v=310bcfcfa1";
+import { markImg } from "./marks.js?v=310bcfcfa1";
+import { stationSvg } from "./station-art.js?v=310bcfcfa1";
+import { createStore } from "./store.js?v=310bcfcfa1";
+import { createPoller, subscribeVersions } from "./live.js?v=310bcfcfa1";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=310bcfcfa1";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=bec9998c40";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=bec9998c40";
+} from "./session.js?v=310bcfcfa1";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=310bcfcfa1";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=bec9998c40";
+} from "./push.js?v=310bcfcfa1";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -125,13 +125,30 @@ function hasPublishedWait(row) {
   return wait !== null && wait !== undefined && wait !== "" && Number.isFinite(Number(wait));
 }
 
+/**
+ * Stamp card ticket art. "prize" = generic Scream Fest prize ticket (default).
+ * Set to "wheel" to bring back the original WHEEL TICKET / ONE SPIN artwork (img/wheel-ticket.png).
+ */
+const TICKET_ART = "prize";
+const TICKET_ART_SRC = TICKET_ART === "wheel" ? "img/wheel-ticket.png?v=r1" : "img/prize-ticket.png?v=r2";
+
+/** "Nº 0007" on the prize ticket's stub: completion order, only once the card is complete. */
+function ticketNoHtml(complete) {
+  const no = cardState.completeNo;
+  if (TICKET_ART !== "prize" || !complete || !no) return "";
+  return `<span class="ticket-no" aria-hidden="true"><span>Nº ${String(no).padStart(4, "0")}</span></span>`;
+}
+
 function normalizeHouseRow(row) {
   const raw = row.wait_minutes ?? row.wait;
+  // Combined cards (e.g. Cursed Cavern + No One Leaves) keep the live row but show the joint title.
+  const shown = HOUSES.find((h) => h.id === row.id);
   const published = raw !== null && raw !== undefined && raw !== "";
   const wait = published ? Math.max(0, Number(raw) || 0) : null;
   const closed = row.closed === true || (row.closed === undefined && row.status === "closed");
   return {
     ...row,
+    ...(shown?.combined ? { name: shown.name } : {}),
     wait_minutes: wait,
     closed,
     status: closed ? "closed" : published ? statusFromWait(wait) : "open",
@@ -307,6 +324,12 @@ function houseArt(id) {
   return art[id] || "";
 }
 
+function posterImgs(meta, size) {
+  return (meta?.posters || []).map((base) => (
+    `<img class="house-card__logo house-card__logo--poster" src="${escapeHtml(base)}${size === "sm" ? "-sm" : ""}.webp" alt="" width="46" height="46" loading="lazy" decoding="async">`
+  )).join("");
+}
+
 function houseMarkHtml(meta) {
   const svg = houseArt(meta?.id);
   if (!svg) return "";
@@ -366,12 +389,15 @@ function houseCardOpenInner(row, meta) {
     <span class="house-card__top">
       <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
     </span>
-    <strong class="house-card__name">${escapeHtml(row.name)}</strong>
+    ${meta?.posters?.length
+      ? `<span class="house-card__title house-card__title--logos"><span class="house-card__logos" aria-hidden="true">${posterImgs(meta, "sm")}</span><strong class="house-card__name">${escapeHtml(row.name)}</strong></span>`
+      : `<strong class="house-card__name">${escapeHtml(row.name)}</strong>`}
     <span class="house-card__metric">
       <span class="status-pill">${escapeHtml(waitLabel(row.wait_minutes, status))}${hasPublishedWait(row) && status !== "closed" ? `<span class="status-pill__band"> · ${escapeHtml(statusName(status))}</span>` : ""}</span>
     </span>
     <span class="house-card__meta">
       ${meta?.rooms ? `<span class="fresh">${escapeHtml(roomLabel(meta.rooms))}</span>` : ""}
+      ${meta?.metaNote ? `<span class="fresh">${escapeHtml(meta.metaNote)}</span>` : ""}
       <span class="fresh">${escapeHtml(freshnessLabel(row.updated_at))}</span>
       ${tags ? `<span class="house-tags">${tags}</span>` : ""}
     </span>
@@ -414,7 +440,10 @@ function readNight() {
   try {
     const key = nightStorageKey();
     const raw = key ? localStorage.getItem(key) : sessionStorage.getItem("scream-night-guest");
-    return JSON.parse(raw || "null") || { houses: [], watch: [] };
+    const night = JSON.parse(raw || "null") || { houses: [], watch: [] };
+    // Watching a retired house means watching the card it was folded into.
+    if (Array.isArray(night.watch)) night.watch = [...new Set(night.watch.map((id) => RETIRED_HOUSES[id] || id))];
+    return night;
   } catch {
     return { houses: [], watch: [] };
   }
@@ -846,7 +875,7 @@ function boothDirectoryCard(booth) {
       </span>
       <span class="house-card__meta"><span class="fresh">${escapeHtml(booth.summary || (food ? "Menu still to come." : "Booth"))}</span></span>
       <span class="booth-art">${art ? `<span class="booth-mark" data-tilt="${escapeHtml(tilt)}" data-idle-delay="${escapeHtml(BOOTH_IDLE_DELAY[theme] || "0s")}" aria-hidden="true">${art}</span>` : ""}</span>
-      ${ticket ? `<span class="visually-hidden">Needed to spin the wheel.</span>` : ""}
+      ${ticket ? `<span class="visually-hidden">Needed for your prize.</span>` : ""}
       ${stamped ? `<span class="visually-hidden">Done</span>` : ""}
     </button>
   </article>`;
@@ -864,7 +893,7 @@ function watchBoothMotion() {
   if (boothMotionObserver) boothMotionObserver.disconnect();
   if (!("IntersectionObserver" in window)) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const nodes = document.querySelectorAll("#boothDirectory .booth-mark:not(.is-peek), #houseGrid .booth-mark:not(.is-peek)");
+  const nodes = document.querySelectorAll("#boothDirectory .booth-mark:not(.is-peek), #boothsPinList .booth-mark:not(.is-peek), #houseGrid .booth-mark:not(.is-peek)");
   if (!nodes.length) return;
   boothMotionObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -902,7 +931,6 @@ function renderDashboard() {
     return;
   }
   const clusterBlock = groups.map(({ cluster, members }) => {
-    const places = [...new Set(members.map((house) => pinById(house.pin)?.label || house.short))].join(" · ");
     const cards = members.map((meta) => {
       if (meta.kind === "screening") return screeningCardHtml(meta);
       if (meta.kind === "scarezone") return scareZoneCardHtml(meta);
@@ -911,7 +939,7 @@ function renderDashboard() {
     }).join("");
     return `<section class="cluster-group" id="cluster-${escapeHtml(cluster.id)}">
       <header class="cluster-group__head">
-        <p class="cluster-group__kicker">${escapeHtml(cluster.kicker)} · ${escapeHtml(places)}</p>
+        <p class="cluster-group__kicker">${escapeHtml(cluster.kicker)} · ${escapeHtml([...new Set(members.map((m) => m.short).filter(Boolean))].join(" · "))}</p>
         <h3>${escapeHtml(cluster.name)}</h3>
       </header>
       <div class="cluster-group__grid">${cards}</div>
@@ -931,7 +959,7 @@ function compareClusterMembers(a, b) {
   const walkA = !isWalkthrough(a);
   const walkB = !isWalkthrough(b);
   if (walkA !== walkB) return walkA ? -1 : 1;
-  if (!walkA) return 0;
+  return 0; // keep the listed order in js/houses.js
   const rowA = houses.find((house) => house.id === a.id);
   const rowB = houses.find((house) => house.id === b.id);
   const wa = rowA && hasPublishedWait(rowA) ? Number(rowA.wait_minutes) : Number.POSITIVE_INFINITY;
@@ -947,14 +975,17 @@ function placeCardHtml(meta, pill, label) {
       <span class="house-card__rail" aria-hidden="true"></span>
       ${kindBadge(meta)}
       <span class="house-card__top">
-        <span class="house-card__short">${escapeHtml(meta.short || "")}</span>
+        <span class="house-card__short">${escapeHtml(meta?.short || "")}</span>
       </span>
-      <strong class="house-card__name">${escapeHtml(meta.name)}</strong>
+      ${meta.posters?.length
+        ? `<span class="house-card__title house-card__title--logos"><span class="house-card__logos" aria-hidden="true">${posterImgs(meta, "sm")}</span><strong class="house-card__name">${escapeHtml(meta.name)}</strong></span>`
+        : `<strong class="house-card__name">${escapeHtml(meta.name)}</strong>`}
       <span class="house-card__metric">
         <span class="house-card__wait is-venue">${escapeHtml(roomLabel(meta.rooms))}</span>
       </span>
       <span class="house-card__meta">
         <span class="fresh">${escapeHtml(label)}</span>
+        ${meta?.metaNote ? `<span class="fresh">${escapeHtml(meta.metaNote)}</span>` : ""}
       </span>
       ${houseMarkHtml(meta)}
     </button>
@@ -1342,7 +1373,11 @@ function boothListButton(booth) {
 function paintBoothsPinList() {
   const list = document.getElementById("boothsPinList");
   if (!list) return;
-  list.innerHTML = boothsInDirectoryOrder().map(boothListButton).join("");
+  // Same two-column cards (with the short description) as the map's booth section.
+  const html = `<div class="cluster-group__grid">${boothsInDirectoryOrder().map(boothDirectoryCard).join("")}</div>`;
+  if (list.screamHtml === html) return;
+  list.screamHtml = html;
+  list.innerHTML = html;
 }
 
 function syncBoothStampsOnMap() {
@@ -1357,6 +1392,47 @@ let modalReturnHash = "";
 let modalOpener = null;
 let blockPageClick = false;
 let sheetOpenedAt = 0;
+// Detail opened from a list sheet (booths pin, house cluster/pin): how to get back to that list.
+let sheetBack = null;
+
+function listScrollOf(modal) {
+  return modal?.querySelector(".modal__body")?.scrollTop || 0;
+}
+
+function syncSheetBack(modal) {
+  document.querySelectorAll("[data-sheet-back]").forEach((btn) => {
+    btn.hidden = !(sheetBack && btn.closest(".modal") === modal);
+  });
+}
+
+function restoreListScroll(list) {
+  if (!sheetBack || sheetBack.list !== list) return;
+  const modal = list === "booths" ? els.boothsModal : els.clusterModal;
+  const y = sheetBack.scroll;
+  sheetBack = null;
+  const body = modal?.querySelector(".modal__body");
+  if (!body) return;
+  // The sheet animates open, so set it again once its height has settled.
+  const apply = () => { body.scrollTop = y; };
+  apply();
+  requestAnimationFrame(apply);
+  [180, 420].forEach((ms) => window.setTimeout(() => {
+    if (!modal.hidden && Math.abs(body.scrollTop - y) > 2) apply();
+  }, ms));
+}
+
+function goBackToList() {
+  const back = sheetBack;
+  if (!back) return;
+  // Detail was pushed on top of the list in history: step back so the phone back gesture stays in sync.
+  if (modalHash && location.hash === modalHash && modalReturnHash === back.hash) {
+    history.back();
+    return;
+  }
+  if (back.list === "booths") openBooths();
+  else if (back.key.startsWith("pin:")) openPin(back.key.slice(4));
+  else openCluster(back.key.slice(8));
+}
 
 function sheetFocusables(panel) {
   return [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
@@ -1464,6 +1540,8 @@ function showSheet(modal, hash, fromHash) {
 function openBooths(opts = {}) {
   paintBoothsPinList();
   showSheet(els.boothsModal, "#booths", opts.fromHash);
+  restoreListScroll("booths");
+  watchBoothMotion();
 }
 
 function layoutPinHits() {
@@ -1587,6 +1665,11 @@ function openHouse(id, opts = {}) {
     const svg = houseArt(meta.id);
     artEl.innerHTML = svg ? `<span class="booth-mark" aria-hidden="true">${svg}</span>` : "";
   }
+  const logosEl = els.modal.querySelector("[data-modal-logos]");
+  if (logosEl) {
+    logosEl.innerHTML = posterImgs(meta, "sm");
+    logosEl.hidden = !meta.posters?.length;
+  }
   els.modal.querySelector("[data-modal-wait]").textContent = zone ? "Scare Zone" : screening ? "Movie" : waitLabel(row.wait_minutes, status);
   els.modal.querySelector("[data-modal-status]").textContent = zone ? "Scare Zone" : screening ? "Screening" : statusPillLabel(row);
   els.modal.querySelector("[data-modal-status]").className = `status-pill${row && !zone ? ` status-${status}` : ""}`;
@@ -1620,6 +1703,7 @@ function openHouse(id, opts = {}) {
     watchBtn.classList.toggle("is-busy", busy);
   }
   showSheet(els.modal, meta.kind === "screening" ? "" : `#house/${id}`, opts.fromHash);
+  syncSheetBack(els.modal);
 }
 
 function clusterHouseHtml(meta, watching) {
@@ -1670,9 +1754,23 @@ function paintClusterModal(key, opts = {}) {
   modal.querySelector("[data-cluster-kicker]").textContent = kicker;
   modal.querySelector("[data-cluster-title]").textContent = title;
   modal.querySelector("[data-cluster-story]").textContent = story;
-  modal.querySelector("[data-cluster-houses]").innerHTML = members.map((meta) => clusterHouseHtml(meta, watching)).join("");
+  // Same two-column house cards as the Houses section (logo, tag, wait, queue, drawing, Notify).
+  const cards = members.map((meta) => {
+    if (meta.kind === "screening") return screeningCardHtml(meta);
+    if (meta.kind === "scarezone") return scareZoneCardHtml(meta);
+    const row = houses.find((h) => h.id === meta.id);
+    return row ? houseCardHtml(row, watching) : "";
+  }).join("");
+  const list = modal.querySelector("[data-cluster-houses]");
+  const html = `<div class="cluster-group__grid">${cards}</div>`;
+  if (list.screamHtml !== html) {
+    list.screamHtml = html;
+    list.innerHTML = html;
+  }
   const pinId = openClusterKey.startsWith("pin:") ? openClusterKey.slice(4) : "";
   showSheet(modal, pinId ? `#pin/${pinId}` : `#cluster/${openClusterKey.slice(8)}`, Boolean(opts.fromHash));
+  restoreListScroll("cluster");
+  watchBoothMotion();
 }
 
 function openCluster(id, opts = {}) {
@@ -1769,6 +1867,7 @@ function openBooth(id, opts = {}) {
       .join("");
   }
   showSheet(modal, `#booth/${id}`, opts.fromHash);
+  syncSheetBack(modal);
 }
 
 function slotKey(id) {
@@ -1788,6 +1887,7 @@ function closeModals(opts = {}) {
   openHouseId = "";
   modalHash = "";
   modalReturnHash = "";
+  sheetBack = null;
   const opener = modalOpener;
   modalOpener = null;
   unlockPageScroll();
@@ -2150,7 +2250,7 @@ function writeSeenStamps(studentNumber, ids) {
 }
 
 function cardSignature(card) {
-  return `${card.studentNumber}|${litStampIds(card.stamps).join(",")}|${card.redeemedAt || ""}`;
+  return `${card.studentNumber}|${litStampIds(card.stamps).join(",")}|${card.redeemedAt || ""}|${card.completeNo || ""}`;
 }
 
 /** Returns true when the card changed. Responses that arrive after a newer request are dropped. */
@@ -2170,6 +2270,7 @@ async function loadCardFromServer({ retry = false } = {}) {
     fullName: data.fullName || session.payload.name,
     studentNumber: data.studentNumber || session.payload.studentNumber,
     passId: data.passId || `SP-FP-${session.payload.studentNumber}`,
+    completeNo: Number.isInteger(data.completeNo) && data.completeNo > 0 ? data.completeNo : null,
   };
   const changed = cardSignature(next) !== cardSignature(cardState);
   // Toast only stamps this device has not seen for this student. The first load (sign-in, reload,
@@ -2458,6 +2559,7 @@ function stationMark(booth) {
 }
 
 function stampBoardHtml({ lit, interactive } = {}) {
+  const complete = Boolean(lit) && STAMP_BOOTHS.every((booth) => lit(booth.id));
   const pins = STAMP_BOOTHS.map((booth) => {
     const stamped = lit ? lit(booth.id) : false;
     const side = booth.map.side || "s";
@@ -2476,7 +2578,8 @@ function stampBoardHtml({ lit, interactive } = {}) {
   return `
     <div class="station-map__board">
       <div class="station-map__fog" aria-hidden="true"></div>
-      <img class="station-map__art" src="img/wheel-ticket.png?v=r1" alt="">
+      <img class="station-map__art" src="${TICKET_ART_SRC}" alt="">
+      ${ticketNoHtml(complete)}
       ${regions}
       ${pins}
     </div>`;
@@ -2539,7 +2642,8 @@ function paintStampUi() {
     }).join("");
     els.stampGrid.innerHTML = `
       <div class="stamp-grid__ticket" aria-hidden="true">
-        <img src="img/wheel-ticket.png?v=r1" alt="">
+        <img src="${TICKET_ART_SRC}" alt="">
+        ${ticketNoHtml(complete)}
       </div>
       ${pads}`;
     const ticket = els.stampGrid.querySelector(".stamp-grid__ticket");
@@ -2628,7 +2732,7 @@ function paintStampUi() {
     els.passKicker.textContent = redeemed
       ? "Spirit keepsake"
       : complete
-        ? "Show this at the wheel"
+        ? "Show this at the Information Counter"
         : "Caged spirit";
   }
   if (els.lanternHint) {
@@ -2636,7 +2740,7 @@ function paintStampUi() {
     els.lanternHint.hidden = hideHint;
     if (!hideHint) {
       els.lanternHint.textContent = filled
-        ? `Uncover ${goal - filled} more piece${goal - filled === 1 ? "" : "s"} of your wheel ticket`
+        ? `Uncover ${goal - filled} more piece${goal - filled === 1 ? "" : "s"} of your prize ticket`
         : "The spirit is caged. Stamp booths to uncover your ticket";
     }
   }
@@ -2676,7 +2780,7 @@ function celebrateStamps() {
   const names = ids.map((id) => boothById(id)?.name).filter(Boolean);
   if (!names.length) return;
   const left = STAMP_BOOTHS.length - litStampIds(cardState.stamps).length;
-  const tail = left > 0 ? `${left} to go.` : "That's all five. Your wheel ticket just woke up!";
+  const tail = left > 0 ? `${left} to go.` : "That's all five. Show your completed card to the staff at the Information Counter to redeem your prize.";
   showWaitToast("Stamp collected!", `${names.join(" & ")} is on your card. ${tail}`, false);
 }
 
@@ -3665,20 +3769,34 @@ function bindUi() {
       openPin(pinBtn.dataset.openPin);
       return;
     }
+    const backBtn = event.target.closest("[data-sheet-back]");
+    if (backBtn) {
+      goBackToList();
+      return;
+    }
     const houseBtn = event.target.closest("[data-open-house]");
-    if (houseBtn) openHouse(houseBtn.dataset.openHouse);
+    if (houseBtn) {
+      sheetBack = houseBtn.closest("#clusterModal") && openClusterKey
+        ? { list: "cluster", key: openClusterKey, hash: location.hash, scroll: listScrollOf(els.clusterModal) }
+        : null;
+      openHouse(houseBtn.dataset.openHouse);
+    }
 
     const boothsPin = event.target.closest("[data-open-booths]");
     if (boothsPin) openBooths();
 
     const boothBtn = event.target.closest("[data-open-booth]");
     if (boothBtn) {
+      sheetBack = boothBtn.closest("#boothsModal")
+        ? { list: "booths", key: "booths", hash: location.hash, scroll: listScrollOf(els.boothsModal) }
+        : null;
       if (els.boothsModal) els.boothsModal.hidden = true;
       openBooth(boothBtn.dataset.openBooth);
     }
 
     const stampBtn = event.target.closest("[data-stamp]");
     if (stampBtn) {
+      sheetBack = null;
       openBooth(stampBtn.dataset.stamp);
     }
 
@@ -4532,7 +4650,7 @@ function paintConnectionUi(mode) {
 }
 
 function onStoreChange(next, sync) {
-  const normalized = (next || []).map(normalizeHouseRow);
+  const normalized = (next || []).filter((row) => !RETIRED_HOUSES[row?.id]).map(normalizeHouseRow);
   notifyWatches(normalized);
   houses = normalized;
   if (sync) {
@@ -4573,7 +4691,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=bec9998c40")
+  import("./games.js?v=310bcfcfa1")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

@@ -31,9 +31,9 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=bec9998c40" />
-    <link rel="stylesheet" href="css/poster.css?v=bec9998c40" />
-    <script src="js/boot.js?v=bec9998c40"></script>
+    <link rel="stylesheet" href="css/styles.css?v=310bcfcfa1" />
+    <link rel="stylesheet" href="css/poster.css?v=310bcfcfa1" />
+    <script src="js/boot.js?v=310bcfcfa1"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -86,7 +86,7 @@
             <span id="cdSeconds"></span><small>Seconds</small>
           </div>
         </div>
-        <script src="js/gate-paint.js?v=bec9998c40"></script>
+        <script src="js/gate-paint.js?v=310bcfcfa1"></script>
       </div>
       <div class="event-gate__credits">
         <p class="event-gate__by">Organised by Singapore Polytechnic student clubs</p>
@@ -484,7 +484,7 @@
           <section class="map-booths" id="map-booths" data-accent="a" aria-label="Booths, Eleven Square">
             <div class="section-head">
               <h2 aria-label="Booths, Eleven Square">Booths · Eleven<sup>2</sup></h2>
-              <p>Complete the stations marked in <span class="booth-key">yellow</span> for a chance to spin the wheel and win prizes.</p>
+              <p>Complete all the stations marked in <span class="booth-key">yellow</span>, then show your completed card to the staff at the Information Counter to redeem your prize.</p>
             </div>
             <div class="cluster-group__grid" id="boothDirectory"></div>
           </section>
@@ -1052,7 +1052,6 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">Spectrum</span>
                       <span class="status-pill status-gonow">Go now</span>
                     </span>
                     <strong class="house-card__name">The Last Laugh: Clown Alley</strong>
@@ -1080,7 +1079,6 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T14</span>
                       <span class="status-pill">Open</span>
                     </span>
                     <strong class="house-card__name">The Three Doors</strong>
@@ -1106,7 +1104,6 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T12A</span>
                       <span class="status-pill">Busy</span>
                     </span>
                     <strong class="house-card__name">Abandoned Asylum</strong>
@@ -1132,7 +1129,6 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T16</span>
                       <span class="status-pill">Long</span>
                     </span>
                     <strong class="house-card__name">The Cursed Cavern</strong>
@@ -1158,7 +1154,6 @@
                   <div class="house-card__open">
                     <span class="house-card__rail" aria-hidden="true"></span>
                     <span class="house-card__top">
-                      <span class="house-card__short">T16</span>
                       <span class="status-pill">Closed</span>
                     </span>
                     <strong class="house-card__name">Prisoner of Spirits</strong>
@@ -1190,7 +1185,7 @@
               your stamp card. Collect each stamp at its booth.
             </li>
             <li>
-              Five stamps unlock a ticket to spin the wheel. Show it at the wheel.
+              Complete all five stamps, then show your completed card to the staff at the Information Counter to redeem your prize.
             </li>
             <li>
               Send <strong>Feedback</strong> if a house or a booth needs a note.
@@ -1591,7 +1586,7 @@
           </div>
           <div class="modal__body">
             <p class="modal__story" data-cluster-story></p>
-            <ul class="cluster-houses" data-cluster-houses></ul>
+            <div class="house-grid house-pin-cards" id="pinHouseGrid" data-cluster-houses></div>
           </div>
         </div>
       </div>
@@ -1610,9 +1605,13 @@
           <svg class="modal__web" viewBox="0 0 48 48" aria-hidden="true"><path d="M2 2c14 4 24 16 28 36M4 16c10 2 16 10 16 22M14 2c2 12 10 20 24 22" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
           <div class="modal__bar">
             <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
-            <div>
-              <p class="modal__code" data-modal-code></p>
-              <h3 id="houseModalTitle" data-modal-title></h3>
+            <button class="btn btn--ghost modal__back" type="button" data-sheet-back hidden>← Back</button>
+            <div class="booth-head">
+              <span class="house-head__logos" data-modal-logos aria-hidden="true" hidden></span>
+              <div class="booth-head__text">
+                <p class="modal__code" data-modal-code></p>
+                <h3 id="houseModalTitle" data-modal-title></h3>
+              </div>
             </div>
           </div>
           <div class="modal__body">
@@ -1650,7 +1649,7 @@
             </div>
           </div>
           <div class="modal__body">
-            <div class="booths-list" id="boothsPinList"></div>
+            <div class="map-booths booths-pin-cards" id="boothsPinList" data-accent="a"></div>
           </div>
         </div>
       </div>
@@ -1666,6 +1665,7 @@
         >
           <div class="modal__bar">
             <button class="modal__close" type="button" data-close-modal aria-label="Close">×</button>
+            <button class="btn btn--ghost modal__back" type="button" data-sheet-back hidden>← Back</button>
             <div class="booth-head">
               <img class="booth-logo booth-logo--head" data-booth-logo alt="" hidden>
               <div class="booth-head__text">
@@ -1687,8 +1687,8 @@
         </div>
       </div>
 
-      <script src="js/config.js?v=bec9998c40"></script>
-      <script type="module" src="js/app.js?v=bec9998c40"></script>
+      <script src="js/config.js?v=310bcfcfa1"></script>
+      <script type="module" src="js/app.js?v=310bcfcfa1"></script>
     </div>
   </body>
 </html>

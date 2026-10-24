@@ -1417,7 +1417,16 @@ function cardResponse(row) {
     redeemedBy: row.redeemed_by || null,
     updatedAt: row.updated_at || null,
     passId: `SP-FP-${row.student_number}`,
+    completeNo: completeNoOf(row),
   };
+}
+
+/** Completion order (Nº) once all stamps are in. Null until supabase/2026-10-24-completion-order.sql has run. */
+function completeNoOf(row) {
+  const no = Number(row && row.complete_no);
+  if (!Number.isInteger(no) || no < 1) return null;
+  const count = Number(row.stamp_count) || Object.keys(asStampMap(row.stamps)).filter(isStampBoothId).length;
+  return count >= STAMP_BOOTH_IDS.length ? no : null;
 }
 
 async function handleStamps(req, res) {
@@ -1550,6 +1559,7 @@ async function handleAwardStamp(req, res) {
       boothId: String(boothId),
       boothName: booth ? booth.name : boothId,
       already: Boolean(row.already),
+      completeNo: completeNoOf(row),
     });
   } catch (error) {
     return fail(res, error, "award-stamp");

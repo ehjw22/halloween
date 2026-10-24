@@ -356,6 +356,7 @@ html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__sheet {
 }
 html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__stub {
   padding: 14px 8px 6px;
+  text-align: center;
   clip-path: polygon(
     0 9px,
     3% 3px,
@@ -377,10 +378,10 @@ html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__stub {
     100% 100%,
     0 100%
   );
-  transform: rotate(1.25deg) translateX(4px);
+  transform: rotate(1.25deg);
 }
 html[data-art="poster"] #fastPassCard.is-redeemed .pass-plate {
-  margin: 0;
+  margin: 0 auto;
   border: 0;
   background: transparent;
   overflow: visible;
@@ -418,7 +419,7 @@ html[data-art="poster"] #fastPassCard.is-redeemed.is-tearing .fast-pass__stub {
 }
 @keyframes ticket-tear-stub {
   from { transform: translateY(-14px) rotate(0deg); }
-  to { transform: rotate(1.25deg) translateX(4px); }
+  to { transform: rotate(1.25deg); }
 }
 @media (max-width: 430px) {
   html[data-art="poster"] #fastPassCard.is-redeemed .fast-pass__sheet { padding: 12px 8px 16px; }
@@ -452,3 +453,31 @@ html[data-art="poster"] .staff-pass-used { transform: none; }
   html[data-art="poster"] .station-map__pin.is-lit .st-needle,
   html[data-art="poster"] .station-map__pin.is-lit .st-roll { animation: none; }
 }
+
+/* Staff desk result cards: plain light paper and dark ink so every line passes WCAG AA. */
+html[data-art="poster"] .staff-pass-preview,
+html[data-art="poster"] .staff-pass-used {
+  /* No grain tile here: it darkens the paper enough to sink the text below AA. */
+  background-image: linear-gradient(180deg, var(--poster-paper), var(--poster-paper-2));
+  background-size: auto;
+}
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .haunt-fx { display: none; }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) h3 { color: var(--poster-ink); }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .fast-pass__kicker { color: #8f1b14; border-color: #8f1b14; }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .fast-pass__holder { color: #7a2e00; }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .fast-pass__id { color: #6e2414; }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .muted,
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .field-hint { color: #3d2418; font-weight: 500; }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .form-error {
+  color: #8f1b14;
+  background: rgba(143, 27, 20, 0.08);
+  border-color: rgba(143, 27, 20, 0.45);
+  font-weight: 600;
+}
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .btn--ghost {
+  color: var(--poster-ink);
+  background: rgba(26, 15, 12, 0.06);
+  border: 2px solid var(--poster-ink);
+}
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .btn--ghost:hover { background: rgba(26, 15, 12, 0.14); }
+html[data-art="poster"] :is(.staff-pass-preview, .staff-pass-used) .fast-pass__used { color: #a3181a; }
