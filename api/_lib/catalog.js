@@ -36,6 +36,7 @@ const STAFF_HOUSES = [
   { id: "marionette", code: "MARIONETTE" },
   { id: "caligari", code: "CALIGARI" },
   { id: "clowns", code: "CLOWNS" },
+  { id: "last-laugh", code: "LAST_LAUGH" },
   { id: "illusionist", code: "ILLUSIONIST" },
   { id: "cursed-cavern", code: "CURSED_CAVERN" },
   { id: "no-one-leaves", code: "NO_ONE_LEAVES" },
