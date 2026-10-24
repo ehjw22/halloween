@@ -1,7 +1,7 @@
-import { HOUSES } from "./houses.js?v=a60dbd09fc";
-import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=a60dbd09fc";
-import { statusFor } from "./wait-status.js?v=a60dbd09fc";
-import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=a60dbd09fc";
+import { HOUSES } from "./houses.js?v=f2d682c05b";
+import { getAdminSession, apiUrl, apiFetch, userFacingError } from "./session.js?v=f2d682c05b";
+import { statusFor } from "./wait-status.js?v=f2d682c05b";
+import { fetchPublicJson, kickVersions, seedVersion, setVersionsBase, subscribeVersions } from "./live.js?v=f2d682c05b";
 
 const CHANNEL = "halloween-wait-times";
 const STORAGE_KEY = "sp-halloween-houses-v2";
@@ -25,7 +25,7 @@ function loadSupabaseLib() {
 }
 
 function cloneHouses() {
-  return HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezone").map((h) => ({
+  return HOUSES.filter((h) => h.kind !== "screening" && (h.kind !== "scarezone" || h.timed)).map((h) => ({
     id: h.id,
     name: h.name,
     wait_minutes: h.wait,

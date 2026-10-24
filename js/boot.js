@@ -4,6 +4,16 @@
   var COUNTDOWN_ENABLED = false;
   // ?dev=scream preview switch (keep in sync with DEV_VIEW_ENABLED in js/gate.js).
   var DEV_VIEW_ENABLED = false;
+  // After-event switch (keep in sync with EVENT_ENDED in js/gate.js).
+  // true = everyone sees the "Thank you for coming" page with a feedback button.
+  // Staff pages (#admin, #board) still open at their direct links. Set to false to go back.
+  var EVENT_ENDED = true;
+  function staffRoute() {
+    var view = String(location.hash || "").replace(/^#/, "").split("/")[0];
+    return view === "admin" || view === "board";
+  }
+  var endedPage = EVENT_ENDED && !staffRoute();
+  if (endedPage) document.documentElement.classList.add("event-ended");
   var GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
   // Artwork switch. "poster" is the hand-made redesign; "classic" brings back every original
   // illustration, stamp and ticket. Visitors can also flip it with ?theme=classic / ?theme=poster.
@@ -82,6 +92,7 @@
   }
 
   window.__screamPaintGate = function () {
+    if (endedPage) return;
     var p = parts();
     var days = document.getElementById("cdDays");
     var hours = document.getElementById("cdHours");
@@ -107,6 +118,7 @@
   } catch (e) {}
   if (override) open = false;
   if (!COUNTDOWN_ENABLED) open = true;
+  if (endedPage) open = false;
   if (open) {
     document.documentElement.classList.add("event-open");
     try {

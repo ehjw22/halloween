@@ -1,14 +1,14 @@
-import { initEventGate, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=a60dbd09fc";
-import { CLUBS } from "./clubs.js?v=a60dbd09fc";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=a60dbd09fc";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=a60dbd09fc";
-import { SPONSORS } from "./sponsors.js?v=a60dbd09fc";
-import { applyGhostPass } from "./ghost-pass.js?v=a60dbd09fc";
-import { markImg } from "./marks.js?v=a60dbd09fc";
-import { stationSvg } from "./station-art.js?v=a60dbd09fc";
-import { createStore } from "./store.js?v=a60dbd09fc";
-import { createPoller, subscribeVersions } from "./live.js?v=a60dbd09fc";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=a60dbd09fc";
+import { initEventGate, isEventEnded, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=f2d682c05b";
+import { CLUBS } from "./clubs.js?v=f2d682c05b";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=f2d682c05b";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f2d682c05b";
+import { SPONSORS } from "./sponsors.js?v=f2d682c05b";
+import { applyGhostPass } from "./ghost-pass.js?v=f2d682c05b";
+import { markImg } from "./marks.js?v=f2d682c05b";
+import { stationSvg } from "./station-art.js?v=f2d682c05b";
+import { createStore } from "./store.js?v=f2d682c05b";
+import { createPoller, subscribeVersions } from "./live.js?v=f2d682c05b";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=f2d682c05b";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=a60dbd09fc";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=a60dbd09fc";
+} from "./session.js?v=f2d682c05b";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=f2d682c05b";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=a60dbd09fc";
+} from "./push.js?v=f2d682c05b";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -156,7 +156,7 @@ function normalizeHouseRow(row) {
 }
 
 let store;
-let houses = HOUSES.filter((h) => h.kind !== "screening" && h.kind !== "scarezone").map((h) => normalizeHouseRow({
+let houses = HOUSES.filter((h) => h.kind !== "screening" && (h.kind !== "scarezone" || h.timed)).map((h) => normalizeHouseRow({
   id: h.id,
   name: h.name,
   wait_minutes: h.wait,
@@ -729,7 +729,7 @@ function houseCardHtml(row, watching) {
   const meta = houseMeta(row.id);
   const on = watching.has(row.id);
   const status = rowStatus(row);
-  return `<article class="house-card status-${status}" data-cluster="${escapeHtml(meta?.cluster || "")}">
+  return `<article class="house-card${meta?.kind === "scarezone" ? " house-card--zone" : ""} status-${status}" data-cluster="${escapeHtml(meta?.cluster || "")}">
     ${cardCharm(row.id)}
     <div class="house-card__face">
     <button class="house-card__open" type="button" data-open-house="${escapeHtml(row.id)}">
@@ -751,7 +751,7 @@ function clusterMembers(clusterId) {
 }
 
 function isWalkthrough(meta) {
-  return meta?.kind === "screening" || meta?.kind === "scarezone";
+  return meta?.kind === "screening" || (meta?.kind === "scarezone" && !meta?.timed);
 }
 
 function listingMatches(meta) {
@@ -933,7 +933,7 @@ function renderDashboard() {
   const clusterBlock = groups.map(({ cluster, members }) => {
     const cards = members.map((meta) => {
       if (meta.kind === "screening") return screeningCardHtml(meta);
-      if (meta.kind === "scarezone") return scareZoneCardHtml(meta);
+      if (meta.kind === "scarezone" && !meta.timed) return scareZoneCardHtml(meta);
       const row = houses.find((h) => h.id === meta.id);
       return row ? houseCardHtml(row, watching) : "";
     }).join("");
@@ -1652,7 +1652,7 @@ function openHouse(id, opts = {}) {
   openClusterKey = "";
   if (els.clusterModal) els.clusterModal.hidden = true;
   els.modal.querySelector("[data-modal-title]").textContent = meta.name;
-  const zone = meta.kind === "scarezone";
+  const zone = meta.kind === "scarezone" && !meta.timed;
   const screening = meta.kind === "screening";
   const status = row && !zone ? rowStatus(row) : "open";
   const panel = els.modal.querySelector(".modal__panel");
@@ -1708,7 +1708,7 @@ function openHouse(id, opts = {}) {
 
 function clusterHouseHtml(meta, watching) {
   const row = houses.find((h) => h.id === meta.id);
-  const zone = meta.kind === "scarezone";
+  const zone = meta.kind === "scarezone" && !meta.timed;
   const wait = meta.kind === "screening" ? "Movie" : zone ? "Scare Zone" : row ? waitLabel(row.wait_minutes, rowStatus(row)) : "";
   const on = watching.has(meta.id);
   const alert = isWalkthrough(meta)
@@ -1757,7 +1757,7 @@ function paintClusterModal(key, opts = {}) {
   // Same two-column house cards as the Houses section (logo, tag, wait, queue, drawing, Notify).
   const cards = members.map((meta) => {
     if (meta.kind === "screening") return screeningCardHtml(meta);
-    if (meta.kind === "scarezone") return scareZoneCardHtml(meta);
+    if (meta.kind === "scarezone" && !meta.timed) return scareZoneCardHtml(meta);
     const row = houses.find((h) => h.id === meta.id);
     return row ? houseCardHtml(row, watching) : "";
   }).join("");
@@ -4514,6 +4514,21 @@ function bindUi() {
   });
 
   els.feedbackKind?.addEventListener("change", () => fillFeedbackTargets());
+  // After-event page: the button moves the real Feedback tab form onto the thank-you page,
+  // so it looks the same and sends through the same submit handler below.
+  document.getElementById("thanksFeedbackBtn")?.addEventListener("click", (event) => {
+    const slot = document.getElementById("thanksFeedback");
+    if (!slot || !els.feedbackForm || !isEventEnded()) return;
+    if (els.feedbackForm.parentElement !== slot) {
+      slot.appendChild(els.feedbackForm);
+      if (els.feedbackOk) els.feedbackOk.textContent = "Thank you! We got your feedback.";
+    }
+    fillFeedbackTargets();
+    const opening = slot.hidden;
+    slot.hidden = !opening;
+    event.currentTarget.setAttribute("aria-expanded", String(opening));
+    if (opening) els.feedbackKind?.focus();
+  });
   els.feedbackForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (els.feedbackError) els.feedbackError.hidden = true;
@@ -4728,7 +4743,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=a60dbd09fc")
+  import("./games.js?v=f2d682c05b")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;

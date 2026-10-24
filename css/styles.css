@@ -7603,3 +7603,11 @@ button.is-busy::before,
   #help-safety,
   #follow-clubs { scroll-margin-top: calc(var(--nav-h, 53px) + 8px); }
 }
+
+/* After-event "Thank you for coming" page (EVENT_ENDED in js/gate.js and js/boot.js). */
+html.event-ended .event-gate__clock { display: none !important; }
+.event-gate__thanks { display: grid; justify-items: center; gap: 12px; width: 100%; max-width: 28rem; }
+.event-gate__thanks[hidden], .event-gate__feedback[hidden] { display: none !important; }
+.event-gate__thanks-lead { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.event-gate__thanks-line { margin: 0; color: var(--muted); }
+.event-gate__feedback { width: 100%; text-align: left; }

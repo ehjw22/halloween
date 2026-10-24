@@ -123,6 +123,7 @@ export const HOUSES = [
     cluster: "carnival",
     pin: "spectrum",
     kind: "scarezone",
+    timed: true, // scare zone with a staff-published wait (staff scope house:last-laugh)
     name: "The Last Laugh: Clown Alley",
     short: "Spectrum",
     rooms: "Queuing area: Spectrum Level 1",

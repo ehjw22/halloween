@@ -4,6 +4,10 @@ export const COUNTDOWN_ENABLED = false;
 // ?dev=scream preview switch. false = the param does nothing for anyone.
 // Set to true (here AND in js/boot.js) to bring the dev preview back.
 export const DEV_VIEW_ENABLED = false;
+// After-event switch. true = everyone sees the "Thank you for coming" page (no tabs, no map).
+// Staff pages (#admin, #board) still open at their direct links. Keep in sync with js/boot.js.
+// Set to false (here AND in js/boot.js) to bring the normal site back.
+export const EVENT_ENDED = true;
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
 const OPEN_KEY = "scream-gates-opened";
 const DEV_KEY = "scream-dev-view";
@@ -53,7 +57,41 @@ function rememberGatesOpened() {
   }
 }
 
+function isStaffRoute() {
+  const view = String(location.hash || "").replace(/^#/, "").split("/")[0];
+  return view === "admin" || view === "board";
+}
+
+export function isEventEnded() {
+  return EVENT_ENDED && !isStaffRoute();
+}
+
+function showEndedPage() {
+  stopClock();
+  document.documentElement.classList.remove("event-open", "event-welcome");
+  document.documentElement.classList.add("event-ended");
+  const gate = document.getElementById("eventGate");
+  if (gate) {
+    gate.hidden = false;
+    gate.setAttribute("aria-hidden", "false");
+    gate.removeAttribute("data-gate-phase");
+    gate.removeAttribute("data-gate-second");
+  }
+  const thanks = document.getElementById("eventThanks");
+  if (thanks) thanks.hidden = false;
+  document.querySelectorAll("[data-event-app]").forEach((node) => {
+    node.setAttribute("inert", "");
+    node.setAttribute("aria-hidden", "true");
+  });
+  window.addEventListener("hashchange", () => {
+    if (!isStaffRoute()) return;
+    document.documentElement.classList.remove("event-ended");
+    openEventGate();
+  });
+}
+
 export function isEventOpen() {
+  if (isEventEnded()) return false;
   if (!COUNTDOWN_ENABLED) return true;
   if (countdownQueryActive()) return Date.now() >= gateUntil();
   if (Date.now() >= GATES_AT) return true;
@@ -316,6 +354,10 @@ export function lockEventGate() {
 }
 
 export function initEventGate() {
+  if (isEventEnded()) {
+    showEndedPage();
+    return;
+  }
   rememberDevView();
   if (!countdownQueryActive() && Date.now() >= GATES_AT) rememberGatesOpened();
   if (COUNTDOWN_ENABLED && countdownQueryActive() && Date.now() < gateUntil()) {
