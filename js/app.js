@@ -1,14 +1,14 @@
-import { initEventGate, isEventEnded, isEventOpen, isDevPreview, openEventGate, WELCOME_PENDING_KEY } from "./gate.js?v=r171";
-import { CLUBS } from "./clubs.js?v=f2d682c05b";
-import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=f2d682c05b";
-import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f2d682c05b";
-import { SPONSORS } from "./sponsors.js?v=f2d682c05b";
-import { applyGhostPass } from "./ghost-pass.js?v=f2d682c05b";
-import { markImg } from "./marks.js?v=f2d682c05b";
-import { stationSvg } from "./station-art.js?v=f2d682c05b";
-import { createStore } from "./store.js?v=f2d682c05b";
-import { createPoller, subscribeVersions } from "./live.js?v=f2d682c05b";
-import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=f2d682c05b";
+import { initEventGate, isEventEnded, isEventOpen, isDevPreview, openEventGate, WELCOME_PENDING_KEY } from "./gate.js?v=5bb3e3e4fe";
+import { CLUBS } from "./clubs.js?v=5bb3e3e4fe";
+import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=5bb3e3e4fe";
+import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=5bb3e3e4fe";
+import { SPONSORS } from "./sponsors.js?v=5bb3e3e4fe";
+import { applyGhostPass } from "./ghost-pass.js?v=5bb3e3e4fe";
+import { markImg } from "./marks.js?v=5bb3e3e4fe";
+import { stationSvg } from "./station-art.js?v=5bb3e3e4fe";
+import { createStore } from "./store.js?v=5bb3e3e4fe";
+import { createPoller, subscribeVersions } from "./live.js?v=5bb3e3e4fe";
+import { statusFor, statusChipLabel, statusName } from "./wait-status.js?v=5bb3e3e4fe";
 import {
   apiFetch,
   apiUrl,
@@ -36,8 +36,8 @@ import {
   normalizeAdminNumber,
   isAdminNumber,
   userFacingError,
-} from "./session.js?v=f2d682c05b";
-import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=f2d682c05b";
+} from "./session.js?v=5bb3e3e4fe";
+import { FIRST_TRY_JITTER_MS, SIGNIN_TEXT, withSignInRetry } from "./signin-retry.js?v=5bb3e3e4fe";
 import {
   describePushBlock,
   disablePushNotifications,
@@ -49,7 +49,7 @@ import {
   syncPushWatch,
   dismissPushHint,
   pushIsLive,
-} from "./push.js?v=f2d682c05b";
+} from "./push.js?v=5bb3e3e4fe";
 
 let setGamesVisible = () => {};
 let flushGameProgress = () => {};
@@ -4755,7 +4755,7 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=r175")
+  import("./games.js?v=5bb3e3e4fe")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
