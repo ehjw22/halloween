@@ -1,4 +1,4 @@
-import { initEventGate, isEventEnded, isEventOpen, isDevPreview, WELCOME_PENDING_KEY } from "./gate.js?v=f2d682c05b";
+import { initEventGate, isEventEnded, isEventOpen, isDevPreview, openEventGate, WELCOME_PENDING_KEY } from "./gate.js?v=r171";
 import { CLUBS } from "./clubs.js?v=f2d682c05b";
 import { CLUSTERS, HOUSES, PINS, RETIRED_HOUSES, clusterById, pinById, STATUSES } from "./houses.js?v=f2d682c05b";
 import { BOOTHS, STAMP_BOOTHS, FOOD_BOOTHS, boothById } from "./booths.js?v=f2d682c05b";
@@ -466,7 +466,7 @@ let boardTimer = 0;
 
 const WELCOME_SEEN_KEY = "scream-welcome-seen";
 /** Set true to show the Games tab again. */
-const GAMES_ENABLED = false;
+const GAMES_ENABLED = true;
 /** Food stalls stay off this list until they are named as sponsors. */
 const SPONSORS_ENABLED = true;
 
@@ -4516,6 +4516,18 @@ function bindUi() {
   els.feedbackKind?.addEventListener("change", () => fillFeedbackTargets());
   // After-event page: the button moves the real Feedback tab form onto the thank-you page,
   // so it looks the same and sends through the same submit handler below.
+  function enterFromThanks(view) {
+    try {
+      sessionStorage.setItem(WELCOME_SEEN_KEY, "1");
+    } catch {
+      /* private mode still enters for this visit */
+    }
+    document.documentElement.classList.remove("event-ended");
+    openEventGate();
+    setView(view);
+  }
+  document.getElementById("thanksGamesBtn")?.addEventListener("click", () => enterFromThanks("games"));
+  document.getElementById("thanksEnterBtn")?.addEventListener("click", () => enterFromThanks("map"));
   document.getElementById("thanksFeedbackBtn")?.addEventListener("click", (event) => {
     const slot = document.getElementById("thanksFeedback");
     if (!slot || !els.feedbackForm || !isEventEnded()) return;
@@ -4743,12 +4755,13 @@ async function init() {
   } catch (error) {
     console.warn("House list failed", error);
   }
-  import("./games.js?v=f2d682c05b")
+  import("./games.js?v=r175")
     .then((games) => {
       setGamesVisible = games.setGamesVisible;
       flushGameProgress = games.flushGameProgress;
       applyGameAccount = games.applyGameAccount;
       games.initGames();
+      if (document.querySelector('.view.is-active[data-view="games"]')) games.setGamesVisible(true);
     })
     .catch((error) => console.warn("Games failed to load", error));
   updateNav();

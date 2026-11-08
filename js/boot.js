@@ -5,14 +5,23 @@
   // ?dev=scream preview switch (keep in sync with DEV_VIEW_ENABLED in js/gate.js).
   var DEV_VIEW_ENABLED = false;
   // After-event switch (keep in sync with EVENT_ENDED in js/gate.js).
-  // true = everyone sees the "Thank you for coming" page with a feedback button.
+  // true = a bare visit shows the thank-you page. Any other hash opens that page of the site.
   // Staff pages (#admin, #board) still open at their direct links. Set to false to go back.
   var EVENT_ENDED = true;
+  // Placeholder until the next Scream Fest date is set. Keep in sync with NEXT_HALLOWEEN in js/gate.js.
+  var NEXT_HALLOWEEN = Date.parse("2027-10-31T00:00:00+08:00");
+  function routeName() {
+    return String(location.hash || "").replace(/^#/, "").split("/")[0];
+  }
   function staffRoute() {
-    var view = String(location.hash || "").replace(/^#/, "").split("/")[0];
+    var view = routeName();
     return view === "admin" || view === "board";
   }
-  var endedPage = EVENT_ENDED && !staffRoute();
+  function landingPage() {
+    var view = routeName();
+    return !view || view === "welcome";
+  }
+  var endedPage = EVENT_ENDED && landingPage() && !staffRoute();
   if (endedPage) document.documentElement.classList.add("event-ended");
   var GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
   // Artwork switch. "poster" is the hand-made redesign; "classic" brings back every original
@@ -57,7 +66,7 @@
   }
 
   var override = countdownMs();
-  window.__screamGateUntil = override ? Date.now() + override : GATES_AT;
+  window.__screamGateUntil = override ? Date.now() + override : (endedPage ? NEXT_HALLOWEEN : GATES_AT);
   window.__screamCountdownTest = Boolean(override);
 
   function parts() {
@@ -92,7 +101,6 @@
   }
 
   window.__screamPaintGate = function () {
-    if (endedPage) return;
     var p = parts();
     var days = document.getElementById("cdDays");
     var hours = document.getElementById("cdHours");

@@ -405,6 +405,7 @@ html.event-open main {
   transition: opacity 0.7s ease, max-height 0.7s ease, margin 0.7s ease, visibility 0.7s ease;
 }
 .event-gate__clock {
+  --unit-w: 6.6rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -421,8 +422,10 @@ html.event-open main {
   justify-content: center;
   text-align: center;
   gap: 6px;
-  min-width: 4.6rem;
-  max-width: 8rem;
+  width: var(--unit-w);
+  min-width: var(--unit-w);
+  max-width: var(--unit-w);
+  flex: 0 0 var(--unit-w);
   height: fit-content;
   padding: 12px 12px 11px;
   border: 1px solid var(--line);
@@ -459,7 +462,7 @@ html.event-open main {
 }
 .event-gate__unit span {
   display: block;
-  width: 2.4ch;
+  width: 100%;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
   font-size: clamp(1.85rem, 6.5vw, 2.65rem);
@@ -6985,7 +6988,8 @@ body.is-board { background: #050308; }
   .lantern__motes i:nth-child(n) { --r: 68px; }
   .lantern__sparks i:nth-child(n) { --r: 108px; }
   #staffUnlockForm .btn { width: 100%; }
-  .event-gate__unit { min-width: 4.15rem; padding: 12px 10px 11px; gap: 6px; }
+  .event-gate__clock { --unit-w: 5.4rem; }
+  .event-gate__unit { padding: 12px 8px 11px; gap: 6px; }
   .event-gate__unit span { font-size: clamp(1.7rem, 8vw, 2.15rem); line-height: 1; }
   .event-gate__unit small { font-size: 0.62rem; }
   .modal {
@@ -7215,10 +7219,8 @@ li.empty-state { list-style: none; }
   input, select, textarea { font-size: 16px; }
 }
 @media (max-width: 480px) {
-  .event-gate__unit {
-    min-width: 4rem;
-    padding: 10px 8px 10px;
-  }
+  .event-gate__clock { --unit-w: 4.35rem; gap: 8px; }
+  .event-gate__unit { padding: 10px 4px 10px; }
 }
 @media (max-width: 430px) {
   .stamp-pad__meta { display: none; }
@@ -7310,8 +7312,8 @@ li.empty-state { list-style: none; }
   }
 }
 @media (max-width: 360px) {
-  .event-gate__clock { gap: 6px; }
-  .event-gate__unit { min-width: 3.6rem; padding: 8px 6px; }
+  .event-gate__clock { --unit-w: 4rem; gap: 6px; }
+  .event-gate__unit { padding: 8px 4px; }
   .welcome-night__actions .btn { min-width: 0; flex: 1 1 8rem; }
 }
 @media (max-width: 800px) and (orientation: landscape) {
@@ -7605,8 +7607,8 @@ button.is-busy::before,
 }
 
 /* After-event "Thank you for coming" page (EVENT_ENDED in js/gate.js and js/boot.js). */
-html.event-ended .event-gate__clock { display: none !important; }
 .event-gate__thanks { display: grid; justify-items: center; gap: 12px; width: 100%; max-width: 28rem; }
+.event-gate__thanks-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .event-gate__thanks[hidden], .event-gate__feedback[hidden] { display: none !important; }
 .event-gate__thanks-lead { margin: 0; font-size: 1.25rem; font-weight: 700; }
 .event-gate__thanks-line { margin: 0; color: var(--muted); }

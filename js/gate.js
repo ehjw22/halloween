@@ -9,6 +9,8 @@ export const DEV_VIEW_ENABLED = false;
 // Set to false (here AND in js/boot.js) to bring the normal site back.
 export const EVENT_ENDED = true;
 export const GATES_AT = Date.parse("2026-10-24T18:00:00+08:00");
+// Placeholder until the next Scream Fest date is set. Keep in sync with js/boot.js.
+export const NEXT_HALLOWEEN = Date.parse("2027-10-31T00:00:00+08:00");
 const OPEN_KEY = "scream-gates-opened";
 const DEV_KEY = "scream-dev-view";
 const DEV_PARAM = "dev";
@@ -57,25 +59,33 @@ function rememberGatesOpened() {
   }
 }
 
+function routeName() {
+  return String(location.hash || "").replace(/^#/, "").split("/")[0];
+}
+
 function isStaffRoute() {
-  const view = String(location.hash || "").replace(/^#/, "").split("/")[0];
+  const view = routeName();
   return view === "admin" || view === "board";
 }
 
+function isLandingHash() {
+  const view = routeName();
+  return !view || view === "welcome";
+}
+
 export function isEventEnded() {
-  return EVENT_ENDED && !isStaffRoute();
+  return EVENT_ENDED && isLandingHash() && !isStaffRoute();
 }
 
 function showEndedPage() {
-  stopClock();
   document.documentElement.classList.remove("event-open", "event-welcome");
   document.documentElement.classList.add("event-ended");
+  const when = document.getElementById("eventGateWhen");
+  if (when) when.textContent = "Next Halloween · 31 October 2027";
   const gate = document.getElementById("eventGate");
   if (gate) {
     gate.hidden = false;
     gate.setAttribute("aria-hidden", "false");
-    gate.removeAttribute("data-gate-phase");
-    gate.removeAttribute("data-gate-second");
   }
   const thanks = document.getElementById("eventThanks");
   if (thanks) thanks.hidden = false;
@@ -83,8 +93,10 @@ function showEndedPage() {
     node.setAttribute("inert", "");
     node.setAttribute("aria-hidden", "true");
   });
+  if (!window.__screamCountdownTest) window.__screamGateUntil = NEXT_HALLOWEEN;
+  startClock();
   window.addEventListener("hashchange", () => {
-    if (!isStaffRoute()) return;
+    if (isEventEnded()) return;
     document.documentElement.classList.remove("event-ended");
     openEventGate();
   });
@@ -277,11 +289,11 @@ function startClock() {
   lastLiveSecond = null;
   lastPhase = null;
   if (paintClock()) {
-    beginSting();
+    if (!isEventEnded()) beginSting();
     return;
   }
   tickId = window.setInterval(() => {
-    if (paintClock()) beginSting();
+    if (paintClock() && !isEventEnded()) beginSting();
   }, 250);
 }
 

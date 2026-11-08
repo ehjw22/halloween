@@ -34,9 +34,9 @@
       href="https://fonts.googleapis.com/css2?family=Creepster&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=f2d682c05b" />
+    <link rel="stylesheet" href="css/styles.css?v=r174" />
     <link rel="stylesheet" href="css/poster.css?v=f2d682c05b" />
-    <script src="js/boot.js?v=f2d682c05b"></script>
+    <script src="js/boot.js?v=r171"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -73,7 +73,7 @@
         <p class="event-gate__kicker">Singapore Polytechnic</p>
         <img class="event-gate__logo" src="img/marks/scream-fest.png?v=r1" alt="">
         <h1 id="eventGateTitle" class="event-gate__title">Scream Fest</h1>
-        <p class="event-gate__when">24 October 2026 · 6:00 PM</p>
+        <p class="event-gate__when" id="eventGateWhen">Next Halloween · 31 October 2027</p>
         <p class="visually-hidden" id="eventGateLive" aria-live="polite"></p>
         <div class="event-gate__clock" data-span="dhms" aria-hidden="true">
           <div class="event-gate__unit event-gate__unit--days">
@@ -93,6 +93,10 @@
         <div class="event-gate__thanks" id="eventThanks" hidden>
           <p class="event-gate__thanks-lead">Thank you for coming to SP Scream Fest 2026!</p>
           <p class="event-gate__thanks-line">We hope you had a fun and scary night. Tell us how it went so we can make the next one even better.</p>
+          <div class="event-gate__thanks-actions">
+            <button class="btn btn--primary" type="button" id="thanksGamesBtn">Play the games</button>
+            <button class="btn" type="button" id="thanksEnterBtn">Enter the site</button>
+          </div>
           <button class="btn" type="button" id="thanksFeedbackBtn" aria-expanded="false" aria-controls="thanksFeedback">Give feedback</button>
           <div class="event-gate__feedback" id="thanksFeedback" hidden></div>
         </div>
@@ -887,8 +891,7 @@
             <p class="game-toast" id="clickerToast" hidden></p>
             <h3 class="roadmap__title">Milestones</h3>
             <ul class="achieve-list" id="clickerAchievements"></ul>
-            <h3 class="roadmap__title">Top scores</h3>
-            <ol class="scoreboard" data-scoreboard="clicker"></ol>
+            <ol class="scoreboard" data-scoreboard="clicker" hidden></ol>
           </article>
 
           <article class="game-panel" data-game-panel="memory" hidden>
@@ -914,8 +917,7 @@
               </button>
             </div>
             <div class="memory-grid" id="memoryGrid" data-diff="medium"></div>
-            <h3 class="roadmap__title">Top scores</h3>
-            <ol class="scoreboard" data-scoreboard="memory"></ol>
+            <ol class="scoreboard" data-scoreboard="memory" hidden></ol>
           </article>
 
           <article
@@ -996,8 +998,7 @@
                 </li>
               </ul>
             </div>
-            <h3 class="roadmap__title">Top scores</h3>
-            <ol class="scoreboard" data-scoreboard="catch"></ol>
+            <ol class="scoreboard" data-scoreboard="catch" hidden></ol>
           </article>
         </section>
 
@@ -1697,7 +1698,7 @@
       </div>
 
       <script src="js/config.js?v=f2d682c05b"></script>
-      <script type="module" src="js/app.js?v=f2d682c05b"></script>
+      <script type="module" src="js/app.js?v=r175"></script>
     </div>
   </body>
 </html>

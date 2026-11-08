@@ -74,7 +74,7 @@ function setLocalBest(id, score) {
 }
 
 function renderBoard(listEl, top, mine, signedIn) {
-  if (!listEl) return;
+  if (!listEl || listEl.hidden) return;
   const rows = (top || []).map((row, i) => `<li><span>${i + 1}. ${esc(row.name)}</span><strong>${Number(row.score) || 0}</strong></li>`).join("");
   const hint = signedIn
     ? `Your saved best: ${mine ?? 0}`
